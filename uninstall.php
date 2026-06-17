@@ -26,12 +26,19 @@ if ( 'yes' === get_option( 'tsbifw_delete_data_on_uninstall', 'no' ) ) {
 		'tsbifw_similarity_threshold',
 		'tsbifw_exclude_below_percent',
 		'tsbifw_results_limit',
+		'tsbifw_search_cache_expiry',
 		'tsbifw_enable_auto_inject',
+		'tsbifw_camera_left',
+		'tsbifw_camera_right',
+		'tsbifw_camera_bg_color',
+		'tsbifw_camera_icon_size',
 		'tsbifw_index_featured',
 		'tsbifw_index_gallery',
 		'tsbifw_enable_logging',
 		'tsbifw_log_retention',
 		'tsbifw_enable_cron_indexing',
+		'tsbifw_cron_interval',
+		'tsbifw_cron_batch_size',
 		'tsbifw_delete_data_on_uninstall',
 		'tsbifw_logs',
 	);
@@ -42,12 +49,17 @@ if ( 'yes' === get_option( 'tsbifw_delete_data_on_uninstall', 'no' ) ) {
 
 	// 2. Clear transients.
 	delete_transient( 'tsbifw_all_vectors' );
+	delete_transient( 'tsbifw_all_descriptions' );
 	
 	// Clear any cached models transients.
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 	$wpdb->query( "DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_tsbifw_models_%'" );
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 	$wpdb->query( "DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_timeout_tsbifw_models_%'" );
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+	$wpdb->query( "DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_tsbifw_vquery_%'" );
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+	$wpdb->query( "DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_timeout_tsbifw_vquery_%'" );
 
 	// 3. Delete product post metadata.
 	$tsbifw_meta_keys = array(

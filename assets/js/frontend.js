@@ -141,7 +141,6 @@ jQuery(document).ready(function($) {
 			$('.tsbifw-scanner-bar').show();
 			$('.tsbifw-scanning-overlay').show();
 			$('.tsbifw-search-status').text(tsbifw_frontend_params.strings.scanning).addClass('pulse').show();
-			$('.tsbifw-results-grid').hide().html('');
 
 			frontendCropper.getCroppedCanvas({
 				maxWidth: 512,
@@ -190,7 +189,6 @@ jQuery(document).ready(function($) {
 		$('.tsbifw-scanner-bar').hide();
 		$('.tsbifw-scanning-overlay').hide();
 		$('.tsbifw-search-status').hide().removeClass('pulse').text('');
-		$('.tsbifw-results-grid').hide().html('');
 	}
 
 	// Process selected image file
@@ -208,7 +206,6 @@ jQuery(document).ready(function($) {
 
 			$('.tsbifw-drag-zone').hide();
 			$('.tsbifw-preview-wrapper').show();
-			$('.tsbifw-results-grid').hide().html('');
 			$('.tsbifw-search-status').hide().text('');
 
 			if (frontendCropper) {

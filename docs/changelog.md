@@ -211,3 +211,13 @@ step 52:
 
 step 53:
 1- Removed the shop archive post loop action hook (`woocommerce_after_shop_loop_item_title`) rendering the visual match percentage badge in the frontend.
+
+step 54:
+1- Removed the dead callback function display_similarity_score_in_loop() and its CSS rule in frontend.css.
+2- Removed obsolete/unused frontend localized string parameters from class-tsbifw-search.php.
+3- Added security nonce validation and capability check to the REST API Test Search Sandbox route.
+4- Added custom sanitizers for layouts, sizes, strategy, and colors to settings in class-tsbifw-admin.php.
+5- Updated uninstall.php to clean up all missing registered settings and dynamic transients.
+6- Added memory object caching wrapper inside class-tsbifw-indexer.php.
+7- Incremented version to 1.1.2.
+8- Enqueued standard REST API nonce to admin scripts and passed it as X-WP-Nonce header in sandbox search AJAX requests to prevent guest session authorization issues during admin sandbox tests.

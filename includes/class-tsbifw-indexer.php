@@ -377,6 +377,11 @@ class TSBIFW_Indexer {
 	 * @return array Map of product ID => vector array.
 	 */
 	public function get_all_vectors() {
+		$cache_val = wp_cache_get( self::CACHE_KEY, 'tsbifw_cache' );
+		if ( false !== $cache_val ) {
+			return $cache_val;
+		}
+
 		$vectors = get_transient( self::CACHE_KEY );
 		if ( false === $vectors ) {
 			global $wpdb;
@@ -412,6 +417,7 @@ class TSBIFW_Indexer {
 			set_transient( self::CACHE_KEY, $vectors, DAY_IN_SECONDS );
 		}
 
+		wp_cache_set( self::CACHE_KEY, $vectors, 'tsbifw_cache' );
 		return $vectors;
 	}
 
@@ -422,6 +428,11 @@ class TSBIFW_Indexer {
 	 */
 	public function get_all_descriptions() {
 		$cache_key = 'tsbifw_all_descriptions';
+		$descriptions = wp_cache_get( $cache_key, 'tsbifw_cache' );
+		if ( false !== $descriptions ) {
+			return $descriptions;
+		}
+
 		$descriptions = get_transient( $cache_key );
 		if ( false === $descriptions ) {
 			global $wpdb;
@@ -455,6 +466,7 @@ class TSBIFW_Indexer {
 			set_transient( $cache_key, $descriptions, DAY_IN_SECONDS );
 		}
 
+		wp_cache_set( $cache_key, $descriptions, 'tsbifw_cache' );
 		return $descriptions;
 	}
 
@@ -464,6 +476,8 @@ class TSBIFW_Indexer {
 	public function clear_cache() {
 		delete_transient( self::CACHE_KEY );
 		delete_transient( 'tsbifw_all_descriptions' );
+		wp_cache_delete( self::CACHE_KEY, 'tsbifw_cache' );
+		wp_cache_delete( 'tsbifw_all_descriptions', 'tsbifw_cache' );
 	}
 
 	/**

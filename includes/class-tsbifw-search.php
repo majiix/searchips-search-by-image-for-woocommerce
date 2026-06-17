@@ -133,11 +133,7 @@ class TSBIFW_Search {
 					'modal_title'      => esc_html__( 'Search by Image', 'telens-search-by-image-for-woocommerce' ),
 					'drag_drop_text'   => esc_html__( 'Drag and drop an image here or click to browse', 'telens-search-by-image-for-woocommerce' ),
 					'scanning'         => esc_html__( 'Searching...', 'telens-search-by-image-for-woocommerce' ),
-					'no_results'       => esc_html__( 'No matching products found.', 'telens-search-by-image-for-woocommerce' ),
 					'error'            => esc_html__( 'Search failed. Please try again.', 'telens-search-by-image-for-woocommerce' ),
-					'view_product'     => esc_html__( 'View Product', 'telens-search-by-image-for-woocommerce' ),
-					'add_to_cart'      => esc_html__( 'Add to Cart', 'telens-search-by-image-for-woocommerce' ),
-					'similarity_label' => esc_html__( 'Match:', 'telens-search-by-image-for-woocommerce' ),
 					'search_btn_text'  => esc_html__( 'Start Search', 'telens-search-by-image-for-woocommerce' ),
 					'select_another'   => esc_html__( 'Select Another', 'telens-search-by-image-for-woocommerce' ),
 				),
@@ -228,35 +224,7 @@ class TSBIFW_Search {
 		return $search;
 	}
 
-	/**
-	 * Output similarity match percentage score next to product titles on visual search results archives.
-	 */
-	public function display_similarity_score_in_loop() {
-		global $product;
-		if ( ! $product ) {
-			return;
-		}
 
-		$token = get_query_var( 'vquery' );
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
-		if ( empty( $token ) && isset( $_GET['vquery'] ) ) {
-			// phpcs:ignore WordPress.Security.NonceVerification.Recommended
-			$token = sanitize_key( wp_unslash( $_GET['vquery'] ) );
-		}
-
-		if ( empty( $token ) ) {
-			return;
-		}
-
-		$scores = get_transient( 'tsbifw_vquery_scores_' . $token );
-		if ( ! is_array( $scores ) || ! isset( $scores[ $product->get_id() ] ) ) {
-			return;
-		}
-
-		$score = $scores[ $product->get_id() ];
-		// translators: %s: similarity score percentage.
-		echo '<span class="tsbifw-similarity-badge-frontend">' . sprintf( esc_html__( 'Match: %s', 'telens-search-by-image-for-woocommerce' ), esc_html( $score ) ) . '</span>';
-	}
 
 	/**
 	 * Render custom search bar via shortcode [tsbifw_search_bar].
@@ -458,6 +426,11 @@ class TSBIFW_Search {
 		$sandbox = ! empty( $request->get_param( 'sandbox' ) );
 
 		if ( $sandbox ) {
+			$nonce = $request->get_param( 'security' );
+			if ( ! wp_verify_nonce( $nonce, 'tsbifw_admin_nonce' ) || ! current_user_can( 'manage_options' ) ) {
+				return new WP_Error( 'tsbifw_forbidden', esc_html__( 'Forbidden.', 'telens-search-by-image-for-woocommerce' ), array( 'status' => 403 ) );
+			}
+
 			// Format product response lists for admin test search sandbox.
 			$formatted_results = array();
 			foreach ( $matched_posts as $match ) {

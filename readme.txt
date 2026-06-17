@@ -3,7 +3,7 @@ Contributors: micromax2
 Tags: woocommerce, search, image search, search by image, vector search
 Requires at least: 5.6
 Tested up to: 7.0
-Stable tag: 1.1.1
+Stable tag: 1.1.2
 Requires PHP: 7.4
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
@@ -78,6 +78,13 @@ No, the indexer automatically skips empty or missing image files to prevent API 
 Ensure that "Background Cron Indexing" is enabled in your General Settings, or simply update a product's featured/gallery image to automatically queue it for re-indexing.
 
 == Changelog ==
+
+= 1.1.2 =
+* Hardened input settings sanitization using custom CSS layout, color, and size callbacks.
+* Authenticated the REST API sandbox search route using nonces and capability checks.
+* Removed obsolete/unused frontend variables and dead callback functions to unbloat code.
+* Enhanced query performance using WordPress object caching memory wrappers.
+* Hardened uninstall database cleanup by ensuring all option keys and transients are deleted.
 
 = 1.1.1 =
 * Added a search cache expiry setting to database transients.

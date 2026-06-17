@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Telens Search By Image for WooCommerce
  * Description: Enable customers to search WooCommerce products using images powered by OpenRouter embeddings and vision models.
- * Version:     1.1.1
+ * Version:     1.1.2
  * Author:      micromax
  * Text Domain: telens-search-by-image-for-woocommerce
  * Domain Path: /languages
@@ -20,7 +20,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Define plugin constants.
-define( 'TSBIFW_VERSION', '1.1.1' );
+define( 'TSBIFW_VERSION', '1.1.2' );
 define( 'TSBIFW_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'TSBIFW_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'TSBIFW_FILE', __FILE__ );

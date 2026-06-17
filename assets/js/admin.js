@@ -422,6 +422,7 @@ jQuery(document).ready(function($) {
 		var formData = new FormData();
 		formData.append('image', file);
 		formData.append('sandbox', '1');
+		formData.append('security', tsbifw_admin_params.nonce);
 
 		$.ajax({
 			url: tsbifw_admin_params.search_endpoint,
@@ -429,6 +430,9 @@ jQuery(document).ready(function($) {
 			data: formData,
 			processData: false,
 			contentType: false,
+			beforeSend: function(xhr) {
+				xhr.setRequestHeader('X-WP-Nonce', tsbifw_admin_params.wp_rest_nonce);
+			},
 			success: function(response) {
 				// Stop scanning animation
 				$('#tsbifw-admin-preview-wrapper').find('.tsbifw-scanner-bar').hide();

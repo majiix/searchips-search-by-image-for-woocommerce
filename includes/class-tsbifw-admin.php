@@ -81,6 +81,7 @@ class TSBIFW_Admin {
 			array(
 				'ajax_url'        => admin_url( 'admin-ajax.php' ),
 				'nonce'           => wp_create_nonce( 'tsbifw_admin_nonce' ),
+				'wp_rest_nonce'   => wp_create_nonce( 'wp_rest' ),
 				'confirm'         => esc_html__( 'Are you sure you want to clear all indexed vectors and descriptions? This cannot be undone.', 'telens-search-by-image-for-woocommerce' ),
 				'search_endpoint' => esc_url_raw( rest_url( 'tsbifw/v1/search' ) ),
 				'strings'         => array(
@@ -120,16 +121,16 @@ class TSBIFW_Admin {
 			'sanitize_callback' => array( $this, 'sanitize_api_key' ),
 		) );
 		register_setting( 'tsbifw_settings_group', 'tsbifw_strategy', array(
-			'sanitize_callback' => 'sanitize_text_field',
+			'sanitize_callback' => array( $this, 'sanitize_strategy' ),
 		) );
 		register_setting( 'tsbifw_settings_group', 'tsbifw_embeddings_model', array(
-			'sanitize_callback' => 'sanitize_text_field',
+			'sanitize_callback' => array( $this, 'sanitize_model_id' ),
 		) );
 		register_setting( 'tsbifw_settings_group', 'tsbifw_vision_model', array(
-			'sanitize_callback' => 'sanitize_text_field',
+			'sanitize_callback' => array( $this, 'sanitize_model_id' ),
 		) );
 		register_setting( 'tsbifw_settings_group', 'tsbifw_sync_to_tags', array(
-			'sanitize_callback' => 'sanitize_text_field',
+			'sanitize_callback' => array( $this, 'sanitize_yes_no' ),
 		) );
 		register_setting( 'tsbifw_settings_group', 'tsbifw_similarity_threshold', array(
 			'sanitize_callback' => 'sanitize_text_field',
@@ -144,43 +145,43 @@ class TSBIFW_Admin {
 			'sanitize_callback' => 'absint',
 		) );
 		register_setting( 'tsbifw_settings_group', 'tsbifw_enable_auto_inject', array(
-			'sanitize_callback' => 'sanitize_text_field',
+			'sanitize_callback' => array( $this, 'sanitize_yes_no_default_yes' ),
 		) );
 		register_setting( 'tsbifw_styling_group', 'tsbifw_camera_left', array(
-			'sanitize_callback' => 'sanitize_text_field',
+			'sanitize_callback' => array( $this, 'sanitize_css_position' ),
 		) );
 		register_setting( 'tsbifw_styling_group', 'tsbifw_camera_right', array(
-			'sanitize_callback' => 'sanitize_text_field',
+			'sanitize_callback' => array( $this, 'sanitize_css_position' ),
 		) );
 		register_setting( 'tsbifw_styling_group', 'tsbifw_camera_bg_color', array(
-			'sanitize_callback' => 'sanitize_text_field',
+			'sanitize_callback' => array( $this, 'sanitize_css_color' ),
 		) );
 		register_setting( 'tsbifw_styling_group', 'tsbifw_camera_icon_size', array(
-			'sanitize_callback' => 'sanitize_text_field',
+			'sanitize_callback' => array( $this, 'sanitize_css_size' ),
 		) );
 		register_setting( 'tsbifw_settings_group', 'tsbifw_index_featured', array(
-			'sanitize_callback' => 'sanitize_text_field',
+			'sanitize_callback' => array( $this, 'sanitize_yes_no_default_yes' ),
 		) );
 		register_setting( 'tsbifw_settings_group', 'tsbifw_index_gallery', array(
-			'sanitize_callback' => 'sanitize_text_field',
+			'sanitize_callback' => array( $this, 'sanitize_yes_no' ),
 		) );
 		register_setting( 'tsbifw_settings_group', 'tsbifw_enable_logging', array(
-			'sanitize_callback' => 'sanitize_text_field',
+			'sanitize_callback' => array( $this, 'sanitize_yes_no_default_yes' ),
 		) );
 		register_setting( 'tsbifw_settings_group', 'tsbifw_log_retention', array(
 			'sanitize_callback' => 'absint',
 		) );
 		register_setting( 'tsbifw_settings_group', 'tsbifw_enable_cron_indexing', array(
-			'sanitize_callback' => 'sanitize_text_field',
+			'sanitize_callback' => array( $this, 'sanitize_yes_no' ),
 		) );
 		register_setting( 'tsbifw_settings_group', 'tsbifw_cron_interval', array(
-			'sanitize_callback' => 'sanitize_text_field',
+			'sanitize_callback' => array( $this, 'sanitize_cron_interval' ),
 		) );
 		register_setting( 'tsbifw_settings_group', 'tsbifw_cron_batch_size', array(
 			'sanitize_callback' => array( $this, 'sanitize_cron_batch_size' ),
 		) );
 		register_setting( 'tsbifw_settings_group', 'tsbifw_delete_data_on_uninstall', array(
-			'sanitize_callback' => 'sanitize_text_field',
+			'sanitize_callback' => array( $this, 'sanitize_yes_no' ),
 		) );
 	}
 
@@ -842,7 +843,7 @@ class TSBIFW_Admin {
 
 			if ( is_wp_error( $result ) ) {
 				$logs[] = sprintf(
-					/* translators: 1: Product title, 2: Error message */
+					// translators: 1: Product title, 2: Error message
 					esc_html__( 'Failed to index "%1$s": %2$s', 'telens-search-by-image-for-woocommerce' ),
 					$title,
 					$result->get_error_message()
@@ -851,13 +852,13 @@ class TSBIFW_Admin {
 				$status = get_post_meta( $id, '_tsbifw_indexed_status', true );
 				if ( 'skipped' === $status ) {
 					$logs[] = sprintf(
-						/* translators: %s: Product title */
+						// translators: %s: Product title
 						esc_html__( 'Skipped "%s" (No featured image found)', 'telens-search-by-image-for-woocommerce' ),
 						$title
 					);
 				} else {
 					$logs[] = sprintf(
-						/* translators: %s: Product title */
+						// translators: %s: Product title
 						esc_html__( 'Successfully indexed "%s"', 'telens-search-by-image-for-woocommerce' ),
 						$title
 					);
@@ -1250,5 +1251,136 @@ class TSBIFW_Admin {
 			return 5; // Fallback default.
 		}
 		return $num;
+	}
+
+	/**
+	 * Sanitize CSS position property (e.g. left, right).
+	 *
+	 * @param string $value CSS position.
+	 * @return string Sanitized value.
+	 */
+	public function sanitize_css_position( $value ) {
+		$value = trim( sanitize_text_field( $value ) );
+		if ( in_array( strtolower( $value ), array( 'auto', 'inherit', 'initial', 'unset' ), true ) ) {
+			return strtolower( $value );
+		}
+		if ( preg_match( '/^[+-]?[0-9]+(?:\.[0-9]+)?(?:px|%|em|rem|ex|ch|vh|vw|vmin|vmax)?$/i', $value ) ) {
+			return $value;
+		}
+		return 'auto';
+	}
+
+	/**
+	 * Sanitize CSS size property (e.g. size, width, height).
+	 *
+	 * @param string $value CSS size.
+	 * @return string Sanitized value.
+	 */
+	public function sanitize_css_size( $value ) {
+		$value = trim( sanitize_text_field( $value ) );
+		if ( preg_match( '/^[0-9]+(?:\.[0-9]+)?(?:px|%|em|rem)?$/i', $value ) ) {
+			return $value;
+		}
+		return '20px';
+	}
+
+	/**
+	 * Sanitize CSS color value.
+	 *
+	 * @param string $value CSS color.
+	 * @return string Sanitized value.
+	 */
+	public function sanitize_css_color( $value ) {
+		$value = trim( sanitize_text_field( $value ) );
+		if ( preg_match( '/^#[a-f0-9]{3,8}$/i', $value ) ) {
+			return $value;
+		}
+		if ( preg_match( '/^(?:rgb|rgba|hsl|hsla)\([^)]*\)$/i', $value ) ) {
+			return $value;
+		}
+		if ( in_array( strtolower( $value ), array( 'transparent', 'initial', 'inherit' ), true ) ) {
+			return strtolower( $value );
+		}
+		$valid_names = array(
+			'aliceblue', 'antiquewhite', 'aqua', 'aquamarine', 'azure', 'beige', 'bisque', 'black', 'blanchedalmond',
+			'blue', 'blueviolet', 'brown', 'burlywood', 'cadetblue', 'chartreuse', 'chocolate', 'coral', 'cornflowerblue',
+			'cornsilk', 'crimson', 'cyan', 'darkblue', 'darkcyan', 'darkgoldenrod', 'darkgray', 'darkgreen', 'darkgrey',
+			'darkkhaki', 'darkmagenta', 'darkolivegreen', 'darkorange', 'darkorchid', 'darkred', 'darksalmon',
+			'darkseagreen', 'darkslateblue', 'darkslategray', 'darkslategrey', 'darkturquoise', 'darkviolet',
+			'deeppink', 'deepskyblue', 'dimgray', 'dimgrey', 'dodgerblue', 'firebrick', 'floralwhite', 'forestgreen',
+			'fuchsia', 'gainsboro', 'ghostwhite', 'gold', 'goldenrod', 'gray', 'green', 'greenyellow', 'grey',
+			'honeydew', 'hotpink', 'indigo', 'ivory', 'khaki', 'lavender', 'lavenderblush', 'lawngreen',
+			'lemonchiffon', 'lightblue', 'lightcoral', 'lightcyan', 'lightgoldenrodyellow', 'lightgray', 'lightgreen',
+			'lightgrey', 'lightpink', 'lightsalmon', 'lightseagreen', 'lightskyblue', 'lightslategray', 'lightslategrey',
+			'lightsteelblue', 'lightyellow', 'lime', 'limegreen', 'linen', 'magenta', 'maroon', 'mediumaquamarine',
+			'mediumblue', 'mediumorchid', 'mediumpurple', 'mediumseagreen', 'mediumslateblue', 'mediumspringgreen',
+			'mediumturquoise', 'mediumvioletred', 'midnightblue', 'mintcream', 'mistyrose', 'moccasin', 'navajowhite',
+			'navy', 'oldlace', 'olive', 'olivedrab', 'orange', 'orangered', 'orchid', 'palegoldenrod', 'palegreen',
+			'paleturquoise', 'palevioletred', 'papayawhip', 'peachpuff', 'peru', 'pink', 'plum', 'powderblue',
+			'purple', 'rebeccapurple', 'red', 'rosybrown', 'royalblue', 'saddlebrown', 'salmon', 'sandybrown',
+			'seagreen', 'seashell', 'sienna', 'silver', 'skyblue', 'slateblue', 'slategray', 'slategrey', 'snow',
+			'springgreen', 'steelblue', 'tan', 'teal', 'thistle', 'tomato', 'turquoise', 'violet', 'wheat', 'white',
+			'whitesmoke', 'yellow', 'yellowgreen'
+		);
+		if ( in_array( strtolower( $value ), $valid_names, true ) ) {
+			return strtolower( $value );
+		}
+		return 'transparent';
+	}
+
+	/**
+	 * Sanitize search strategy.
+	 *
+	 * @param string $value Strategy.
+	 * @return string Sanitized strategy.
+	 */
+	public function sanitize_strategy( $value ) {
+		$value = sanitize_text_field( $value );
+		return in_array( $value, array( 'embeddings', 'vision' ), true ) ? $value : 'embeddings';
+	}
+
+	/**
+	 * Sanitize model ID.
+	 *
+	 * @param string $value Model ID.
+	 * @return string Sanitized model ID.
+	 */
+	public function sanitize_model_id( $value ) {
+		$value = sanitize_text_field( $value );
+		return preg_match( '/^[a-zA-Z0-9_\-\.\/:]+$/', $value ) ? $value : '';
+	}
+
+	/**
+	 * Sanitize yes/no options.
+	 *
+	 * @param string $value Option value.
+	 * @return string Sanitized value.
+	 */
+	public function sanitize_yes_no( $value ) {
+		$value = sanitize_text_field( $value );
+		return in_array( $value, array( 'yes', 'no' ), true ) ? $value : 'no';
+	}
+
+	/**
+	 * Sanitize yes/no options with yes default.
+	 *
+	 * @param string $value Option value.
+	 * @return string Sanitized value.
+	 */
+	public function sanitize_yes_no_default_yes( $value ) {
+		$value = sanitize_text_field( $value );
+		return in_array( $value, array( 'yes', 'no' ), true ) ? $value : 'yes';
+	}
+
+	/**
+	 * Sanitize cron interval option.
+	 *
+	 * @param string $value Option value.
+	 * @return string Sanitized value.
+	 */
+	public function sanitize_cron_interval( $value ) {
+		$value = sanitize_text_field( $value );
+		$valid = array( 'every_minute', 'every_5_minutes', 'every_15_minutes', 'hourly', 'twice_daily', 'daily' );
+		return in_array( $value, $valid, true ) ? $value : 'hourly';
 	}
 }
