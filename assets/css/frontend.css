@@ -1,0 +1,425 @@
+/**
+ * Frontend Styling for Telens Search By Image
+ */
+
+/* Camera trigger injection styles */
+.tsbifw-search-input-wrapper {
+	position: relative;
+	display: inline-flex;
+	align-items: center;
+	width: 100%;
+}
+
+.tsbifw-search-input-wrapper input[type="search"],
+.tsbifw-search-input-wrapper input.search-field {
+	padding-right: 40px !important;
+	width: 100%;
+}
+
+.tsbifw-camera-trigger {
+	position: absolute;
+	right: 10px;
+	background: none !important;
+	border: none !important;
+	padding: 0 !important;
+	margin: 0 !important;
+	cursor: pointer;
+	color: #64748b;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	transition: color 0.2s ease, transform 0.2s ease;
+	z-index: 10;
+	width: 24px;
+	height: 24px;
+	outline: none;
+}
+
+.tsbifw-camera-trigger:hover {
+	color: #4f46e5;
+	transform: scale(1.08);
+}
+
+.tsbifw-camera-icon {
+	pointer-events: none;
+}
+
+/* Modal Overlay Container - Premium Glassmorphic style */
+.tsbifw-modal-overlay {
+	position: fixed;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	background: rgba(15, 23, 42, 0.45);
+	backdrop-filter: blur(12px);
+	-webkit-backdrop-filter: blur(12px);
+	z-index: 999999;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	opacity: 0;
+	transition: opacity 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+	pointer-events: none;
+}
+
+.tsbifw-modal-overlay.active {
+	opacity: 1;
+	pointer-events: auto;
+}
+
+/* Modal Box - Compact, Modern & Premium */
+.tsbifw-modal-container {
+	background: #ffffff;
+	width: 90%;
+	max-width: 480px;
+	max-height: 85vh;
+	border-radius: 24px;
+	box-shadow: 0 20px 40px -10px rgba(15, 23, 42, 0.25);
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+	transform: scale(0.95) translateY(10px);
+	transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+	border: 1px solid rgba(226, 232, 240, 0.8);
+}
+
+.tsbifw-modal-overlay.active .tsbifw-modal-container {
+	transform: scale(1) translateY(0);
+}
+
+/* Modal Header */
+.tsbifw-modal-header {
+	padding: 22px 28px;
+	border-bottom: 1px solid #f1f5f9;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+}
+
+.tsbifw-modal-header h3 {
+	margin: 0;
+	font-size: 18px;
+	font-weight: 800;
+	color: #0f172a;
+	letter-spacing: -0.3px;
+	font-family: inherit;
+}
+
+.tsbifw-modal-close {
+	background: #f1f5f9;
+	border: none;
+	width: 32px;
+	height: 32px;
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	cursor: pointer;
+	color: #64748b;
+	transition: background 0.2s, color 0.2s, transform 0.25s ease-out;
+}
+
+.tsbifw-modal-close:hover {
+	background: #e2e8f0;
+	color: #0f172a;
+	transform: rotate(90deg);
+}
+
+/* Modal Body Content */
+.tsbifw-modal-body {
+	padding: 28px;
+	overflow-y: auto;
+	flex: 1;
+}
+
+/* Drag and Drop Zone - Glowing Hover Effects */
+.tsbifw-drag-zone {
+	border: 2px dashed #cbd5e1;
+	border-radius: 16px;
+	padding: 45px 24px;
+	text-align: center;
+	cursor: pointer;
+	transition: border-color 0.25s, background-color 0.25s, box-shadow 0.25s;
+	background-color: #fafafa;
+}
+
+.tsbifw-drag-zone:hover,
+.tsbifw-drag-zone.dragover {
+	border-color: #6366f1;
+	background-color: #f5f3ff;
+	box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+}
+
+.tsbifw-drag-icon {
+	color: #94a3b8;
+	margin-bottom: 16px;
+	transition: color 0.25s, transform 0.25s;
+}
+
+.tsbifw-drag-zone:hover .tsbifw-drag-icon {
+	color: #6366f1;
+	transform: translateY(-2px);
+}
+
+.tsbifw-drag-zone p {
+	margin: 0;
+	font-size: 14px;
+	color: #475569;
+	font-weight: 600;
+}
+
+/* Image Preview & Scanning Panel */
+.tsbifw-preview-wrapper {
+	display: none;
+	position: relative;
+	max-width: 280px;
+	margin: 0 auto 24px auto;
+	border-radius: 16px;
+	overflow: hidden;
+}
+
+.tsbifw-preview-image {
+	width: 100%;
+	display: block;
+	height: auto;
+	max-height: 280px;
+	object-fit: cover;
+}
+
+/* Neon Scanning Line Animation - Glowing Laser */
+.tsbifw-scanner-bar {
+	display: none;
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 4px;
+	background: linear-gradient(90deg, rgba(99,102,241,0) 0%, rgba(99,102,241,1) 50%, rgba(99,102,241,0) 100%);
+	box-shadow: 0 0 12px #6366f1, 0 0 24px #6366f1;
+	animation: tsbifw-scan 2s linear infinite;
+	z-index: 10;
+}
+
+@keyframes tsbifw-scan {
+	0% { top: 0%; }
+	50% { top: 100%; }
+	100% { top: 0%; }
+}
+
+.tsbifw-scanning-overlay {
+	display: none;
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	background: rgba(99, 102, 241, 0.15);
+	backdrop-filter: saturate(1.2) blur(1px);
+	z-index: 5;
+}
+
+/* Status message */
+.tsbifw-search-status {
+	text-align: center;
+	font-weight: 700;
+	color: #6366f1;
+	font-size: 15px;
+	margin: 18px 0;
+	display: none;
+}
+
+.tsbifw-search-status.pulse {
+	animation: tsbifw-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes tsbifw-pulse {
+	0%, 100% { opacity: 0.6; }
+	50% { opacity: 1; }
+}
+
+/* Reselect and Crop Action Buttons - Modern Aesthetics */
+.tsbifw-reselect-btn {
+	background: #ffffff;
+	border: 1px solid #cbd5e1;
+	padding: 10px 20px;
+	border-radius: 10px;
+	font-size: 13px;
+	font-weight: 600;
+	color: #475569;
+	cursor: pointer;
+	transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
+	outline: none;
+	box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.tsbifw-reselect-btn:hover {
+	background: #f8fafc;
+	border-color: #94a3b8;
+	box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+}
+
+.tsbifw-crop-search-btn {
+	background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+	color: #ffffff;
+	border: none;
+	padding: 10px 24px;
+	border-radius: 10px;
+	font-size: 13px;
+	font-weight: 600;
+	cursor: pointer;
+	transition: opacity 0.2s, transform 0.2s, box-shadow 0.2s;
+	box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25);
+	outline: none;
+}
+
+.tsbifw-crop-search-btn:hover {
+	transform: translateY(-1px);
+	box-shadow: 0 6px 16px rgba(79, 70, 229, 0.35);
+}
+
+.tsbifw-crop-search-btn:active {
+	transform: translateY(0);
+}
+
+/* Premium Similarity Score badge for WooCommerce Shop Archive Cards */
+.tsbifw-similarity-badge-frontend {
+	display: inline-flex;
+	align-items: center;
+	background: #f5f3ff !important;
+	color: #4f46e5 !important;
+	border: 1px solid #ddd6fe !important;
+	font-size: 11px !important;
+	font-weight: 700 !important;
+	padding: 4px 10px !important;
+	border-radius: 20px !important;
+	margin-top: 6px !important;
+	margin-bottom: 8px !important;
+	box-shadow: 0 1px 2px rgba(79, 70, 229, 0.05);
+	letter-spacing: 0.3px;
+	text-transform: uppercase;
+}
+
+/* Shortcode Search Bar Container Styling */
+.tsbifw-search-bar-container {
+	max-width: 600px;
+	margin: 20px auto;
+	width: 100%;
+}
+
+.tsbifw-search-form {
+	display: flex !important;
+	gap: 10px !important;
+	align-items: center !important;
+	width: 100% !important;
+	max-width: 100% !important;
+}
+
+.tsbifw-search-form .tsbifw-search-input-wrapper {
+	position: relative;
+	display: flex;
+	flex-grow: 1;
+	align-items: center;
+	background: #ffffff;
+	border: 1px solid #cbd5e1;
+	border-radius: 10px;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+	transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.tsbifw-search-form .tsbifw-search-input-wrapper:focus-within {
+	border-color: #4f46e5;
+	box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15), 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.tsbifw-search-form .search-field {
+	border: none !important;
+	outline: none !important;
+	box-shadow: none !important;
+	height: 46px !important;
+	line-height: 46px !important;
+	padding: 0 45px 0 16px !important;
+	font-size: 15px !important;
+	background: transparent !important;
+	color: #1e293b !important;
+	flex-grow: 1;
+	width: 100%;
+}
+
+.tsbifw-search-form .tsbifw-camera-trigger {
+	position: absolute;
+	right: 14px;
+	top: 50%;
+	transform: translateY(-50%) !important;
+	cursor: pointer;
+	color: #64748b;
+	transition: color 0.2s ease, transform 0.2s ease;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: transparent !important;
+	border: none !important;
+	padding: 0 !important;
+	margin: 0 !important;
+	width: 24px;
+	height: 24px;
+	outline: none;
+}
+
+.tsbifw-search-form .tsbifw-camera-trigger:hover {
+	color: #4f46e5;
+	transform: translateY(-50%) scale(1.1) !important;
+}
+
+.tsbifw-search-form button[type="submit"] {
+	background: #4f46e5 !important;
+	color: #ffffff !important;
+	border: none !important;
+	border-radius: 10px !important;
+	padding: 0 24px !important;
+	height: 46px !important;
+	line-height: 46px !important;
+	font-size: 15px !important;
+	font-weight: 600 !important;
+	cursor: pointer !important;
+	transition: background 0.2s ease !important;
+	white-space: nowrap;
+}
+
+.tsbifw-search-form button[type="submit"]:hover {
+	background: #4338ca !important;
+}
+
+/* CropperJS Custom Styling for High Visibility handles */
+.cropper-view-box {
+	outline: 2px solid #4f46e5 !important;
+	outline-color: #4f46e5 !important;
+}
+
+.cropper-line {
+	background-color: #4f46e5 !important;
+}
+
+.cropper-point {
+	background-color: #4f46e5 !important;
+	opacity: 1 !important;
+}
+
+.cropper-point.point-se {
+	width: 10px !important;
+	height: 10px !important;
+	opacity: 1 !important;
+}
+
+.cropper-point.point-nw,
+.cropper-point.point-ne,
+.cropper-point.point-sw,
+.cropper-point.point-se {
+	width: 12px !important;
+	height: 12px !important;
+	border-radius: 50% !important;
+	background-color: #4f46e5 !important;
+	border: 2px solid #ffffff !important;
+}
+
+

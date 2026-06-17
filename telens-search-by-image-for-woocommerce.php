@@ -1,0 +1,62 @@
+<?php
+/**
+ * Plugin Name: Telens Search By Image for WooCommerce
+ * Description: Enable customers to search WooCommerce products using images powered by OpenRouter embeddings and vision models.
+ * Version:     1.1.1
+ * Author:      micromax
+ * Text Domain: telens-search-by-image-for-woocommerce
+ * Domain Path: /languages
+ * Requires at least: 5.6
+ * Requires PHP: 7.4
+ * WC requires at least: 5.0
+ * Requires Plugins: woocommerce
+ * License:     GPL-2.0+
+ *
+ * @package TelensSearchByImageForWooCommerce
+ */
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit; // Exit if accessed directly.
+}
+
+// Define plugin constants.
+define( 'TSBIFW_VERSION', '1.1.1' );
+define( 'TSBIFW_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
+define( 'TSBIFW_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
+define( 'TSBIFW_FILE', __FILE__ );
+
+/**
+ * Initialize the plugin.
+ */
+function tsbifw_init() {
+	// Check if WooCommerce is active.
+	if ( ! class_exists( 'WooCommerce' ) ) {
+		add_action( 'admin_notices', 'tsbifw_woocommerce_missing_notice' );
+		return;
+	}
+
+	// Include required files.
+	require_once TSBIFW_PLUGIN_DIR . 'includes/class-tsbifw-logger.php';
+	require_once TSBIFW_PLUGIN_DIR . 'includes/class-tsbifw-api.php';
+	require_once TSBIFW_PLUGIN_DIR . 'includes/class-tsbifw-indexer.php';
+	require_once TSBIFW_PLUGIN_DIR . 'includes/class-tsbifw-admin.php';
+	require_once TSBIFW_PLUGIN_DIR . 'includes/class-tsbifw-search.php';
+
+	// Instantiate core modules.
+	TSBIFW_API::instance();
+	TSBIFW_Indexer::instance();
+	TSBIFW_Admin::instance();
+	TSBIFW_Search::instance();
+}
+add_action( 'plugins_loaded', 'tsbifw_init' );
+
+/**
+ * Display notice if WooCommerce is not active.
+ */
+function tsbifw_woocommerce_missing_notice() {
+	?>
+	<div class="error">
+		<p><?php esc_html_e( 'Telens Search By Image for WooCommerce requires WooCommerce to be installed and active.', 'telens-search-by-image-for-woocommerce' ); ?></p>
+	</div>
+	<?php
+}
