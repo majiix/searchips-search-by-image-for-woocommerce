@@ -2,7 +2,7 @@
 /**
  * Indexing and Caching manager.
  *
- * @package TelensSearchByImageForWooCommerce
+ * @package SearchipsSearchByImageForWooCommerce
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -82,7 +82,7 @@ class TSBIFW_Indexer {
 
 		$product = wc_get_product( $product_id );
 		if ( ! $product ) {
-			return new WP_Error( 'tsbifw_invalid_product', esc_html__( 'Invalid product ID.', 'telens-search-by-image-for-woocommerce' ) );
+			return new WP_Error( 'tsbifw_invalid_product', esc_html__( 'Invalid product ID.', 'searchips-search-by-image-for-woocommerce' ) );
 		}
 
 		$index_featured = ( get_option( 'tsbifw_index_featured', 'yes' ) === 'yes' );
@@ -227,7 +227,7 @@ class TSBIFW_Indexer {
 
 		if ( $should_queue ) {
 			// translators: 1: Metadata key changed, 2: Product ID
-			$msg = sprintf( esc_html__( 'Product image metadata changed (%1$s) for product ID %2$d. Queued for background indexing.', 'telens-search-by-image-for-woocommerce' ), $meta_key, $object_id );
+			$msg = sprintf( esc_html__( 'Product image metadata changed (%1$s) for product ID %2$d. Queued for background indexing.', 'searchips-search-by-image-for-woocommerce' ), $meta_key, $object_id );
 			TSBIFW_Logger::log( $msg );
 			delete_post_meta( $object_id, '_tsbifw_indexed_status' );
 			delete_post_meta( $object_id, '_tsbifw_vectors' );
@@ -254,7 +254,7 @@ class TSBIFW_Indexer {
 
 		if ( $should_queue ) {
 			// translators: 1: Metadata key deleted, 2: Product ID
-			$msg = sprintf( esc_html__( 'Product image metadata deleted (%1$s) for product ID %2$d. Queued for background indexing.', 'telens-search-by-image-for-woocommerce' ), $meta_key, $object_id );
+			$msg = sprintf( esc_html__( 'Product image metadata deleted (%1$s) for product ID %2$d. Queued for background indexing.', 'searchips-search-by-image-for-woocommerce' ), $meta_key, $object_id );
 			TSBIFW_Logger::log( $msg );
 			delete_post_meta( $object_id, '_tsbifw_indexed_status' );
 			delete_post_meta( $object_id, '_tsbifw_vectors' );
@@ -341,15 +341,15 @@ class TSBIFW_Indexer {
 	public function add_custom_cron_schedules( $schedules ) {
 		$schedules['every_minute'] = array(
 			'interval' => 60,
-			'display'  => esc_html__( 'Every Minute', 'telens-search-by-image-for-woocommerce' ),
+			'display'  => esc_html__( 'Every Minute', 'searchips-search-by-image-for-woocommerce' ),
 		);
 		$schedules['every_5_minutes'] = array(
 			'interval' => 300,
-			'display'  => esc_html__( 'Every 5 Minutes', 'telens-search-by-image-for-woocommerce' ),
+			'display'  => esc_html__( 'Every 5 Minutes', 'searchips-search-by-image-for-woocommerce' ),
 		);
 		$schedules['every_15_minutes'] = array(
 			'interval' => 900,
-			'display'  => esc_html__( 'Every 15 Minutes', 'telens-search-by-image-for-woocommerce' ),
+			'display'  => esc_html__( 'Every 15 Minutes', 'searchips-search-by-image-for-woocommerce' ),
 		);
 		return $schedules;
 	}
@@ -493,7 +493,7 @@ class TSBIFW_Indexer {
 
 		$this->clear_cache();
 
-		TSBIFW_Logger::log( esc_html__( 'All product embeddings, descriptions, and indexing metadata cleared successfully.', 'telens-search-by-image-for-woocommerce' ) );
+		TSBIFW_Logger::log( esc_html__( 'All product embeddings, descriptions, and indexing metadata cleared successfully.', 'searchips-search-by-image-for-woocommerce' ) );
 	}
 
 	/**

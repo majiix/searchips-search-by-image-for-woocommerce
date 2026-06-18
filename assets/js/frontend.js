@@ -1,5 +1,5 @@
 /**
- * Frontend Javascript for Telens Search By Image
+ * Frontend Javascript for Searchips Search By Image
  */
 jQuery(document).ready(function($) {
 	// 1. Auto-inject camera icon into WooCommerce search forms
@@ -14,7 +14,7 @@ jQuery(document).ready(function($) {
 		$('form.woocommerce-product-search, form.search-form, form[role="search"]').each(function() {
 			var $form = $(this);
 			var isProductSearch = $form.find('input[name="post_type"][value="product"]').length > 0 || $form.hasClass('woocommerce-product-search');
-			
+
 			if (isProductSearch && !$form.find('.tsbifw-camera-trigger').length) {
 				var $input = $form.find('input[name="s"], input[type="search"], input.search-field');
 				if ($input.length) {
@@ -43,7 +43,7 @@ jQuery(document).ready(function($) {
 	function initModal() {
 		if ($('.tsbifw-modal-overlay').length) return;
 
-		var modalHtml = 
+		var modalHtml =
 			'<div class="tsbifw-modal-overlay">' +
 				'<div class="tsbifw-modal-container">' +
 					'<div class="tsbifw-modal-header">' +
@@ -62,7 +62,19 @@ jQuery(document).ready(function($) {
 						'<input type="file" class="tsbifw-file-input" accept="image/jpeg,image/png,image/webp" style="display:none;" />' +
 						'<div class="tsbifw-preview-wrapper">' +
 							'<div class="tsbifw-cropper-container" style="max-height: 320px; overflow: hidden; border-radius: 8px; margin-bottom: 15px; border: 1px solid #cbd5e1;">' +
-								'<img class="tsbifw-preview-image" src="" alt="Search Preview" style="max-width: 100%; display: block;" />' +
+								'<cropper-canvas id="tsbifw-frontend-cropper-canvas" style="height: 280px; display: none;">' +
+									'<cropper-image class="tsbifw-cropper-image" src="" rotatable scalable translatable></cropper-image>' +
+									'<cropper-shade></cropper-shade>' +
+									'<cropper-selection movable resizable initial-coverage="0.9" dynamic outlined>' +
+										'<cropper-grid role="grid" covered></cropper-grid>' +
+										'<cropper-crosshair centered></cropper-crosshair>' +
+										'<cropper-handle action="move" theme-color="rgba(255, 255, 255, 0.35)"></cropper-handle>' +
+										'<cropper-handle action="nw-resize" theme-color="#4f46e5"></cropper-handle>' +
+										'<cropper-handle action="ne-resize" theme-color="#4f46e5"></cropper-handle>' +
+										'<cropper-handle action="se-resize" theme-color="#4f46e5"></cropper-handle>' +
+										'<cropper-handle action="sw-resize" theme-color="#4f46e5"></cropper-handle>' +
+									'</cropper-selection>' +
+								'</cropper-canvas>' +
 							'</div>' +
 							'<div class="tsbifw-scanner-bar"></div>' +
 							'<div class="tsbifw-scanning-overlay"></div>' +
@@ -135,28 +147,33 @@ jQuery(document).ready(function($) {
 
 		// Crop and Search button
 		$('.tsbifw-crop-search-btn').on('click', function() {
-			if (!frontendCropper) return;
+			var canvasEl = document.getElementById('tsbifw-frontend-cropper-canvas');
+			if (!canvasEl) return;
+			var selection = canvasEl.querySelector('cropper-selection');
+			if (!selection) return;
 
 			// Start scanning animation
 			$('.tsbifw-scanner-bar').show();
 			$('.tsbifw-scanning-overlay').show();
 			$('.tsbifw-search-status').text(tsbifw_frontend_params.strings.scanning).addClass('pulse').show();
 
-			frontendCropper.getCroppedCanvas({
-				maxWidth: 512,
-				maxHeight: 512
-			}).toBlob(function(blob) {
-				if (!blob) {
-					alert('Failed to process cropped image.');
-					return;
-				}
-				var croppedFile = new File([blob], 'cropped_search.jpg', { type: 'image/jpeg' });
-				uploadSearchImage(croppedFile);
-			}, 'image/jpeg', 0.9);
+			selection.$toCanvas({
+				width: 512,
+				height: 512
+			}).then(function(canvas) {
+				canvas.toBlob(function(blob) {
+					if (!blob) {
+						alert('Failed to process cropped image.');
+						return;
+					}
+					var croppedFile = new File([blob], 'cropped_search.jpg', { type: 'image/jpeg' });
+					uploadSearchImage(croppedFile);
+				}, 'image/jpeg', 0.9);
+			}).catch(function() {
+				alert('Failed to crop image.');
+			});
 		});
 	}
-
-	var frontendCropper = null;
 
 	function openModal() {
 		resetSearchUI();
@@ -178,12 +195,12 @@ jQuery(document).ready(function($) {
 	}
 
 	function resetSearchUI() {
-		if (frontendCropper) {
-			frontendCropper.destroy();
-			frontendCropper = null;
-		}
 		$('.tsbifw-file-input').val('');
-		$('.tsbifw-preview-image').attr('src', '');
+		var previewImg = $('.tsbifw-cropper-image')[0];
+		if (previewImg) {
+			previewImg.setAttribute('src', '');
+		}
+		$('#tsbifw-frontend-cropper-canvas').hide();
 		$('.tsbifw-preview-wrapper').hide();
 		$('.tsbifw-drag-zone').show();
 		$('.tsbifw-scanner-bar').hide();
@@ -201,31 +218,41 @@ jQuery(document).ready(function($) {
 		// Show preview using FileReader
 		var reader = new FileReader();
 		reader.onload = function(e) {
-			var image = $('.tsbifw-preview-image')[0];
-			image.src = e.target.result;
-
 			$('.tsbifw-drag-zone').hide();
 			$('.tsbifw-preview-wrapper').show();
-			$('.tsbifw-search-status').hide().text('');
+			$('#tsbifw-frontend-cropper-canvas').show();
 
-			if (frontendCropper) {
-				frontendCropper.destroy();
+			var image = $('.tsbifw-cropper-image')[0];
+			if (image) {
+				image.setAttribute('src', e.target.result);
+				if (typeof image.$ready === 'function') {
+					image.$ready().then(function() {
+						setTimeout(function() {
+							var canvas = document.getElementById('tsbifw-frontend-cropper-canvas');
+							var selection = canvas ? canvas.querySelector('cropper-selection') : null;
+							if (selection && typeof selection.$change === 'function') {
+								var imgRect = image.getBoundingClientRect();
+								var canvasRect = canvas.getBoundingClientRect();
+								if (imgRect.width > 0 && imgRect.height > 0) {
+									var imgLeft = imgRect.left - canvasRect.left;
+									var imgTop = imgRect.top - canvasRect.top;
+									var imgWidth = imgRect.width;
+									var imgHeight = imgRect.height;
+
+									var selectionWidth = imgWidth * 0.9;
+									var selectionHeight = imgHeight * 0.9;
+									var selectionLeft = imgLeft + (imgWidth - selectionWidth) / 2;
+									var selectionTop = imgTop + (imgHeight - selectionHeight) / 2;
+
+									selection.$change(selectionLeft, selectionTop, selectionWidth, selectionHeight);
+								}
+							}
+						}, 50);
+					});
+				}
 			}
 
-			frontendCropper = new Cropper(image, {
-				aspectRatio: NaN,
-				viewMode: 1,
-				autoCropArea: 1,
-				responsive: true,
-				restore: false,
-				modal: true,
-				guides: true,
-				center: true,
-				highlight: false,
-				cropBoxMovable: true,
-				cropBoxResizable: true,
-				toggleDragModeOnDblclick: false
-			});
+			$('.tsbifw-search-status').hide().text('');
 		};
 		reader.readAsDataURL(file);
 	}
@@ -234,6 +261,7 @@ jQuery(document).ready(function($) {
 	function uploadSearchImage(file) {
 		var formData = new FormData();
 		formData.append('image', file);
+		formData.append('security', tsbifw_frontend_params.nonce);
 
 		$.ajax({
 			url: tsbifw_frontend_params.search_endpoint,
@@ -257,7 +285,7 @@ jQuery(document).ready(function($) {
 			error: function(xhr) {
 				$('.tsbifw-scanner-bar').hide();
 				$('.tsbifw-scanning-overlay').hide();
-				
+
 				var errorMsg = tsbifw_frontend_params.strings.error;
 				if (xhr.responseJSON && xhr.responseJSON.message) {
 					errorMsg = xhr.responseJSON.message;

@@ -2,7 +2,7 @@
 /**
  * API client class for OpenRouter.
  *
- * @package TelensSearchByImageForWooCommerce
+ * @package SearchipsSearchByImageForWooCommerce
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -53,12 +53,12 @@ class TSBIFW_API {
 	public function prepare_image( $attachment_id ) {
 		$file_path = get_attached_file( $attachment_id );
 		if ( ! $file_path || ! file_exists( $file_path ) ) {
-			return new WP_Error( 'tsbifw_file_not_found', esc_html__( 'Image file path not found or does not exist on disk.', 'telens-search-by-image-for-woocommerce' ) );
+			return new WP_Error( 'tsbifw_file_not_found', esc_html__( 'Image file path not found or does not exist on disk.', 'searchips-search-by-image-for-woocommerce' ) );
 		}
 
 		$size = filesize( $file_path );
 		if ( false === $size || 0 === $size ) {
-			return new WP_Error( 'tsbifw_empty_image', esc_html__( 'Image file is empty (0 bytes).', 'telens-search-by-image-for-woocommerce' ) );
+			return new WP_Error( 'tsbifw_empty_image', esc_html__( 'Image file is empty (0 bytes).', 'searchips-search-by-image-for-woocommerce' ) );
 		}
 
 		$editor = wp_get_image_editor( $file_path );
@@ -83,7 +83,7 @@ class TSBIFW_API {
 		@wp_delete_file( $resized_path ); // Clean up temporary file.
 
 		if ( false === $content ) {
-			return new WP_Error( 'tsbifw_read_failed', esc_html__( 'Failed to read the temporary resized image content.', 'telens-search-by-image-for-woocommerce' ) );
+			return new WP_Error( 'tsbifw_read_failed', esc_html__( 'Failed to read the temporary resized image content.', 'searchips-search-by-image-for-woocommerce' ) );
 		}
 
 		return 'data:image/jpeg;base64,' . base64_encode( $content );
@@ -97,12 +97,12 @@ class TSBIFW_API {
 	 */
 	public function prepare_raw_file( $uploaded_file_path ) {
 		if ( ! file_exists( $uploaded_file_path ) ) {
-			return new WP_Error( 'tsbifw_file_not_found', esc_html__( 'Uploaded file not found on disk.', 'telens-search-by-image-for-woocommerce' ) );
+			return new WP_Error( 'tsbifw_file_not_found', esc_html__( 'Uploaded file not found on disk.', 'searchips-search-by-image-for-woocommerce' ) );
 		}
 
 		$size = filesize( $uploaded_file_path );
 		if ( false === $size || 0 === $size ) {
-			return new WP_Error( 'tsbifw_empty_image', esc_html__( 'Uploaded file is empty (0 bytes).', 'telens-search-by-image-for-woocommerce' ) );
+			return new WP_Error( 'tsbifw_empty_image', esc_html__( 'Uploaded file is empty (0 bytes).', 'searchips-search-by-image-for-woocommerce' ) );
 		}
 
 		$editor = wp_get_image_editor( $uploaded_file_path );
@@ -126,7 +126,7 @@ class TSBIFW_API {
 		@wp_delete_file( $resized_path );
 
 		if ( false === $content ) {
-			return new WP_Error( 'tsbifw_read_failed', esc_html__( 'Failed to read search image content.', 'telens-search-by-image-for-woocommerce' ) );
+			return new WP_Error( 'tsbifw_read_failed', esc_html__( 'Failed to read search image content.', 'searchips-search-by-image-for-woocommerce' ) );
 		}
 
 		return 'data:image/jpeg;base64,' . base64_encode( $content );
@@ -141,7 +141,7 @@ class TSBIFW_API {
 	public function get_embeddings( $base64_image ) {
 		$api_key = $this->get_api_key();
 		if ( empty( $api_key ) ) {
-			return new WP_Error( 'tsbifw_missing_api_key', esc_html__( 'OpenRouter API Key is missing. Please configure it in WooCommerce settings.', 'telens-search-by-image-for-woocommerce' ) );
+			return new WP_Error( 'tsbifw_missing_api_key', esc_html__( 'OpenRouter API Key is missing. Please configure it in WooCommerce settings.', 'searchips-search-by-image-for-woocommerce' ) );
 		}
 
 		$model = get_option( 'tsbifw_embeddings_model', 'google/gemini-embedding-2' );
@@ -169,7 +169,7 @@ class TSBIFW_API {
 			'Authorization' => 'Bearer ' . $api_key,
 			'Content-Type'  => 'application/json',
 			'HTTP-Referer'  => get_home_url(),
-			'X-Title'       => 'Telens WP',
+			'X-Title'       => 'Searchips WP',
 		);
 
 		TSBIFW_Logger::log(
@@ -201,15 +201,15 @@ class TSBIFW_API {
 
 		if ( 200 !== $response_code ) {
 			$error_data = json_decode( $response_body, true );
-			$err_msg    = isset( $error_data['error']['message'] ) ? $error_data['error']['message'] : esc_html__( 'Unknown API error.', 'telens-search-by-image-for-woocommerce' );
+			$err_msg    = isset( $error_data['error']['message'] ) ? $error_data['error']['message'] : esc_html__( 'Unknown API error.', 'searchips-search-by-image-for-woocommerce' );
 			TSBIFW_Logger::log( sprintf( 'OpenRouter Embeddings HTTP Error: %d', $response_code ), array( 'response' => $error_data ) );
-			return new WP_Error( 'tsbifw_api_error', sprintf( '%s: %s', esc_html__( 'OpenRouter API Error', 'telens-search-by-image-for-woocommerce' ), $err_msg ) );
+			return new WP_Error( 'tsbifw_api_error', sprintf( '%s: %s', esc_html__( 'OpenRouter API Error', 'searchips-search-by-image-for-woocommerce' ), $err_msg ) );
 		}
 
 		$data = json_decode( $response_body, true );
 		if ( ! isset( $data['data'][0]['embedding'] ) || ! is_array( $data['data'][0]['embedding'] ) ) {
 			TSBIFW_Logger::log( 'Embeddings formatting mismatch in OpenRouter response.', array( 'response' => $data ) );
-			return new WP_Error( 'tsbifw_api_format_error', esc_html__( 'Failed to extract embedding vector from API response.', 'telens-search-by-image-for-woocommerce' ) );
+			return new WP_Error( 'tsbifw_api_format_error', esc_html__( 'Failed to extract embedding vector from API response.', 'searchips-search-by-image-for-woocommerce' ) );
 		}
 
 		TSBIFW_Logger::log( sprintf( 'Received embedding vector successfully. Dimensions: %d', count( $data['data'][0]['embedding'] ) ) );
@@ -226,7 +226,7 @@ class TSBIFW_API {
 	public function get_description( $base64_image ) {
 		$api_key = $this->get_api_key();
 		if ( empty( $api_key ) ) {
-			return new WP_Error( 'tsbifw_missing_api_key', esc_html__( 'OpenRouter API Key is missing. Please configure it in WooCommerce settings.', 'telens-search-by-image-for-woocommerce' ) );
+			return new WP_Error( 'tsbifw_missing_api_key', esc_html__( 'OpenRouter API Key is missing. Please configure it in WooCommerce settings.', 'searchips-search-by-image-for-woocommerce' ) );
 		}
 
 		$model = get_option( 'tsbifw_vision_model', 'google/gemini-2.5-flash' );
@@ -259,7 +259,7 @@ class TSBIFW_API {
 			'Authorization' => 'Bearer ' . $api_key,
 			'Content-Type'  => 'application/json',
 			'HTTP-Referer'  => get_home_url(),
-			'X-Title'       => 'Telens WP',
+			'X-Title'       => 'Searchips WP',
 		);
 
 		TSBIFW_Logger::log(
@@ -291,15 +291,15 @@ class TSBIFW_API {
 
 		if ( 200 !== $response_code ) {
 			$error_data = json_decode( $response_body, true );
-			$err_msg    = isset( $error_data['error']['message'] ) ? $error_data['error']['message'] : esc_html__( 'Unknown API error.', 'telens-search-by-image-for-woocommerce' );
+			$err_msg    = isset( $error_data['error']['message'] ) ? $error_data['error']['message'] : esc_html__( 'Unknown API error.', 'searchips-search-by-image-for-woocommerce' );
 			TSBIFW_Logger::log( sprintf( 'OpenRouter Vision HTTP Error: %d', $response_code ), array( 'response' => $error_data ) );
-			return new WP_Error( 'tsbifw_api_error', sprintf( '%s: %s', esc_html__( 'OpenRouter API Error', 'telens-search-by-image-for-woocommerce' ), $err_msg ) );
+			return new WP_Error( 'tsbifw_api_error', sprintf( '%s: %s', esc_html__( 'OpenRouter API Error', 'searchips-search-by-image-for-woocommerce' ), $err_msg ) );
 		}
 
 		$data = json_decode( $response_body, true );
 		if ( ! isset( $data['choices'][0]['message']['content'] ) ) {
 			TSBIFW_Logger::log( 'Vision formatting mismatch in OpenRouter response.', array( 'response' => $data ) );
-			return new WP_Error( 'tsbifw_api_format_error', esc_html__( 'Failed to extract text description from API response.', 'telens-search-by-image-for-woocommerce' ) );
+			return new WP_Error( 'tsbifw_api_format_error', esc_html__( 'Failed to extract text description from API response.', 'searchips-search-by-image-for-woocommerce' ) );
 		}
 
 		$description = wp_strip_all_tags( trim( $data['choices'][0]['message']['content'] ) );
@@ -340,13 +340,13 @@ class TSBIFW_API {
 
 		if ( 200 !== $response_code ) {
 			TSBIFW_Logger::log( sprintf( 'Failed to retrieve models. HTTP Status Code: %d', $response_code ), array( 'body' => $response_body ) );
-			return new WP_Error( 'tsbifw_api_error', esc_html__( 'Failed to retrieve models from OpenRouter.', 'telens-search-by-image-for-woocommerce' ) );
+			return new WP_Error( 'tsbifw_api_error', esc_html__( 'Failed to retrieve models from OpenRouter.', 'searchips-search-by-image-for-woocommerce' ) );
 		}
 
 		$data = json_decode( $response_body, true );
 		if ( ! isset( $data['data'] ) || ! is_array( $data['data'] ) ) {
 			TSBIFW_Logger::log( 'Invalid models list structure from OpenRouter.' );
-			return new WP_Error( 'tsbifw_api_format_error', esc_html__( 'Invalid models list format from OpenRouter.', 'telens-search-by-image-for-woocommerce' ) );
+			return new WP_Error( 'tsbifw_api_format_error', esc_html__( 'Invalid models list format from OpenRouter.', 'searchips-search-by-image-for-woocommerce' ) );
 		}
 
 		// Cache for 1 hour.

@@ -1,8 +1,8 @@
 <?php
 /**
- * Database Logging Helper for Telens Search By Image.
+ * Database Logging Helper for Searchips Search By Image.
  *
- * @package TelensSearchByImageForWooCommerce
+ * @package SearchipsSearchByImageForWooCommerce
  */
 
 if ( ! defined( 'ABSPATH' ) ) {

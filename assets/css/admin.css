@@ -1,5 +1,5 @@
 /**
- * Admin Panel Styling for Telens Search By Image
+ * Admin Panel Styling for Searchips Search By Image
  */
 
 .tsbifw-admin-wrap {
@@ -618,36 +618,24 @@
 	background: #94a3b8;
 }
 
-/* CropperJS Custom Styling for High Visibility handles */
-.cropper-view-box {
-	outline: 2px solid #4f46e5 !important;
-	outline-color: #4f46e5 !important;
+/* CropperJS Canvas Styling */
+cropper-canvas {
+	width: 100%;
+	height: 300px;
+	display: block;
+	max-height: 300px;
+	margin: 0 auto;
 }
 
-.cropper-line {
-	background-color: #4f46e5 !important;
-}
-
-.cropper-point {
-	background-color: #4f46e5 !important;
-	opacity: 1 !important;
-}
-
-.cropper-point.point-se {
-	width: 10px !important;
-	height: 10px !important;
-	opacity: 1 !important;
-}
-
-.cropper-point.point-nw,
-.cropper-point.point-ne,
-.cropper-point.point-sw,
-.cropper-point.point-se {
-	width: 12px !important;
-	height: 12px !important;
-	border-radius: 50% !important;
-	background-color: #4f46e5 !important;
-	border: 2px solid #ffffff !important;
+/* Custom styling for CropperJS handles */
+cropper-handle[action$="-resize"] {
+	width: 12px;
+	height: 12px;
+	background-color: #4f46e5;
+	border: 2px solid #ffffff;
+	border-radius: 50%;
+	box-shadow: 0 2px 4px rgba(0,0,0,0.35);
+	box-sizing: border-box;
 }
 
 /* API Key Password Toggle */

@@ -2,7 +2,7 @@
 /**
  * Admin settings page and batch indexer.
  *
- * @package TelensSearchByImageForWooCommerce
+ * @package SearchipsSearchByImageForWooCommerce
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -69,10 +69,9 @@ class TSBIFW_Admin {
 			return;
 		}
 
-		wp_enqueue_style( 'cropperjs', TSBIFW_PLUGIN_URL . 'assets/css/cropper.min.css', array(), '1.6.2' );
-		wp_enqueue_script( 'cropperjs', TSBIFW_PLUGIN_URL . 'assets/js/cropper.min.js', array(), '1.6.2', true );
+		wp_enqueue_script( 'cropperjs', TSBIFW_PLUGIN_URL . 'assets/js/cropper.min.js', array(), '2.1.1', true );
 		wp_enqueue_style( 'wp-color-picker' );
-		wp_enqueue_style( 'tsbifw-admin-css', TSBIFW_PLUGIN_URL . 'assets/css/admin.css', array( 'cropperjs', 'wp-color-picker' ), TSBIFW_VERSION );
+		wp_enqueue_style( 'tsbifw-admin-css', TSBIFW_PLUGIN_URL . 'assets/css/admin.css', array( 'wp-color-picker' ), TSBIFW_VERSION );
 		wp_enqueue_script( 'tsbifw-admin-js', TSBIFW_PLUGIN_URL . 'assets/js/admin.js', array( 'jquery', 'cropperjs', 'wp-color-picker' ), TSBIFW_VERSION, true );
 
 		wp_localize_script(
@@ -82,18 +81,18 @@ class TSBIFW_Admin {
 				'ajax_url'        => admin_url( 'admin-ajax.php' ),
 				'nonce'           => wp_create_nonce( 'tsbifw_admin_nonce' ),
 				'wp_rest_nonce'   => wp_create_nonce( 'wp_rest' ),
-				'confirm'         => esc_html__( 'Are you sure you want to clear all indexed vectors and descriptions? This cannot be undone.', 'telens-search-by-image-for-woocommerce' ),
+				'confirm'         => esc_html__( 'Are you sure you want to clear all indexed vectors and descriptions? This cannot be undone.', 'searchips-search-by-image-for-woocommerce' ),
 				'search_endpoint' => esc_url_raw( rest_url( 'tsbifw/v1/search' ) ),
 				'strings'         => array(
-					'scanning'         => esc_html__( 'Searching...', 'telens-search-by-image-for-woocommerce' ),
-					'no_results'       => esc_html__( 'No matching products found.', 'telens-search-by-image-for-woocommerce' ),
-					'error'            => esc_html__( 'Search failed. Please try again.', 'telens-search-by-image-for-woocommerce' ),
-					'view_product'     => esc_html__( 'View Product', 'telens-search-by-image-for-woocommerce' ),
-					'add_to_cart'      => esc_html__( 'Add to Cart', 'telens-search-by-image-for-woocommerce' ),
-					'similarity_label' => esc_html__( 'Match:', 'telens-search-by-image-for-woocommerce' ),
-					'drag_drop_text'   => esc_html__( 'Drag and drop an image here or click to browse', 'telens-search-by-image-for-woocommerce' ),
-					'strategy_warning' => esc_html__( 'Attention: You have changed the Search Strategy. You should Clear / Reset the index and perform a complete re-indexing for matches to work correctly.', 'telens-search-by-image-for-woocommerce' ),
-					'search_btn_text'  => esc_html__( 'Start Search', 'telens-search-by-image-for-woocommerce' ),
+					'scanning'         => esc_html__( 'Searching...', 'searchips-search-by-image-for-woocommerce' ),
+					'no_results'       => esc_html__( 'No matching products found.', 'searchips-search-by-image-for-woocommerce' ),
+					'error'            => esc_html__( 'Search failed. Please try again.', 'searchips-search-by-image-for-woocommerce' ),
+					'view_product'     => esc_html__( 'View Product', 'searchips-search-by-image-for-woocommerce' ),
+					'add_to_cart'      => esc_html__( 'Add to Cart', 'searchips-search-by-image-for-woocommerce' ),
+					'similarity_label' => esc_html__( 'Match:', 'searchips-search-by-image-for-woocommerce' ),
+					'drag_drop_text'   => esc_html__( 'Drag and drop an image here or click to browse', 'searchips-search-by-image-for-woocommerce' ),
+					'strategy_warning' => esc_html__( 'Attention: You have changed the Search Strategy. You should Clear / Reset the index and perform a complete re-indexing for matches to work correctly.', 'searchips-search-by-image-for-woocommerce' ),
+					'search_btn_text'  => esc_html__( 'Start Search', 'searchips-search-by-image-for-woocommerce' ),
 				),
 			)
 		);
@@ -105,8 +104,8 @@ class TSBIFW_Admin {
 	public function add_settings_page() {
 		add_submenu_page(
 			'woocommerce',
-			esc_html__( 'Search by Image', 'telens-search-by-image-for-woocommerce' ),
-			esc_html__( 'Search by Image', 'telens-search-by-image-for-woocommerce' ),
+			esc_html__( 'Search by Image', 'searchips-search-by-image-for-woocommerce' ),
+			esc_html__( 'Search by Image', 'searchips-search-by-image-for-woocommerce' ),
 			'manage_options',
 			'tsbifw-settings',
 			array( $this, 'render_settings_page' )
@@ -160,13 +159,13 @@ class TSBIFW_Admin {
 			'sanitize_callback' => array( $this, 'sanitize_css_size' ),
 		) );
 		register_setting( 'tsbifw_settings_group', 'tsbifw_index_featured', array(
-			'sanitize_callback' => array( $this, 'sanitize_yes_no_default_yes' ),
+			'sanitize_callback' => array( $this, 'sanitize_yes_no' ),
 		) );
 		register_setting( 'tsbifw_settings_group', 'tsbifw_index_gallery', array(
 			'sanitize_callback' => array( $this, 'sanitize_yes_no' ),
 		) );
 		register_setting( 'tsbifw_settings_group', 'tsbifw_enable_logging', array(
-			'sanitize_callback' => array( $this, 'sanitize_yes_no_default_yes' ),
+			'sanitize_callback' => array( $this, 'sanitize_yes_no' ),
 		) );
 		register_setting( 'tsbifw_settings_group', 'tsbifw_log_retention', array(
 			'sanitize_callback' => 'absint',
@@ -200,24 +199,24 @@ class TSBIFW_Admin {
 		}
 		?>
 		<div class="wrap tsbifw-admin-wrap">
-			<h1><?php esc_html_e( 'WooCommerce Search by Image Settings', 'telens-search-by-image-for-woocommerce' ); ?></h1>
+			<h1><?php esc_html_e( 'WooCommerce Search by Image Settings', 'searchips-search-by-image-for-woocommerce' ); ?></h1>
 			<?php settings_errors(); ?>
 
 			<h2 class="nav-tab-wrapper">
 				<a href="?page=tsbifw-settings&tab=general" class="nav-tab <?php echo 'general' === $active_tab ? 'nav-tab-active' : ''; ?>">
-					<?php esc_html_e( 'General Settings', 'telens-search-by-image-for-woocommerce' ); ?>
+					<?php esc_html_e( 'General Settings', 'searchips-search-by-image-for-woocommerce' ); ?>
 				</a>
 				<a href="?page=tsbifw-settings&tab=styling" class="nav-tab <?php echo 'styling' === $active_tab ? 'nav-tab-active' : ''; ?>">
-					<?php esc_html_e( 'Styling', 'telens-search-by-image-for-woocommerce' ); ?>
+					<?php esc_html_e( 'Styling', 'searchips-search-by-image-for-woocommerce' ); ?>
 				</a>
 				<a href="?page=tsbifw-settings&tab=indexer" class="nav-tab <?php echo 'indexer' === $active_tab ? 'nav-tab-active' : ''; ?>">
-					<?php esc_html_e( 'Product Indexer', 'telens-search-by-image-for-woocommerce' ); ?>
+					<?php esc_html_e( 'Product Indexer', 'searchips-search-by-image-for-woocommerce' ); ?>
 				</a>
 				<a href="?page=tsbifw-settings&tab=test_search" class="nav-tab <?php echo 'test_search' === $active_tab ? 'nav-tab-active' : ''; ?>">
-					<?php esc_html_e( 'Test Search', 'telens-search-by-image-for-woocommerce' ); ?>
+					<?php esc_html_e( 'Test Search', 'searchips-search-by-image-for-woocommerce' ); ?>
 				</a>
 				<a href="?page=tsbifw-settings&tab=logs" class="nav-tab <?php echo 'logs' === $active_tab ? 'nav-tab-active' : ''; ?>">
-					<?php esc_html_e( 'Logs', 'telens-search-by-image-for-woocommerce' ); ?>
+					<?php esc_html_e( 'Logs', 'searchips-search-by-image-for-woocommerce' ); ?>
 				</a>
 			</h2>
 
@@ -244,7 +243,7 @@ class TSBIFW_Admin {
 								?>
 								<table class="form-table">
 									<tr>
-										<th scope="row"><label for="tsbifw_api_key"><?php esc_html_e( 'OpenRouter API Key', 'telens-search-by-image-for-woocommerce' ); ?></label></th>
+										<th scope="row"><label for="tsbifw_api_key"><?php esc_html_e( 'OpenRouter API Key', 'searchips-search-by-image-for-woocommerce' ); ?></label></th>
 										<td>
 											<div class="tsbifw-password-wrapper" style="position: relative; display: inline-block; max-width: 25em; width: 100%;">
 												<input type="password" name="tsbifw_api_key" id="tsbifw_api_key" value="<?php echo esc_attr( $api_key ); ?>" class="regular-text" style="width: 100%; padding-right: 35px;" />
@@ -252,175 +251,175 @@ class TSBIFW_Admin {
 													<span class="dashicons dashicons-visibility"></span>
 												</button>
 											</div>
-											<p class="description"><?php esc_html_e( 'Enter your OpenRouter API key to communicate with embeddings and vision models.', 'telens-search-by-image-for-woocommerce' ); ?></p>
+											<p class="description"><?php esc_html_e( 'Enter your OpenRouter API key to communicate with embeddings and vision models.', 'searchips-search-by-image-for-woocommerce' ); ?></p>
 										</td>
 									</tr>
 
 									<tr>
-										<th scope="row"><label for="tsbifw_strategy"><?php esc_html_e( 'Search Strategy', 'telens-search-by-image-for-woocommerce' ); ?></label></th>
+										<th scope="row"><label for="tsbifw_strategy"><?php esc_html_e( 'Search Strategy', 'searchips-search-by-image-for-woocommerce' ); ?></label></th>
 										<td>
 											<select name="tsbifw_strategy" id="tsbifw_strategy">
-												<option value="embeddings" <?php selected( $strategy, 'embeddings' ); ?>><?php esc_html_e( 'Strategy 1: Multimodal Vector Embeddings (Recommended)', 'telens-search-by-image-for-woocommerce' ); ?></option>
-												<option value="vision" <?php selected( $strategy, 'vision' ); ?>><?php esc_html_e( 'Strategy 2: Vision-to-Text Description Search', 'telens-search-by-image-for-woocommerce' ); ?></option>
+												<option value="embeddings" <?php selected( $strategy, 'embeddings' ); ?>><?php esc_html_e( 'Strategy 1: Multimodal Vector Embeddings (Recommended)', 'searchips-search-by-image-for-woocommerce' ); ?></option>
+												<option value="vision" <?php selected( $strategy, 'vision' ); ?>><?php esc_html_e( 'Strategy 2: Vision-to-Text Description Search', 'searchips-search-by-image-for-woocommerce' ); ?></option>
 											</select>
-											<p class="description"><?php esc_html_e( 'Select the underlying strategy for product indexing and searching.', 'telens-search-by-image-for-woocommerce' ); ?></p>
+											<p class="description"><?php esc_html_e( 'Select the underlying strategy for product indexing and searching.', 'searchips-search-by-image-for-woocommerce' ); ?></p>
 										</td>
 									</tr>
 
 									<tr>
-										<th scope="row"><?php esc_html_e( 'Images to Index', 'telens-search-by-image-for-woocommerce' ); ?></th>
+										<th scope="row"><?php esc_html_e( 'Images to Index', 'searchips-search-by-image-for-woocommerce' ); ?></th>
 										<td>
 											<fieldset>
 												<label for="tsbifw_index_featured">
 													<input type="checkbox" name="tsbifw_index_featured" id="tsbifw_index_featured" value="yes" <?php checked( $index_featured, 'yes' ); ?> />
-													<?php esc_html_e( 'Product Featured Image', 'telens-search-by-image-for-woocommerce' ); ?>
+													<?php esc_html_e( 'Product Featured Image', 'searchips-search-by-image-for-woocommerce' ); ?>
 												</label>
 												<br />
 												<label for="tsbifw_index_gallery">
 													<input type="checkbox" name="tsbifw_index_gallery" id="tsbifw_index_gallery" value="yes" <?php checked( $index_gallery, 'yes' ); ?> />
-													<?php esc_html_e( 'Product Gallery Images', 'telens-search-by-image-for-woocommerce' ); ?>
+													<?php esc_html_e( 'Product Gallery Images', 'searchips-search-by-image-for-woocommerce' ); ?>
 												</label>
 											</fieldset>
-											<p class="description"><?php esc_html_e( 'Select which images will be processed and indexed by the OpenRouter models.', 'telens-search-by-image-for-woocommerce' ); ?></p>
+											<p class="description"><?php esc_html_e( 'Select which images will be processed and indexed by the OpenRouter models.', 'searchips-search-by-image-for-woocommerce' ); ?></p>
 										</td>
 									</tr>
 
 									<tr class="tsbifw-strategy-field embeddings-field" style="<?php echo 'embeddings' === $strategy ? '' : 'display:none;'; ?>">
-										<th scope="row"><label for="tsbifw_embeddings_model"><?php esc_html_e( 'Embeddings Model ID', 'telens-search-by-image-for-woocommerce' ); ?></label></th>
+										<th scope="row"><label for="tsbifw_embeddings_model"><?php esc_html_e( 'Embeddings Model ID', 'searchips-search-by-image-for-woocommerce' ); ?></label></th>
 										<td>
 											<div class="tsbifw-skeleton-loader" id="tsbifw-embeddings-model-skeleton"></div>
 											<select name="tsbifw_embeddings_model" id="tsbifw_embeddings_model" style="display:none;" data-selected="<?php echo esc_attr( $embeddings_model ); ?>">
 											</select>
-											<p class="description"><?php esc_html_e( 'Select the multimodal embedding model ID from OpenRouter.', 'telens-search-by-image-for-woocommerce' ); ?></p>
+											<p class="description"><?php esc_html_e( 'Select the multimodal embedding model ID from OpenRouter.', 'searchips-search-by-image-for-woocommerce' ); ?></p>
 										</td>
 									</tr>
 
 									<tr class="tsbifw-strategy-field vision-field" style="<?php echo 'vision' === $strategy ? '' : 'display:none;'; ?>">
-										<th scope="row"><label for="tsbifw_vision_model"><?php esc_html_e( 'Vision Model ID', 'telens-search-by-image-for-woocommerce' ); ?></label></th>
+										<th scope="row"><label for="tsbifw_vision_model"><?php esc_html_e( 'Vision Model ID', 'searchips-search-by-image-for-woocommerce' ); ?></label></th>
 										<td>
 											<div class="tsbifw-skeleton-loader" id="tsbifw-vision-model-skeleton"></div>
 											<select name="tsbifw_vision_model" id="tsbifw_vision_model" style="display:none;" data-selected="<?php echo esc_attr( $vision_model ); ?>">
 											</select>
-											<p class="description"><?php esc_html_e( 'Select the vision chat completion model ID from OpenRouter.', 'telens-search-by-image-for-woocommerce' ); ?></p>
+											<p class="description"><?php esc_html_e( 'Select the vision chat completion model ID from OpenRouter.', 'searchips-search-by-image-for-woocommerce' ); ?></p>
 										</td>
 									</tr>
 
 									<tr class="tsbifw-strategy-field vision-field" style="<?php echo 'vision' === $strategy ? '' : 'display:none;'; ?>">
-										<th scope="row"><label for="tsbifw_sync_to_tags"><?php esc_html_e( 'Sync Descriptions to Product Tags?', 'telens-search-by-image-for-woocommerce' ); ?></label></th>
+										<th scope="row"><label for="tsbifw_sync_to_tags"><?php esc_html_e( 'Sync Descriptions to Product Tags?', 'searchips-search-by-image-for-woocommerce' ); ?></label></th>
 										<td>
 											<select name="tsbifw_sync_to_tags" id="tsbifw_sync_to_tags">
-												<option value="no" <?php selected( $sync_to_tags, 'no' ); ?>><?php esc_html_e( 'No (Store in Custom Postmeta Only)', 'telens-search-by-image-for-woocommerce' ); ?></option>
-												<option value="yes" <?php selected( $sync_to_tags, 'yes' ); ?>><?php esc_html_e( 'Yes (Append to WooCommerce Product Tags)', 'telens-search-by-image-for-woocommerce' ); ?></option>
+												<option value="no" <?php selected( $sync_to_tags, 'no' ); ?>><?php esc_html_e( 'No (Store in Custom Postmeta Only)', 'searchips-search-by-image-for-woocommerce' ); ?></option>
+												<option value="yes" <?php selected( $sync_to_tags, 'yes' ); ?>><?php esc_html_e( 'Yes (Append to WooCommerce Product Tags)', 'searchips-search-by-image-for-woocommerce' ); ?></option>
 											</select>
-											<p class="description"><?php esc_html_e( 'If enabled, descriptors are attached to standard product tags, allowing seamless standard theme/search filtering.', 'telens-search-by-image-for-woocommerce' ); ?></p>
+											<p class="description"><?php esc_html_e( 'If enabled, descriptors are attached to standard product tags, allowing seamless standard theme/search filtering.', 'searchips-search-by-image-for-woocommerce' ); ?></p>
 										</td>
 									</tr>
 
 									<tr>
-										<th scope="row"><label for="tsbifw_exclude_below_percent"><?php esc_html_e( 'Exclude Products Below Match Percentage', 'telens-search-by-image-for-woocommerce' ); ?></label></th>
+										<th scope="row"><label for="tsbifw_exclude_below_percent"><?php esc_html_e( 'Exclude Products Below Match Percentage', 'searchips-search-by-image-for-woocommerce' ); ?></label></th>
 										<td>
 											<input type="number" min="0" max="100" name="tsbifw_exclude_below_percent" id="tsbifw_exclude_below_percent" value="<?php echo esc_attr( $exclude_below_percent ); ?>" class="small-text" /> %
-											<p class="description"><?php esc_html_e( 'Exclude products from search results if their similarity match falls below this percentage. Recommended: 35% - 50%.', 'telens-search-by-image-for-woocommerce' ); ?></p>
+											<p class="description"><?php esc_html_e( 'Exclude products from search results if their similarity match falls below this percentage. Recommended: 35% - 50%.', 'searchips-search-by-image-for-woocommerce' ); ?></p>
 										</td>
 									</tr>
 
 									<tr>
-										<th scope="row"><label for="tsbifw_results_limit"><?php esc_html_e( 'Search Results Limit', 'telens-search-by-image-for-woocommerce' ); ?></label></th>
+										<th scope="row"><label for="tsbifw_results_limit"><?php esc_html_e( 'Search Results Limit', 'searchips-search-by-image-for-woocommerce' ); ?></label></th>
 										<td>
 											<input type="number" min="1" max="100" name="tsbifw_results_limit" id="tsbifw_results_limit" value="<?php echo esc_attr( $results_limit ); ?>" class="small-text" />
-											<p class="description"><?php esc_html_e( 'Maximum number of products to show in frontend search results.', 'telens-search-by-image-for-woocommerce' ); ?></p>
+											<p class="description"><?php esc_html_e( 'Maximum number of products to show in frontend search results.', 'searchips-search-by-image-for-woocommerce' ); ?></p>
 										</td>
 									</tr>
 
 									<tr>
-										<th scope="row"><label for="tsbifw_search_cache_expiry"><?php esc_html_e( 'Search Cache Expiry', 'telens-search-by-image-for-woocommerce' ); ?></label></th>
+										<th scope="row"><label for="tsbifw_search_cache_expiry"><?php esc_html_e( 'Search Cache Expiry', 'searchips-search-by-image-for-woocommerce' ); ?></label></th>
 										<td>
 											<?php $cache_expiry = get_option( 'tsbifw_search_cache_expiry', '600' ); ?>
 											<select name="tsbifw_search_cache_expiry" id="tsbifw_search_cache_expiry">
-												<option value="300" <?php selected( $cache_expiry, '300' ); ?>><?php esc_html_e( '5 Minutes', 'telens-search-by-image-for-woocommerce' ); ?></option>
-												<option value="600" <?php selected( $cache_expiry, '600' ); ?>><?php esc_html_e( '10 Minutes', 'telens-search-by-image-for-woocommerce' ); ?></option>
-												<option value="1800" <?php selected( $cache_expiry, '1800' ); ?>><?php esc_html_e( '30 Minutes', 'telens-search-by-image-for-woocommerce' ); ?></option>
-												<option value="3600" <?php selected( $cache_expiry, '3600' ); ?>><?php esc_html_e( '1 Hour', 'telens-search-by-image-for-woocommerce' ); ?></option>
-												<option value="7200" <?php selected( $cache_expiry, '7200' ); ?>><?php esc_html_e( '2 Hours', 'telens-search-by-image-for-woocommerce' ); ?></option>
-												<option value="86400" <?php selected( $cache_expiry, '86400' ); ?>><?php esc_html_e( '24 Hours', 'telens-search-by-image-for-woocommerce' ); ?></option>
+												<option value="300" <?php selected( $cache_expiry, '300' ); ?>><?php esc_html_e( '5 Minutes', 'searchips-search-by-image-for-woocommerce' ); ?></option>
+												<option value="600" <?php selected( $cache_expiry, '600' ); ?>><?php esc_html_e( '10 Minutes', 'searchips-search-by-image-for-woocommerce' ); ?></option>
+												<option value="1800" <?php selected( $cache_expiry, '1800' ); ?>><?php esc_html_e( '30 Minutes', 'searchips-search-by-image-for-woocommerce' ); ?></option>
+												<option value="3600" <?php selected( $cache_expiry, '3600' ); ?>><?php esc_html_e( '1 Hour', 'searchips-search-by-image-for-woocommerce' ); ?></option>
+												<option value="7200" <?php selected( $cache_expiry, '7200' ); ?>><?php esc_html_e( '2 Hours', 'searchips-search-by-image-for-woocommerce' ); ?></option>
+												<option value="86400" <?php selected( $cache_expiry, '86400' ); ?>><?php esc_html_e( '24 Hours', 'searchips-search-by-image-for-woocommerce' ); ?></option>
 											</select>
-											<p class="description"><?php esc_html_e( 'Choose how long the visual search queries and matching product IDs are stored temporarily on the server.', 'telens-search-by-image-for-woocommerce' ); ?></p>
+											<p class="description"><?php esc_html_e( 'Choose how long the visual search queries and matching product IDs are stored temporarily on the server.', 'searchips-search-by-image-for-woocommerce' ); ?></p>
 										</td>
 									</tr>
 
 									<tr>
-										<th scope="row"><label for="tsbifw_enable_auto_inject"><?php esc_html_e( 'Auto-Inject Camera Icon?', 'telens-search-by-image-for-woocommerce' ); ?></label></th>
+										<th scope="row"><label for="tsbifw_enable_auto_inject"><?php esc_html_e( 'Auto-Inject Camera Icon?', 'searchips-search-by-image-for-woocommerce' ); ?></label></th>
 										<td>
 											<select name="tsbifw_enable_auto_inject" id="tsbifw_enable_auto_inject">
-												<option value="yes" <?php selected( $enable_auto_inject, 'yes' ); ?>><?php esc_html_e( 'Yes (Inject into theme search forms automatically)', 'telens-search-by-image-for-woocommerce' ); ?></option>
-												<option value="no" <?php selected( $enable_auto_inject, 'no' ); ?>><?php esc_html_e( 'No (Render using [tsbifw_search_bar] shortcode manually)', 'telens-search-by-image-for-woocommerce' ); ?></option>
+												<option value="yes" <?php selected( $enable_auto_inject, 'yes' ); ?>><?php esc_html_e( 'Yes (Inject into theme search forms automatically)', 'searchips-search-by-image-for-woocommerce' ); ?></option>
+												<option value="no" <?php selected( $enable_auto_inject, 'no' ); ?>><?php esc_html_e( 'No (Render using [tsbifw_search_bar] shortcode manually)', 'searchips-search-by-image-for-woocommerce' ); ?></option>
 											</select>
-											<p class="description"><?php esc_html_e( 'Attempts to locate WooCommerce product search forms and insert a camera upload icon.', 'telens-search-by-image-for-woocommerce' ); ?></p>
+											<p class="description"><?php esc_html_e( 'Attempts to locate WooCommerce product search forms and insert a camera upload icon.', 'searchips-search-by-image-for-woocommerce' ); ?></p>
 										</td>
 									</tr>
 
 									<tr>
-										<th scope="row"><label for="tsbifw_enable_logging"><?php esc_html_e( 'Enable Logging?', 'telens-search-by-image-for-woocommerce' ); ?></label></th>
+										<th scope="row"><label for="tsbifw_enable_logging"><?php esc_html_e( 'Enable Logging?', 'searchips-search-by-image-for-woocommerce' ); ?></label></th>
 										<td>
 											<input type="checkbox" name="tsbifw_enable_logging" id="tsbifw_enable_logging" value="yes" <?php checked( get_option( 'tsbifw_enable_logging', 'yes' ), 'yes' ); ?> />
-											<p class="description"><?php esc_html_e( 'If enabled, settings updates, API calls, requests, and search queries will be saved to the database.', 'telens-search-by-image-for-woocommerce' ); ?></p>
+											<p class="description"><?php esc_html_e( 'If enabled, settings updates, API calls, requests, and search queries will be saved to the database.', 'searchips-search-by-image-for-woocommerce' ); ?></p>
 										</td>
 									</tr>
 
 									<tr>
-										<th scope="row"><label for="tsbifw_log_retention"><?php esc_html_e( 'Log Retention Period', 'telens-search-by-image-for-woocommerce' ); ?></label></th>
+										<th scope="row"><label for="tsbifw_log_retention"><?php esc_html_e( 'Log Retention Period', 'searchips-search-by-image-for-woocommerce' ); ?></label></th>
 										<td>
 											<select name="tsbifw_log_retention" id="tsbifw_log_retention">
-												<option value="1" <?php selected( get_option( 'tsbifw_log_retention', '7' ), '1' ); ?>><?php esc_html_e( '1 Day', 'telens-search-by-image-for-woocommerce' ); ?></option>
-												<option value="3" <?php selected( get_option( 'tsbifw_log_retention', '7' ), '3' ); ?>><?php esc_html_e( '3 Days', 'telens-search-by-image-for-woocommerce' ); ?></option>
-												<option value="7" <?php selected( get_option( 'tsbifw_log_retention', '7' ), '7' ); ?>><?php esc_html_e( '7 Days', 'telens-search-by-image-for-woocommerce' ); ?></option>
-												<option value="14" <?php selected( get_option( 'tsbifw_log_retention', '7' ), '14' ); ?>><?php esc_html_e( '14 Days', 'telens-search-by-image-for-woocommerce' ); ?></option>
-												<option value="30" <?php selected( get_option( 'tsbifw_log_retention', '7' ), '30' ); ?>><?php esc_html_e( '30 Days', 'telens-search-by-image-for-woocommerce' ); ?></option>
-												<option value="0" <?php selected( get_option( 'tsbifw_log_retention', '7' ), '0' ); ?>><?php esc_html_e( 'Indefinitely (Keep all logs)', 'telens-search-by-image-for-woocommerce' ); ?></option>
+												<option value="1" <?php selected( get_option( 'tsbifw_log_retention', '7' ), '1' ); ?>><?php esc_html_e( '1 Day', 'searchips-search-by-image-for-woocommerce' ); ?></option>
+												<option value="3" <?php selected( get_option( 'tsbifw_log_retention', '7' ), '3' ); ?>><?php esc_html_e( '3 Days', 'searchips-search-by-image-for-woocommerce' ); ?></option>
+												<option value="7" <?php selected( get_option( 'tsbifw_log_retention', '7' ), '7' ); ?>><?php esc_html_e( '7 Days', 'searchips-search-by-image-for-woocommerce' ); ?></option>
+												<option value="14" <?php selected( get_option( 'tsbifw_log_retention', '7' ), '14' ); ?>><?php esc_html_e( '14 Days', 'searchips-search-by-image-for-woocommerce' ); ?></option>
+												<option value="30" <?php selected( get_option( 'tsbifw_log_retention', '7' ), '30' ); ?>><?php esc_html_e( '30 Days', 'searchips-search-by-image-for-woocommerce' ); ?></option>
+												<option value="0" <?php selected( get_option( 'tsbifw_log_retention', '7' ), '0' ); ?>><?php esc_html_e( 'Indefinitely (Keep all logs)', 'searchips-search-by-image-for-woocommerce' ); ?></option>
 											</select>
-											<p class="description"><?php esc_html_e( 'Choose how long logs should be kept in the database before being automatically cleared.', 'telens-search-by-image-for-woocommerce' ); ?></p>
+											<p class="description"><?php esc_html_e( 'Choose how long logs should be kept in the database before being automatically cleared.', 'searchips-search-by-image-for-woocommerce' ); ?></p>
 										</td>
 									</tr>
 
 									<tr>
-										<th scope="row"><label for="tsbifw_enable_cron_indexing"><?php esc_html_e( 'Enable Background Cron Indexing?', 'telens-search-by-image-for-woocommerce' ); ?></label></th>
+										<th scope="row"><label for="tsbifw_enable_cron_indexing"><?php esc_html_e( 'Enable Background Cron Indexing?', 'searchips-search-by-image-for-woocommerce' ); ?></label></th>
 										<td>
 											<input type="checkbox" name="tsbifw_enable_cron_indexing" id="tsbifw_enable_cron_indexing" value="yes" <?php checked( get_option( 'tsbifw_enable_cron_indexing', 'no' ), 'yes' ); ?> />
-											<p class="description"><?php esc_html_e( 'Automatically index new products and handle failed items in the background via WordPress Cron, without keeping the settings page open.', 'telens-search-by-image-for-woocommerce' ); ?></p>
+											<p class="description"><?php esc_html_e( 'Automatically index new products and handle failed items in the background via WordPress Cron, without keeping the settings page open.', 'searchips-search-by-image-for-woocommerce' ); ?></p>
 										</td>
 									</tr>
 
 									<tr class="tsbifw-cron-settings" style="<?php echo 'yes' === get_option( 'tsbifw_enable_cron_indexing', 'no' ) ? '' : 'display:none;'; ?>">
-										<th scope="row"><label for="tsbifw_cron_interval"><?php esc_html_e( 'Cron Run Interval', 'telens-search-by-image-for-woocommerce' ); ?></label></th>
+										<th scope="row"><label for="tsbifw_cron_interval"><?php esc_html_e( 'Cron Run Interval', 'searchips-search-by-image-for-woocommerce' ); ?></label></th>
 										<td>
 											<select name="tsbifw_cron_interval" id="tsbifw_cron_interval">
-												<option value="every_minute" <?php selected( get_option( 'tsbifw_cron_interval', 'hourly' ), 'every_minute' ); ?>><?php esc_html_e( 'Every Minute', 'telens-search-by-image-for-woocommerce' ); ?></option>
-												<option value="every_5_minutes" <?php selected( get_option( 'tsbifw_cron_interval', 'hourly' ), 'every_5_minutes' ); ?>><?php esc_html_e( 'Every 5 Minutes', 'telens-search-by-image-for-woocommerce' ); ?></option>
-												<option value="every_15_minutes" <?php selected( get_option( 'tsbifw_cron_interval', 'hourly' ), 'every_15_minutes' ); ?>><?php esc_html_e( 'Every 15 Minutes', 'telens-search-by-image-for-woocommerce' ); ?></option>
-												<option value="hourly" <?php selected( get_option( 'tsbifw_cron_interval', 'hourly' ), 'hourly' ); ?>><?php esc_html_e( 'Hourly', 'telens-search-by-image-for-woocommerce' ); ?></option>
-												<option value="twice_daily" <?php selected( get_option( 'tsbifw_cron_interval', 'hourly' ), 'twice_daily' ); ?>><?php esc_html_e( 'Twice Daily', 'telens-search-by-image-for-woocommerce' ); ?></option>
-												<option value="daily" <?php selected( get_option( 'tsbifw_cron_interval', 'hourly' ), 'daily' ); ?>><?php esc_html_e( 'Daily', 'telens-search-by-image-for-woocommerce' ); ?></option>
+												<option value="every_minute" <?php selected( get_option( 'tsbifw_cron_interval', 'hourly' ), 'every_minute' ); ?>><?php esc_html_e( 'Every Minute', 'searchips-search-by-image-for-woocommerce' ); ?></option>
+												<option value="every_5_minutes" <?php selected( get_option( 'tsbifw_cron_interval', 'hourly' ), 'every_5_minutes' ); ?>><?php esc_html_e( 'Every 5 Minutes', 'searchips-search-by-image-for-woocommerce' ); ?></option>
+												<option value="every_15_minutes" <?php selected( get_option( 'tsbifw_cron_interval', 'hourly' ), 'every_15_minutes' ); ?>><?php esc_html_e( 'Every 15 Minutes', 'searchips-search-by-image-for-woocommerce' ); ?></option>
+												<option value="hourly" <?php selected( get_option( 'tsbifw_cron_interval', 'hourly' ), 'hourly' ); ?>><?php esc_html_e( 'Hourly', 'searchips-search-by-image-for-woocommerce' ); ?></option>
+												<option value="twice_daily" <?php selected( get_option( 'tsbifw_cron_interval', 'hourly' ), 'twice_daily' ); ?>><?php esc_html_e( 'Twice Daily', 'searchips-search-by-image-for-woocommerce' ); ?></option>
+												<option value="daily" <?php selected( get_option( 'tsbifw_cron_interval', 'hourly' ), 'daily' ); ?>><?php esc_html_e( 'Daily', 'searchips-search-by-image-for-woocommerce' ); ?></option>
 											</select>
-											<p class="description"><?php esc_html_e( 'Choose how frequently the background cron task should execute product indexing runs.', 'telens-search-by-image-for-woocommerce' ); ?></p>
+											<p class="description"><?php esc_html_e( 'Choose how frequently the background cron task should execute product indexing runs.', 'searchips-search-by-image-for-woocommerce' ); ?></p>
 										</td>
 									</tr>
 
 									<tr class="tsbifw-cron-settings" style="<?php echo 'yes' === get_option( 'tsbifw_enable_cron_indexing', 'no' ) ? '' : 'display:none;'; ?>">
-										<th scope="row"><label for="tsbifw_cron_batch_size"><?php esc_html_e( 'Cron Batch Size', 'telens-search-by-image-for-woocommerce' ); ?></label></th>
+										<th scope="row"><label for="tsbifw_cron_batch_size"><?php esc_html_e( 'Cron Batch Size', 'searchips-search-by-image-for-woocommerce' ); ?></label></th>
 										<td>
 											<input type="number" min="1" max="100" name="tsbifw_cron_batch_size" id="tsbifw_cron_batch_size" value="<?php echo esc_attr( get_option( 'tsbifw_cron_batch_size', '5' ) ); ?>" class="small-text" />
-											<p class="description"><?php esc_html_e( 'Number of products to process in each background interval (e.g. 2 products per minute). Keep this low to prevent CPU load.', 'telens-search-by-image-for-woocommerce' ); ?></p>
+											<p class="description"><?php esc_html_e( 'Number of products to process in each background interval (e.g. 2 products per minute). Keep this low to prevent CPU load.', 'searchips-search-by-image-for-woocommerce' ); ?></p>
 										</td>
 									</tr>
 								</table>
 
 								<div class="tsbifw-danger-zone" style="margin-top: 30px; padding: 20px; border: 1px solid #fee2e2; background-color: #fef2f2; border-radius: 8px;">
-									<h4 style="margin: 0 0 10px 0; color: #991b1b; font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;"><?php esc_html_e( 'Danger Zone', 'telens-search-by-image-for-woocommerce' ); ?></h4>
+									<h4 style="margin: 0 0 10px 0; color: #991b1b; font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;"><?php esc_html_e( 'Danger Zone', 'searchips-search-by-image-for-woocommerce' ); ?></h4>
 									<label for="tsbifw_delete_data_on_uninstall" style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer;">
 										<input type="checkbox" name="tsbifw_delete_data_on_uninstall" id="tsbifw_delete_data_on_uninstall" value="yes" <?php checked( get_option( 'tsbifw_delete_data_on_uninstall', 'no' ), 'yes' ); ?> style="margin-top: 3px;" />
 										<div>
-											<span style="font-weight: 600; color: #991b1b; display: block; margin-bottom: 3px;"><?php esc_html_e( 'Delete all plugin data on uninstall', 'telens-search-by-image-for-woocommerce' ); ?></span>
-											<span class="description" style="color: #7f1d1d;"><?php esc_html_e( 'If checked, all product vectors, image descriptions, search logs, and settings will be permanently deleted from the database when you delete this plugin.', 'telens-search-by-image-for-woocommerce' ); ?></span>
+											<span style="font-weight: 600; color: #991b1b; display: block; margin-bottom: 3px;"><?php esc_html_e( 'Delete all plugin data on uninstall', 'searchips-search-by-image-for-woocommerce' ); ?></span>
+											<span class="description" style="color: #7f1d1d;"><?php esc_html_e( 'If checked, all product vectors, image descriptions, search logs, and settings will be permanently deleted from the database when you delete this plugin.', 'searchips-search-by-image-for-woocommerce' ); ?></span>
 										</div>
 									</label>
 								</div>
@@ -441,34 +440,34 @@ class TSBIFW_Admin {
 								?>
 								<table class="form-table">
 									<tr>
-										<th scope="row"><label for="tsbifw_camera_left"><?php esc_html_e( 'Camera Icon Left Position', 'telens-search-by-image-for-woocommerce' ); ?></label></th>
+										<th scope="row"><label for="tsbifw_camera_left"><?php esc_html_e( 'Camera Icon Left Position', 'searchips-search-by-image-for-woocommerce' ); ?></label></th>
 										<td>
 											<input type="text" name="tsbifw_camera_left" id="tsbifw_camera_left" value="<?php echo esc_attr( $camera_left ); ?>" class="small-text" />
-											<p class="description"><?php esc_html_e( 'CSS left position offset for the camera icon (e.g. 14px or auto).', 'telens-search-by-image-for-woocommerce' ); ?></p>
+											<p class="description"><?php esc_html_e( 'CSS left position offset for the camera icon (e.g. 14px or auto).', 'searchips-search-by-image-for-woocommerce' ); ?></p>
 										</td>
 									</tr>
 
 									<tr>
-										<th scope="row"><label for="tsbifw_camera_right"><?php esc_html_e( 'Camera Icon Right Position', 'telens-search-by-image-for-woocommerce' ); ?></label></th>
+										<th scope="row"><label for="tsbifw_camera_right"><?php esc_html_e( 'Camera Icon Right Position', 'searchips-search-by-image-for-woocommerce' ); ?></label></th>
 										<td>
 											<input type="text" name="tsbifw_camera_right" id="tsbifw_camera_right" value="<?php echo esc_attr( $camera_right ); ?>" class="small-text" />
-											<p class="description"><?php esc_html_e( 'CSS right position offset for the camera icon (e.g. 14px or auto).', 'telens-search-by-image-for-woocommerce' ); ?></p>
+											<p class="description"><?php esc_html_e( 'CSS right position offset for the camera icon (e.g. 14px or auto).', 'searchips-search-by-image-for-woocommerce' ); ?></p>
 										</td>
 									</tr>
 
 									<tr>
-										<th scope="row"><label for="tsbifw_camera_icon_size"><?php esc_html_e( 'Camera Icon Size', 'telens-search-by-image-for-woocommerce' ); ?></label></th>
+										<th scope="row"><label for="tsbifw_camera_icon_size"><?php esc_html_e( 'Camera Icon Size', 'searchips-search-by-image-for-woocommerce' ); ?></label></th>
 										<td>
 											<input type="text" name="tsbifw_camera_icon_size" id="tsbifw_camera_icon_size" value="<?php echo esc_attr( $camera_icon_size ); ?>" class="small-text" />
-											<p class="description"><?php esc_html_e( 'CSS size (width and height) for the camera icon (e.g. 20px, 24px, etc.).', 'telens-search-by-image-for-woocommerce' ); ?></p>
+											<p class="description"><?php esc_html_e( 'CSS size (width and height) for the camera icon (e.g. 20px, 24px, etc.).', 'searchips-search-by-image-for-woocommerce' ); ?></p>
 										</td>
 									</tr>
 
 									<tr>
-										<th scope="row"><label for="tsbifw_camera_bg_color"><?php esc_html_e( 'Camera Icon Background Color', 'telens-search-by-image-for-woocommerce' ); ?></label></th>
+										<th scope="row"><label for="tsbifw_camera_bg_color"><?php esc_html_e( 'Camera Icon Background Color', 'searchips-search-by-image-for-woocommerce' ); ?></label></th>
 										<td>
 											<input type="text" name="tsbifw_camera_bg_color" id="tsbifw_camera_bg_color" value="<?php echo esc_attr( $camera_bg_color ); ?>" class="regular-text" />
-											<p class="description"><?php esc_html_e( 'CSS background color value for the camera icon (e.g. transparent, #ffffff, or rgba(255,255,255,0.8)).', 'telens-search-by-image-for-woocommerce' ); ?></p>
+											<p class="description"><?php esc_html_e( 'CSS background color value for the camera icon (e.g. transparent, #ffffff, or rgba(255,255,255,0.8)).', 'searchips-search-by-image-for-woocommerce' ); ?></p>
 										</td>
 									</tr>
 								</table>
@@ -476,8 +475,8 @@ class TSBIFW_Admin {
 							</form>
 						<?php elseif ( 'indexer' === $active_tab ) : ?>
 							<div class="tsbifw-indexer-container">
-								<h3><?php esc_html_e( 'Product Indexer Status', 'telens-search-by-image-for-woocommerce' ); ?></h3>
-								<p><?php esc_html_e( 'To enable image search, all WooCommerce products must have their featured images processed and indexed by the OpenRouter models.', 'telens-search-by-image-for-woocommerce' ); ?></p>
+								<h3><?php esc_html_e( 'Product Indexer Status', 'searchips-search-by-image-for-woocommerce' ); ?></h3>
+								<p><?php esc_html_e( 'To enable image search, all WooCommerce products must have their featured images processed and indexed by the OpenRouter models.', 'searchips-search-by-image-for-woocommerce' ); ?></p>
 
 								<?php
 								$stats = $this->get_indexing_stats();
@@ -485,19 +484,19 @@ class TSBIFW_Admin {
 								<div class="tsbifw-stats-grid">
 									<div class="tsbifw-stat-card">
 										<span class="tsbifw-stat-num" id="tsbifw-stat-total"><?php echo esc_html( $stats['total'] ); ?></span>
-										<span class="tsbifw-stat-label"><?php esc_html_e( 'Total Products', 'telens-search-by-image-for-woocommerce' ); ?></span>
+										<span class="tsbifw-stat-label"><?php esc_html_e( 'Total Products', 'searchips-search-by-image-for-woocommerce' ); ?></span>
 									</div>
 									<div class="tsbifw-stat-card">
 										<span class="tsbifw-stat-num tsbifw-success-text" id="tsbifw-stat-indexed"><?php echo esc_html( $stats['indexed'] ); ?></span>
-										<span class="tsbifw-stat-label"><?php esc_html_e( 'Successfully Indexed', 'telens-search-by-image-for-woocommerce' ); ?></span>
+										<span class="tsbifw-stat-label"><?php esc_html_e( 'Successfully Indexed', 'searchips-search-by-image-for-woocommerce' ); ?></span>
 									</div>
 									<div class="tsbifw-stat-card">
 										<span class="tsbifw-stat-num tsbifw-warning-text" id="tsbifw-stat-skipped"><?php echo esc_html( $stats['skipped'] ); ?></span>
-										<span class="tsbifw-stat-label"><?php esc_html_e( 'Skipped (No Image)', 'telens-search-by-image-for-woocommerce' ); ?></span>
+										<span class="tsbifw-stat-label"><?php esc_html_e( 'Skipped (No Image)', 'searchips-search-by-image-for-woocommerce' ); ?></span>
 									</div>
 									<div class="tsbifw-stat-card">
 										<span class="tsbifw-stat-num tsbifw-error-text" id="tsbifw-stat-errors"><?php echo esc_html( $stats['errors'] ); ?></span>
-										<span class="tsbifw-stat-label"><?php esc_html_e( 'Errors / Failed', 'telens-search-by-image-for-woocommerce' ); ?></span>
+										<span class="tsbifw-stat-label"><?php esc_html_e( 'Errors / Failed', 'searchips-search-by-image-for-woocommerce' ); ?></span>
 									</div>
 								</div>
 
@@ -506,46 +505,46 @@ class TSBIFW_Admin {
 										<div class="tsbifw-progress-fill" style="width: <?php echo esc_attr( $stats['percentage'] ); ?>%;"></div>
 									</div>
 									<div class="tsbifw-progress-text">
-										<span id="tsbifw-progress-percent"><?php echo esc_html( $stats['percentage'] ); ?></span>% <?php esc_html_e( 'processed', 'telens-search-by-image-for-woocommerce' ); ?> 
+										<span id="tsbifw-progress-percent"><?php echo esc_html( $stats['percentage'] ); ?></span>% <?php esc_html_e( 'processed', 'searchips-search-by-image-for-woocommerce' ); ?>
 										(<span id="tsbifw-processed-count"><?php echo esc_html( $stats['processed'] ); ?></span> / <span id="tsbifw-total-count"><?php echo esc_html( $stats['total'] ); ?></span>)
 									</div>
 								</div>
 
 								<div class="tsbifw-indexer-actions">
 									<button type="button" class="button button-primary button-large" id="tsbifw-start-indexing" <?php disabled( $stats['processed'] === $stats['total'] || empty( $api_key ) ); ?>>
-										<?php esc_html_e( 'Start / Resume Indexing', 'telens-search-by-image-for-woocommerce' ); ?>
+										<?php esc_html_e( 'Start / Resume Indexing', 'searchips-search-by-image-for-woocommerce' ); ?>
 									</button>
 									<button type="button" class="button button-secondary button-large" id="tsbifw-pause-indexing" style="display:none;">
-										<?php esc_html_e( 'Pause Indexing', 'telens-search-by-image-for-woocommerce' ); ?>
+										<?php esc_html_e( 'Pause Indexing', 'searchips-search-by-image-for-woocommerce' ); ?>
 									</button>
 									<button type="button" class="button button-large tsbifw-stop-btn" id="tsbifw-stop-indexing" style="display:none; color:#b32d2e; border-color:#b32d2e;">
-										<?php esc_html_e( 'Stop Indexing', 'telens-search-by-image-for-woocommerce' ); ?>
+										<?php esc_html_e( 'Stop Indexing', 'searchips-search-by-image-for-woocommerce' ); ?>
 									</button>
 									<button type="button" class="button button-secondary button-large" id="tsbifw-reset-indexing" <?php disabled( 0 === $stats['processed'] ); ?>>
-										<?php esc_html_e( 'Clear / Reset Index', 'telens-search-by-image-for-woocommerce' ); ?>
+										<?php esc_html_e( 'Clear / Reset Index', 'searchips-search-by-image-for-woocommerce' ); ?>
 									</button>
 
 									<?php if ( empty( $api_key ) ) : ?>
-										<p class="tsbifw-error-text inline-error"><?php esc_html_e( 'Please configure your OpenRouter API key on the General Settings tab before running the indexer.', 'telens-search-by-image-for-woocommerce' ); ?></p>
+										<p class="tsbifw-error-text inline-error"><?php esc_html_e( 'Please configure your OpenRouter API key on the General Settings tab before running the indexer.', 'searchips-search-by-image-for-woocommerce' ); ?></p>
 									<?php endif; ?>
 								</div>
 
 								<div class="tsbifw-log-output" style="display:none;">
 									<div class="tsbifw-log-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-										<h4 style="margin:0;"><?php esc_html_e( 'Indexing Output Logs', 'telens-search-by-image-for-woocommerce' ); ?></h4>
-										<button type="button" class="button button-secondary" id="tsbifw-copy-logs"><?php esc_html_e( 'Copy Logs', 'telens-search-by-image-for-woocommerce' ); ?></button>
+										<h4 style="margin:0;"><?php esc_html_e( 'Indexing Output Logs', 'searchips-search-by-image-for-woocommerce' ); ?></h4>
+										<button type="button" class="button button-secondary" id="tsbifw-copy-logs"><?php esc_html_e( 'Copy Logs', 'searchips-search-by-image-for-woocommerce' ); ?></button>
 									</div>
 									<pre id="tsbifw-log-console"></pre>
 								</div>
 							</div>
 						<?php elseif ( 'test_search' === $active_tab ) : ?>
 							<div class="tsbifw-test-search-container">
-								<h3><?php esc_html_e( 'Test Image Search similarity', 'telens-search-by-image-for-woocommerce' ); ?></h3>
-								<p><?php esc_html_e( 'Upload an image below to test search matching. The search will output matching WooCommerce products with their similarity scores.', 'telens-search-by-image-for-woocommerce' ); ?></p>
-								
+								<h3><?php esc_html_e( 'Test Image Search similarity', 'searchips-search-by-image-for-woocommerce' ); ?></h3>
+								<p><?php esc_html_e( 'Upload an image below to test search matching. The search will output matching WooCommerce products with their similarity scores.', 'searchips-search-by-image-for-woocommerce' ); ?></p>
+
 								<div class="tsbifw-admin-search-box">
 									<?php if ( empty( $api_key ) ) : ?>
-										<p class="tsbifw-error-text inline-error"><?php esc_html_e( 'Please configure your OpenRouter API key on the General Settings tab before using the test search.', 'telens-search-by-image-for-woocommerce' ); ?></p>
+										<p class="tsbifw-error-text inline-error"><?php esc_html_e( 'Please configure your OpenRouter API key on the General Settings tab before using the test search.', 'searchips-search-by-image-for-woocommerce' ); ?></p>
 									<?php else : ?>
 										<div class="tsbifw-drag-zone" id="tsbifw-admin-drag-zone">
 											<svg class="tsbifw-drag-icon" viewBox="0 0 24 24" width="48" height="48" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
@@ -553,22 +552,34 @@ class TSBIFW_Admin {
 												<circle cx="8.5" cy="8.5" r="1.5"></circle>
 												<polyline points="21 15 16 10 5 21"></polyline>
 											</svg>
-											<p><?php esc_html_e( 'Drag and drop an image here or click to browse', 'telens-search-by-image-for-woocommerce' ); ?></p>
+											<p><?php esc_html_e( 'Drag and drop an image here or click to browse', 'searchips-search-by-image-for-woocommerce' ); ?></p>
 										</div>
 										<input type="file" id="tsbifw-admin-file-input" accept="image/jpeg,image/png,image/webp" style="display:none;" />
-										
+
 										<div class="tsbifw-preview-wrapper" id="tsbifw-admin-preview-wrapper" style="display:none;">
 											<div class="tsbifw-cropper-container" style="max-height: 320px; overflow: hidden; border-radius: 8px; margin-bottom: 15px; border: 1px solid #ccd0d4;">
-												<img class="tsbifw-preview-image" id="tsbifw-admin-preview-image" src="" alt="Search Preview" style="max-width: 100%; display: block;" />
+												<cropper-canvas id="tsbifw-admin-cropper-canvas" style="height: 300px; display: none;">
+													<cropper-image id="tsbifw-admin-preview-image" src="" rotatable scalable translatable></cropper-image>
+													<cropper-shade></cropper-shade>
+													<cropper-selection movable resizable initial-coverage="0.9" dynamic outlined>
+														<cropper-grid role="grid" covered></cropper-grid>
+														<cropper-crosshair centered></cropper-crosshair>
+														<cropper-handle action="move" theme-color="rgba(255, 255, 255, 0.35)"></cropper-handle>
+														<cropper-handle action="nw-resize" theme-color="#4f46e5"></cropper-handle>
+														<cropper-handle action="ne-resize" theme-color="#4f46e5"></cropper-handle>
+														<cropper-handle action="se-resize" theme-color="#4f46e5"></cropper-handle>
+														<cropper-handle action="sw-resize" theme-color="#4f46e5"></cropper-handle>
+													</cropper-selection>
+												</cropper-canvas>
 											</div>
 											<div class="tsbifw-scanner-bar"></div>
 											<div class="tsbifw-scanning-overlay"></div>
 											<div class="tsbifw-preview-actions" style="margin-top: 15px; display: flex; gap: 10px; justify-content: center; align-items: center;">
-												<button type="button" class="button button-primary" id="tsbifw-admin-search-btn"><?php esc_html_e( 'Start Search', 'telens-search-by-image-for-woocommerce' ); ?></button>
-												<button type="button" class="button button-secondary" id="tsbifw-admin-reselect-btn"><?php esc_html_e( 'Select Another', 'telens-search-by-image-for-woocommerce' ); ?></button>
+												<button type="button" class="button button-primary" id="tsbifw-admin-search-btn"><?php esc_html_e( 'Start Search', 'searchips-search-by-image-for-woocommerce' ); ?></button>
+												<button type="button" class="button button-secondary" id="tsbifw-admin-reselect-btn"><?php esc_html_e( 'Select Another', 'searchips-search-by-image-for-woocommerce' ); ?></button>
 											</div>
 										</div>
-										
+
 										<div class="tsbifw-search-status" id="tsbifw-admin-search-status" style="display:none;"></div>
 										<div class="tsbifw-results-grid" id="tsbifw-admin-results-grid" style="display:none;"></div>
 									<?php endif; ?>
@@ -577,18 +588,18 @@ class TSBIFW_Admin {
 						<?php elseif ( 'logs' === $active_tab ) : ?>
 							<div class="tsbifw-logs-container">
 								<div class="tsbifw-logs-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-									<h3 style="margin:0;"><?php esc_html_e( 'System Logs', 'telens-search-by-image-for-woocommerce' ); ?></h3>
+									<h3 style="margin:0;"><?php esc_html_e( 'System Logs', 'searchips-search-by-image-for-woocommerce' ); ?></h3>
 									<div>
-										<button type="button" class="button button-secondary" id="tsbifw-admin-copy-logs"><?php esc_html_e( 'Copy Logs', 'telens-search-by-image-for-woocommerce' ); ?></button>
-										<button type="button" class="button tsbifw-stop-btn" id="tsbifw-admin-clear-logs" style="color:#b32d2e; border-color:#b32d2e;"><?php esc_html_e( 'Clear Logs', 'telens-search-by-image-for-woocommerce' ); ?></button>
+										<button type="button" class="button button-secondary" id="tsbifw-admin-copy-logs"><?php esc_html_e( 'Copy Logs', 'searchips-search-by-image-for-woocommerce' ); ?></button>
+										<button type="button" class="button tsbifw-stop-btn" id="tsbifw-admin-clear-logs" style="color:#b32d2e; border-color:#b32d2e;"><?php esc_html_e( 'Clear Logs', 'searchips-search-by-image-for-woocommerce' ); ?></button>
 									</div>
 								</div>
-								
+
 								<div class="tsbifw-log-list-wrapper" style="max-height: 600px; overflow-y: auto; background: #fff; border: 1px solid #ccd0d4; padding: 10px; border-radius: 4px;">
 									<?php
 									$logs = TSBIFW_Logger::get_logs();
 									if ( empty( $logs ) ) {
-										echo '<p class="description">' . esc_html__( 'No logs recorded yet.', 'telens-search-by-image-for-woocommerce' ) . '</p>';
+										echo '<p class="description">' . esc_html__( 'No logs recorded yet.', 'searchips-search-by-image-for-woocommerce' ) . '</p>';
 									} else {
 										// Reverse logs to show newest first.
 										$logs = array_reverse( $logs );
@@ -596,9 +607,9 @@ class TSBIFW_Admin {
 										<table class="wp-list-table widefat fixed striped tsbifw-logs-table">
 											<thead>
 												<tr>
-													<th class="column-timestamp" style="width: 20%; padding: 8px; font-weight: bold;"><?php esc_html_e( 'Timestamp', 'telens-search-by-image-for-woocommerce' ); ?></th>
-													<th class="column-message" style="width: 50%; padding: 8px; font-weight: bold;"><?php esc_html_e( 'Message', 'telens-search-by-image-for-woocommerce' ); ?></th>
-													<th class="column-context" style="width: 30%; padding: 8px; font-weight: bold;"><?php esc_html_e( 'Context / Metadata', 'telens-search-by-image-for-woocommerce' ); ?></th>
+													<th class="column-timestamp" style="width: 20%; padding: 8px; font-weight: bold;"><?php esc_html_e( 'Timestamp', 'searchips-search-by-image-for-woocommerce' ); ?></th>
+													<th class="column-message" style="width: 50%; padding: 8px; font-weight: bold;"><?php esc_html_e( 'Message', 'searchips-search-by-image-for-woocommerce' ); ?></th>
+													<th class="column-context" style="width: 30%; padding: 8px; font-weight: bold;"><?php esc_html_e( 'Context / Metadata', 'searchips-search-by-image-for-woocommerce' ); ?></th>
 												</tr>
 											</thead>
 											<tbody>
@@ -630,75 +641,75 @@ class TSBIFW_Admin {
 					<?php if ( 'general' === $active_tab ) : ?>
 						<div class="tsbifw-sidebar-card">
 							<div class="tsbifw-sidebar-card-header">
-								<h4><?php esc_html_e( 'API Key Setup Guide', 'telens-search-by-image-for-woocommerce' ); ?></h4>
+								<h4><?php esc_html_e( 'API Key Setup Guide', 'searchips-search-by-image-for-woocommerce' ); ?></h4>
 							</div>
 							<div class="tsbifw-sidebar-card-body">
-								<p><?php esc_html_e( 'Follow these steps to obtain your OpenRouter API Key:', 'telens-search-by-image-for-woocommerce' ); ?></p>
+								<p><?php esc_html_e( 'Follow these steps to obtain your OpenRouter API Key:', 'searchips-search-by-image-for-woocommerce' ); ?></p>
 								<ol style="margin: 0 0 12px 0; padding-left: 20px; list-style-type: decimal;">
 									<li style="font-size: 12px; line-height: 1.5; color: #475569; margin-bottom: 6px;">
 										<?php
 										// translators: %s is the link to the external website.
-										$msg = sprintf( esc_html__( 'Visit the %s website.', 'telens-search-by-image-for-woocommerce' ), '<a href="https://openrouter.ai/" target="_blank">OpenRouter</a>' );
+										$msg = sprintf( esc_html__( 'Visit the %s website.', 'searchips-search-by-image-for-woocommerce' ), '<a href="https://openrouter.ai/" target="_blank">OpenRouter</a>' );
 										echo wp_kses_post( $msg );
 										?>
 									</li>
-									<li style="font-size: 12px; line-height: 1.5; color: #475569; margin-bottom: 6px;"><?php esc_html_e( 'Register or log in to your account.', 'telens-search-by-image-for-woocommerce' ); ?></li>
-									<li style="font-size: 12px; line-height: 1.5; color: #475569; margin-bottom: 6px;"><?php esc_html_e( 'Navigate to Keys section and click "Create Key".', 'telens-search-by-image-for-woocommerce' ); ?></li>
-									<li style="font-size: 12px; line-height: 1.5; color: #475569; margin-bottom: 6px;"><?php esc_html_e( 'Copy the generated key and paste it into the API Key setting input.', 'telens-search-by-image-for-woocommerce' ); ?></li>
+									<li style="font-size: 12px; line-height: 1.5; color: #475569; margin-bottom: 6px;"><?php esc_html_e( 'Register or log in to your account.', 'searchips-search-by-image-for-woocommerce' ); ?></li>
+									<li style="font-size: 12px; line-height: 1.5; color: #475569; margin-bottom: 6px;"><?php esc_html_e( 'Navigate to Keys section and click "Create Key".', 'searchips-search-by-image-for-woocommerce' ); ?></li>
+									<li style="font-size: 12px; line-height: 1.5; color: #475569; margin-bottom: 6px;"><?php esc_html_e( 'Copy the generated key and paste it into the API Key setting input.', 'searchips-search-by-image-for-woocommerce' ); ?></li>
 								</ol>
 							</div>
 						</div>
 
 						<div class="tsbifw-sidebar-card">
 							<div class="tsbifw-sidebar-card-header">
-								<h4><?php esc_html_e( 'Model Selection Help', 'telens-search-by-image-for-woocommerce' ); ?></h4>
+								<h4><?php esc_html_e( 'Model Selection Help', 'searchips-search-by-image-for-woocommerce' ); ?></h4>
 							</div>
 							<div class="tsbifw-sidebar-card-body">
-								<p><strong><?php esc_html_e( 'Embeddings Model', 'telens-search-by-image-for-woocommerce' ); ?></strong><br />
-								<?php esc_html_e( 'Used by Strategy 1 to convert product images into mathematical vectors. Gemini Embedding 2 is the recommended default.', 'telens-search-by-image-for-woocommerce' ); ?></p>
-								
-								<p><strong><?php esc_html_e( 'Vision Model', 'telens-search-by-image-for-woocommerce' ); ?></strong><br />
-								<?php esc_html_e( 'Used by Strategy 2 to write textual descriptions from photos. Gemini 2.5 Flash is recommended for its speed and accuracy.', 'telens-search-by-image-for-woocommerce' ); ?></p>
+								<p><strong><?php esc_html_e( 'Embeddings Model', 'searchips-search-by-image-for-woocommerce' ); ?></strong><br />
+								<?php esc_html_e( 'Used by Strategy 1 to convert product images into mathematical vectors. Gemini Embedding 2 is the recommended default.', 'searchips-search-by-image-for-woocommerce' ); ?></p>
+
+								<p><strong><?php esc_html_e( 'Vision Model', 'searchips-search-by-image-for-woocommerce' ); ?></strong><br />
+								<?php esc_html_e( 'Used by Strategy 2 to write textual descriptions from photos. Gemini 2.5 Flash is recommended for its speed and accuracy.', 'searchips-search-by-image-for-woocommerce' ); ?></p>
 							</div>
 						</div>
 					<?php endif; ?>
 
 					<div class="tsbifw-sidebar-card">
 						<div class="tsbifw-sidebar-card-header">
-							<h4><?php esc_html_e( 'Shortcode Usage', 'telens-search-by-image-for-woocommerce' ); ?></h4>
+							<h4><?php esc_html_e( 'Shortcode Usage', 'searchips-search-by-image-for-woocommerce' ); ?></h4>
 						</div>
 						<div class="tsbifw-sidebar-card-body">
-							<p><?php esc_html_e( 'To display the image search bar anywhere on your store front-end (e.g. pages, posts, or widgets), insert the following shortcode:', 'telens-search-by-image-for-woocommerce' ); ?></p>
+							<p><?php esc_html_e( 'To display the image search bar anywhere on your store front-end (e.g. pages, posts, or widgets), insert the following shortcode:', 'searchips-search-by-image-for-woocommerce' ); ?></p>
 							<code style="display: block; padding: 8px; background: #f1f5f9; border-radius: 4px; font-family: monospace; font-size: 12px; font-weight: bold; color: #0f172a; text-align: center; border: 1px solid #cbd5e1; margin-bottom: 8px;">[tsbifw_search_bar]</code>
-							<p style="font-size: 11px !important; color: #64748b !important; margin: 0;"><?php esc_html_e( 'This shortcode outputs a complete, responsive product search form equipped with the camera upload icon.', 'telens-search-by-image-for-woocommerce' ); ?></p>
+							<p style="font-size: 11px !important; color: #64748b !important; margin: 0;"><?php esc_html_e( 'This shortcode outputs a complete, responsive product search form equipped with the camera upload icon.', 'searchips-search-by-image-for-woocommerce' ); ?></p>
 						</div>
 					</div>
 
 					<?php if ( 'general' === $active_tab ) : ?>
 						<div class="tsbifw-sidebar-card">
 							<div class="tsbifw-sidebar-card-header">
-								<h4><?php esc_html_e( 'Similarity Options Guide', 'telens-search-by-image-for-woocommerce' ); ?></h4>
+								<h4><?php esc_html_e( 'Similarity Options Guide', 'searchips-search-by-image-for-woocommerce' ); ?></h4>
 							</div>
 							<div class="tsbifw-sidebar-card-body">
-								<h5><?php esc_html_e( 'Match Percentage Threshold', 'telens-search-by-image-for-woocommerce' ); ?></h5>
-								<p><?php esc_html_e( 'This controls the strictness of the similarity matching algorithm:', 'telens-search-by-image-for-woocommerce' ); ?></p>
+								<h5><?php esc_html_e( 'Match Percentage Threshold', 'searchips-search-by-image-for-woocommerce' ); ?></h5>
+								<p><?php esc_html_e( 'This controls the strictness of the similarity matching algorithm:', 'searchips-search-by-image-for-woocommerce' ); ?></p>
 								<ul style="margin: 0; padding-left: 20px; list-style-type: disc;">
-									<li style="font-size: 12px; line-height: 1.5; color: #475569; margin-bottom: 6px;"><strong><?php esc_html_e( 'Higher (e.g., 55% - 70%)', 'telens-search-by-image-for-woocommerce' ); ?></strong>: <?php esc_html_e( 'Very strict matches. Only shows products that look almost identical to the query image.', 'telens-search-by-image-for-woocommerce' ); ?></li>
-									<li style="font-size: 12px; line-height: 1.5; color: #475569; margin-bottom: 6px;"><strong><?php esc_html_e( 'Lower (e.g., 30% - 40%)', 'telens-search-by-image-for-woocommerce' ); ?></strong>: <?php esc_html_e( 'Loose matching. Returns products with similar color schemes, shapes, or silhouettes.', 'telens-search-by-image-for-woocommerce' ); ?></li>
+									<li style="font-size: 12px; line-height: 1.5; color: #475569; margin-bottom: 6px;"><strong><?php esc_html_e( 'Higher (e.g., 55% - 70%)', 'searchips-search-by-image-for-woocommerce' ); ?></strong>: <?php esc_html_e( 'Very strict matches. Only shows products that look almost identical to the query image.', 'searchips-search-by-image-for-woocommerce' ); ?></li>
+									<li style="font-size: 12px; line-height: 1.5; color: #475569; margin-bottom: 6px;"><strong><?php esc_html_e( 'Lower (e.g., 30% - 40%)', 'searchips-search-by-image-for-woocommerce' ); ?></strong>: <?php esc_html_e( 'Loose matching. Returns products with similar color schemes, shapes, or silhouettes.', 'searchips-search-by-image-for-woocommerce' ); ?></li>
 								</ul>
 							</div>
 						</div>
 
 						<div class="tsbifw-sidebar-card">
 							<div class="tsbifw-sidebar-card-header">
-								<h4><?php esc_html_e( 'Search Strategies', 'telens-search-by-image-for-woocommerce' ); ?></h4>
+								<h4><?php esc_html_e( 'Search Strategies', 'searchips-search-by-image-for-woocommerce' ); ?></h4>
 							</div>
 							<div class="tsbifw-sidebar-card-body">
-								<p><strong><?php esc_html_e( 'Strategy 1: Vector Embeddings', 'telens-search-by-image-for-woocommerce' ); ?></strong><br />
-								<?php esc_html_e( 'Encodes products and uploaded search photos into numerical vectors, calculating similarity using normalized dot-product algebra. Fast, accurate, and recommended.', 'telens-search-by-image-for-woocommerce' ); ?></p>
-								
-								<p><strong><?php esc_html_e( 'Strategy 2: Vision-to-Text', 'telens-search-by-image-for-woocommerce' ); ?></strong><br />
-								<?php esc_html_e( 'Generates high-quality textual descriptions of images on-the-fly and processes them as keyword tags to query standard store search pages.', 'telens-search-by-image-for-woocommerce' ); ?></p>
+								<p><strong><?php esc_html_e( 'Strategy 1: Vector Embeddings', 'searchips-search-by-image-for-woocommerce' ); ?></strong><br />
+								<?php esc_html_e( 'Encodes products and uploaded search photos into numerical vectors, calculating similarity using normalized dot-product algebra. Fast, accurate, and recommended.', 'searchips-search-by-image-for-woocommerce' ); ?></p>
+
+								<p><strong><?php esc_html_e( 'Strategy 2: Vision-to-Text', 'searchips-search-by-image-for-woocommerce' ); ?></strong><br />
+								<?php esc_html_e( 'Generates high-quality textual descriptions of images on-the-fly and processes them as keyword tags to query standard store search pages.', 'searchips-search-by-image-for-woocommerce' ); ?></p>
 							</div>
 						</div>
 					<?php endif; ?>
@@ -735,8 +746,8 @@ class TSBIFW_Admin {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$indexed = (int) $wpdb->get_var(
 			$wpdb->prepare(
-				"SELECT COUNT(post_id) FROM {$wpdb->postmeta} pm 
-				JOIN {$wpdb->posts} p ON p.ID = pm.post_id 
+				"SELECT COUNT(post_id) FROM {$wpdb->postmeta} pm
+				JOIN {$wpdb->posts} p ON p.ID = pm.post_id
 				WHERE pm.meta_key = %s AND pm.meta_value = %s AND p.post_status = %s",
 				'_tsbifw_indexed_status',
 				'indexed',
@@ -747,8 +758,8 @@ class TSBIFW_Admin {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$skipped = (int) $wpdb->get_var(
 			$wpdb->prepare(
-				"SELECT COUNT(post_id) FROM {$wpdb->postmeta} pm 
-				JOIN {$wpdb->posts} p ON p.ID = pm.post_id 
+				"SELECT COUNT(post_id) FROM {$wpdb->postmeta} pm
+				JOIN {$wpdb->posts} p ON p.ID = pm.post_id
 				WHERE pm.meta_key = %s AND pm.meta_value = %s AND p.post_status = %s",
 				'_tsbifw_indexed_status',
 				'skipped',
@@ -759,8 +770,8 @@ class TSBIFW_Admin {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$errors = (int) $wpdb->get_var(
 			$wpdb->prepare(
-				"SELECT COUNT(post_id) FROM {$wpdb->postmeta} pm 
-				JOIN {$wpdb->posts} p ON p.ID = pm.post_id 
+				"SELECT COUNT(post_id) FROM {$wpdb->postmeta} pm
+				JOIN {$wpdb->posts} p ON p.ID = pm.post_id
 				WHERE pm.meta_key = %s AND pm.meta_value = %s AND p.post_status = %s",
 				'_tsbifw_indexed_status',
 				'error',
@@ -792,7 +803,7 @@ class TSBIFW_Admin {
 		check_ajax_referer( 'tsbifw_admin_nonce', 'security' );
 
 		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_send_json_error( esc_html__( 'Unauthorized access.', 'telens-search-by-image-for-woocommerce' ) );
+			wp_send_json_error( esc_html__( 'Unauthorized access.', 'searchips-search-by-image-for-woocommerce' ) );
 		}
 
 		// Invalidate indexing stats cache.
@@ -827,7 +838,7 @@ class TSBIFW_Admin {
 			wp_send_json_success(
 				array(
 					'completed' => true,
-					'logs'      => array( esc_html__( 'All products indexed successfully.', 'telens-search-by-image-for-woocommerce' ) ),
+					'logs'      => array( esc_html__( 'All products indexed successfully.', 'searchips-search-by-image-for-woocommerce' ) ),
 					'stats'     => $stats,
 				)
 			);
@@ -844,7 +855,7 @@ class TSBIFW_Admin {
 			if ( is_wp_error( $result ) ) {
 				$logs[] = sprintf(
 					// translators: 1: Product title, 2: Error message
-					esc_html__( 'Failed to index "%1$s": %2$s', 'telens-search-by-image-for-woocommerce' ),
+					esc_html__( 'Failed to index "%1$s": %2$s', 'searchips-search-by-image-for-woocommerce' ),
 					$title,
 					$result->get_error_message()
 				);
@@ -853,13 +864,13 @@ class TSBIFW_Admin {
 				if ( 'skipped' === $status ) {
 					$logs[] = sprintf(
 						// translators: %s: Product title
-						esc_html__( 'Skipped "%s" (No featured image found)', 'telens-search-by-image-for-woocommerce' ),
+						esc_html__( 'Skipped "%s" (No featured image found)', 'searchips-search-by-image-for-woocommerce' ),
 						$title
 					);
 				} else {
 					$logs[] = sprintf(
 						// translators: %s: Product title
-						esc_html__( 'Successfully indexed "%s"', 'telens-search-by-image-for-woocommerce' ),
+						esc_html__( 'Successfully indexed "%s"', 'searchips-search-by-image-for-woocommerce' ),
 						$title
 					);
 					$success_count++;
@@ -884,7 +895,7 @@ class TSBIFW_Admin {
 		check_ajax_referer( 'tsbifw_admin_nonce', 'security' );
 
 		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_send_json_error( esc_html__( 'Unauthorized access.', 'telens-search-by-image-for-woocommerce' ) );
+			wp_send_json_error( esc_html__( 'Unauthorized access.', 'searchips-search-by-image-for-woocommerce' ) );
 		}
 
 		TSBIFW_Indexer::instance()->clear_all_indexed_data();
@@ -896,7 +907,7 @@ class TSBIFW_Admin {
 		wp_send_json_success(
 			array(
 				'stats' => $stats,
-				'msg'   => esc_html__( 'All indexed metadata has been successfully cleared.', 'telens-search-by-image-for-woocommerce' ),
+				'msg'   => esc_html__( 'All indexed metadata has been successfully cleared.', 'searchips-search-by-image-for-woocommerce' ),
 			)
 		);
 	}
@@ -908,7 +919,7 @@ class TSBIFW_Admin {
 		check_ajax_referer( 'tsbifw_admin_nonce', 'security' );
 
 		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_send_json_error( esc_html__( 'Unauthorized access.', 'telens-search-by-image-for-woocommerce' ) );
+			wp_send_json_error( esc_html__( 'Unauthorized access.', 'searchips-search-by-image-for-woocommerce' ) );
 		}
 
 		$api = TSBIFW_API::instance();
@@ -980,13 +991,13 @@ class TSBIFW_Admin {
 					wp_unschedule_event( $timestamp, 'tsbifw_cron_indexing' );
 					wp_schedule_event( time(), $interval, 'tsbifw_cron_indexing' );
 					// translators: 1: Old schedule interval, 2: New schedule interval
-					$msg = sprintf( esc_html__( 'Rescheduled background indexing cron event from %1$s to %2$s.', 'telens-search-by-image-for-woocommerce' ), $current_schedule, $interval );
+					$msg = sprintf( esc_html__( 'Rescheduled background indexing cron event from %1$s to %2$s.', 'searchips-search-by-image-for-woocommerce' ), $current_schedule, $interval );
 					TSBIFW_Logger::log( $msg );
 				}
 			} else {
 				wp_schedule_event( time(), $interval, 'tsbifw_cron_indexing' );
 				// translators: %s is the cron run interval display name.
-				$msg = sprintf( esc_html__( 'Scheduled %s background indexing cron event.', 'telens-search-by-image-for-woocommerce' ), $interval );
+				$msg = sprintf( esc_html__( 'Scheduled %s background indexing cron event.', 'searchips-search-by-image-for-woocommerce' ), $interval );
 				TSBIFW_Logger::log( $msg );
 			}
 		} else {
@@ -1013,7 +1024,7 @@ class TSBIFW_Admin {
 				$logged_new = empty( $value ) ? '' : '***' . substr( $value, -4 );
 			}
 			// translators: %s is the option name key.
-			$msg = sprintf( esc_html__( 'Setting updated: %s changed.', 'telens-search-by-image-for-woocommerce' ), $option );
+			$msg = sprintf( esc_html__( 'Setting updated: %s changed.', 'searchips-search-by-image-for-woocommerce' ), $option );
 			TSBIFW_Logger::log(
 				$msg,
 				array(
@@ -1037,7 +1048,7 @@ class TSBIFW_Admin {
 				$logged_val = empty( $value ) ? '' : '***' . substr( $value, -4 );
 			}
 			// translators: %s is the option name key.
-			$msg = sprintf( esc_html__( 'Setting added: %s set.', 'telens-search-by-image-for-woocommerce' ), $option );
+			$msg = sprintf( esc_html__( 'Setting added: %s set.', 'searchips-search-by-image-for-woocommerce' ), $option );
 			TSBIFW_Logger::log(
 				$msg,
 				array(
@@ -1054,14 +1065,14 @@ class TSBIFW_Admin {
 		check_ajax_referer( 'tsbifw_admin_nonce', 'security' );
 
 		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_send_json_error( esc_html__( 'Unauthorized access.', 'telens-search-by-image-for-woocommerce' ) );
+			wp_send_json_error( esc_html__( 'Unauthorized access.', 'searchips-search-by-image-for-woocommerce' ) );
 		}
 
 		TSBIFW_Logger::clear_all_logs();
 
 		wp_send_json_success(
 			array(
-				'msg' => esc_html__( 'All system logs have been successfully cleared.', 'telens-search-by-image-for-woocommerce' ),
+				'msg' => esc_html__( 'All system logs have been successfully cleared.', 'searchips-search-by-image-for-woocommerce' ),
 			)
 		);
 	}
@@ -1073,7 +1084,7 @@ class TSBIFW_Admin {
 	 * @return array
 	 */
 	public function add_media_columns( $columns ) {
-		$columns['tsbifw_indexed'] = esc_html__( 'Indexed Status', 'telens-search-by-image-for-woocommerce' );
+		$columns['tsbifw_indexed'] = esc_html__( 'Indexed Status', 'searchips-search-by-image-for-woocommerce' );
 		return $columns;
 	}
 
@@ -1094,9 +1105,9 @@ class TSBIFW_Admin {
 			$is_indexed = $indexer->is_image_indexed( $post_id );
 
 			if ( $is_indexed ) {
-				echo '<span class="tsbifw-indexed-badge indexed" style="color:#0f5132; background-color:#d1e7dd; border:1px solid #badbcc; padding:4px 8px; border-radius:12px; font-weight:600; font-size:11px; display:inline-flex; align-items:center; gap:4px;"><span class="dashicons dashicons-yes" style="font-size:16px; width:16px; height:16px; margin:0;"></span>' . esc_html__( 'Indexed', 'telens-search-by-image-for-woocommerce' ) . '</span>';
+				echo '<span class="tsbifw-indexed-badge indexed" style="color:#0f5132; background-color:#d1e7dd; border:1px solid #badbcc; padding:4px 8px; border-radius:12px; font-weight:600; font-size:11px; display:inline-flex; align-items:center; gap:4px;"><span class="dashicons dashicons-yes" style="font-size:16px; width:16px; height:16px; margin:0;"></span>' . esc_html__( 'Indexed', 'searchips-search-by-image-for-woocommerce' ) . '</span>';
 			} else {
-				echo '<span class="tsbifw-indexed-badge not-indexed" style="color:#664d03; background-color:#fff3cd; border:1px solid #ffecb5; padding:4px 8px; border-radius:12px; font-weight:600; font-size:11px; display:inline-flex; align-items:center; gap:4px;"><span class="dashicons dashicons-no" style="font-size:16px; width:16px; height:16px; margin:0;"></span>' . esc_html__( 'Not Indexed', 'telens-search-by-image-for-woocommerce' ) . '</span>';
+				echo '<span class="tsbifw-indexed-badge not-indexed" style="color:#664d03; background-color:#fff3cd; border:1px solid #ffecb5; padding:4px 8px; border-radius:12px; font-weight:600; font-size:11px; display:inline-flex; align-items:center; gap:4px;"><span class="dashicons dashicons-no" style="font-size:16px; width:16px; height:16px; margin:0;"></span>' . esc_html__( 'Not Indexed', 'searchips-search-by-image-for-woocommerce' ) . '</span>';
 			}
 		}
 	}
@@ -1111,9 +1122,9 @@ class TSBIFW_Admin {
 			$selected = isset( $_GET['tsbifw_indexed_filter'] ) ? sanitize_text_field( wp_unslash( $_GET['tsbifw_indexed_filter'] ) ) : '';
 			?>
 			<select name="tsbifw_indexed_filter" id="tsbifw_indexed_filter">
-				<option value=""><?php esc_html_e( 'All Indexed Statuses', 'telens-search-by-image-for-woocommerce' ); ?></option>
-				<option value="indexed" <?php selected( $selected, 'indexed' ); ?>><?php esc_html_e( 'Indexed', 'telens-search-by-image-for-woocommerce' ); ?></option>
-				<option value="not_indexed" <?php selected( $selected, 'not_indexed' ); ?>><?php esc_html_e( 'Not Indexed', 'telens-search-by-image-for-woocommerce' ); ?></option>
+				<option value=""><?php esc_html_e( 'All Indexed Statuses', 'searchips-search-by-image-for-woocommerce' ); ?></option>
+				<option value="indexed" <?php selected( $selected, 'indexed' ); ?>><?php esc_html_e( 'Indexed', 'searchips-search-by-image-for-woocommerce' ); ?></option>
+				<option value="not_indexed" <?php selected( $selected, 'not_indexed' ); ?>><?php esc_html_e( 'Not Indexed', 'searchips-search-by-image-for-woocommerce' ); ?></option>
 			</select>
 			<?php
 		}
@@ -1164,9 +1175,9 @@ class TSBIFW_Admin {
 	public function on_strategy_change( $old_value, $value ) {
 		if ( $old_value !== $value ) {
 			wp_schedule_single_event( time(), 'tsbifw_clear_index_cron' );
-			
+
 			// translators: 1: Old strategy, 2: New strategy
-			$msg = sprintf( esc_html__( 'Search strategy changed from %1$s to %2$s. Scheduled background cron job to clear all existing index data.', 'telens-search-by-image-for-woocommerce' ), $old_value, $value );
+			$msg = sprintf( esc_html__( 'Search strategy changed from %1$s to %2$s. Scheduled background cron job to clear all existing index data.', 'searchips-search-by-image-for-woocommerce' ), $old_value, $value );
 			TSBIFW_Logger::log( $msg );
 		}
 	}
@@ -1183,7 +1194,7 @@ class TSBIFW_Admin {
 			add_settings_error(
 				'tsbifw_api_key',
 				'tsbifw_api_key_empty',
-				esc_html__( 'OpenRouter API Key is required for image search and indexing to function.', 'telens-search-by-image-for-woocommerce' ),
+				esc_html__( 'OpenRouter API Key is required for image search and indexing to function.', 'searchips-search-by-image-for-woocommerce' ),
 				'error'
 			);
 		}
@@ -1205,7 +1216,7 @@ class TSBIFW_Admin {
 			add_settings_error(
 				'tsbifw_exclude_below_percent',
 				'tsbifw_exclude_below_percent_range',
-				esc_html__( 'Match percentage threshold must be between 0 and 100.', 'telens-search-by-image-for-woocommerce' ),
+				esc_html__( 'Match percentage threshold must be between 0 and 100.', 'searchips-search-by-image-for-woocommerce' ),
 				'error'
 			);
 			return max( 0, min( 100, $num ) );
@@ -1225,7 +1236,7 @@ class TSBIFW_Admin {
 			add_settings_error(
 				'tsbifw_results_limit',
 				'tsbifw_results_limit_invalid',
-				esc_html__( 'Search results limit must be a positive number.', 'telens-search-by-image-for-woocommerce' ),
+				esc_html__( 'Search results limit must be a positive number.', 'searchips-search-by-image-for-woocommerce' ),
 				'error'
 			);
 			return 12; // Fallback default.
@@ -1245,7 +1256,7 @@ class TSBIFW_Admin {
 			add_settings_error(
 				'tsbifw_cron_batch_size',
 				'tsbifw_cron_batch_size_invalid',
-				esc_html__( 'Cron batch size must be a positive number.', 'telens-search-by-image-for-woocommerce' ),
+				esc_html__( 'Cron batch size must be a positive number.', 'searchips-search-by-image-for-woocommerce' ),
 				'error'
 			);
 			return 5; // Fallback default.

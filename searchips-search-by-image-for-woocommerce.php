@@ -1,10 +1,10 @@
 <?php
 /**
- * Plugin Name: Telens Search By Image for WooCommerce
- * Description: Enable customers to search WooCommerce products using images powered by OpenRouter embeddings and vision models.
- * Version:     1.1.2
+ * Plugin Name: Searchips Search By Image for WooCommerce
+ * Description: Enable customers to search WooCommerce products using images powered by AI.
+ * Version:     1.1.5
  * Author:      micromax
- * Text Domain: telens-search-by-image-for-woocommerce
+ * Text Domain: searchips-search-by-image-for-woocommerce
  * Domain Path: /languages
  * Requires at least: 5.6
  * Requires PHP: 7.4
@@ -12,7 +12,7 @@
  * Requires Plugins: woocommerce
  * License:     GPL-2.0+
  *
- * @package TelensSearchByImageForWooCommerce
+ * @package SearchipsSearchByImageForWooCommerce
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -20,7 +20,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Define plugin constants.
-define( 'TSBIFW_VERSION', '1.1.2' );
+define( 'TSBIFW_VERSION', '1.1.5' );
 define( 'TSBIFW_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'TSBIFW_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'TSBIFW_FILE', __FILE__ );
@@ -56,7 +56,7 @@ add_action( 'plugins_loaded', 'tsbifw_init' );
 function tsbifw_woocommerce_missing_notice() {
 	?>
 	<div class="error">
-		<p><?php esc_html_e( 'Telens Search By Image for WooCommerce requires WooCommerce to be installed and active.', 'telens-search-by-image-for-woocommerce' ); ?></p>
+		<p><?php esc_html_e( 'Searchips Search By Image for WooCommerce requires WooCommerce to be installed and active.', 'searchips-search-by-image-for-woocommerce' ); ?></p>
 	</div>
 	<?php
 }

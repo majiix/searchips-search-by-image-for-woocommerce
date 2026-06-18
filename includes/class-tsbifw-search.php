@@ -2,7 +2,7 @@
 /**
  * REST API search handler and similarity logic.
  *
- * @package TelensSearchByImageForWooCommerce
+ * @package SearchipsSearchByImageForWooCommerce
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -50,9 +50,8 @@ class TSBIFW_Search {
 	 * Enqueue scripts and styles.
 	 */
 	public function enqueue_frontend_assets() {
-		wp_enqueue_style( 'cropperjs', TSBIFW_PLUGIN_URL . 'assets/css/cropper.min.css', array(), '1.6.2' );
-		wp_enqueue_script( 'cropperjs', TSBIFW_PLUGIN_URL . 'assets/js/cropper.min.js', array(), '1.6.2', true );
-		wp_enqueue_style( 'tsbifw-frontend-css', TSBIFW_PLUGIN_URL . 'assets/css/frontend.css', array( 'cropperjs' ), TSBIFW_VERSION );
+		wp_enqueue_script( 'cropperjs', TSBIFW_PLUGIN_URL . 'assets/js/cropper.min.js', array(), '2.1.1', true );
+		wp_enqueue_style( 'tsbifw-frontend-css', TSBIFW_PLUGIN_URL . 'assets/css/frontend.css', array(), TSBIFW_VERSION );
 
 		$left_val  = trim( get_option( 'tsbifw_camera_left', 'auto' ) );
 		$right_val = trim( get_option( 'tsbifw_camera_right', '14px' ) );
@@ -129,13 +128,14 @@ class TSBIFW_Search {
 			array(
 				'search_endpoint' => esc_url_raw( rest_url( 'tsbifw/v1/search' ) ),
 				'auto_inject'     => ( 'yes' === $enable_auto_inject ),
+				'nonce'           => wp_create_nonce( 'tsbifw_frontend_search' ),
 				'strings'         => array(
-					'modal_title'      => esc_html__( 'Search by Image', 'telens-search-by-image-for-woocommerce' ),
-					'drag_drop_text'   => esc_html__( 'Drag and drop an image here or click to browse', 'telens-search-by-image-for-woocommerce' ),
-					'scanning'         => esc_html__( 'Searching...', 'telens-search-by-image-for-woocommerce' ),
-					'error'            => esc_html__( 'Search failed. Please try again.', 'telens-search-by-image-for-woocommerce' ),
-					'search_btn_text'  => esc_html__( 'Start Search', 'telens-search-by-image-for-woocommerce' ),
-					'select_another'   => esc_html__( 'Select Another', 'telens-search-by-image-for-woocommerce' ),
+					'modal_title'      => esc_html__( 'Search by Image', 'searchips-search-by-image-for-woocommerce' ),
+					'drag_drop_text'   => esc_html__( 'Drag and drop an image here or click to browse', 'searchips-search-by-image-for-woocommerce' ),
+					'scanning'         => esc_html__( 'Searching...', 'searchips-search-by-image-for-woocommerce' ),
+					'error'            => esc_html__( 'Search failed. Please try again.', 'searchips-search-by-image-for-woocommerce' ),
+					'search_btn_text'  => esc_html__( 'Start Search', 'searchips-search-by-image-for-woocommerce' ),
+					'select_another'   => esc_html__( 'Select Another', 'searchips-search-by-image-for-woocommerce' ),
 				),
 			)
 		);
@@ -236,14 +236,14 @@ class TSBIFW_Search {
 		?>
 		<div class="tsbifw-search-bar-container">
 			<form role="search" method="get" class="woocommerce-product-search tsbifw-search-form" action="<?php echo esc_url( home_url( '/' ) ); ?>">
-				<label class="screen-reader-text" for="woocommerce-product-search-field-<?php echo esc_attr( uniqid() ); ?>"><?php esc_html_e( 'Search for:', 'telens-search-by-image-for-woocommerce' ); ?></label>
+				<label class="screen-reader-text" for="woocommerce-product-search-field-<?php echo esc_attr( uniqid() ); ?>"><?php esc_html_e( 'Search for:', 'searchips-search-by-image-for-woocommerce' ); ?></label>
 				<div class="tsbifw-search-input-wrapper">
-					<input type="search" class="search-field" placeholder="<?php echo esc_attr__( 'Search products&hellip;', 'telens-search-by-image-for-woocommerce' ); ?>" value="<?php echo get_search_query(); ?>" name="s" />
-					<button type="button" class="tsbifw-camera-trigger" title="<?php echo esc_attr__( 'Search by Image', 'telens-search-by-image-for-woocommerce' ); ?>">
+					<input type="search" class="search-field" placeholder="<?php echo esc_attr__( 'Search products&hellip;', 'searchips-search-by-image-for-woocommerce' ); ?>" value="<?php echo get_search_query(); ?>" name="s" />
+					<button type="button" class="tsbifw-camera-trigger" title="<?php echo esc_attr__( 'Search by Image', 'searchips-search-by-image-for-woocommerce' ); ?>">
 						<svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" class="tsbifw-camera-icon"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
 					</button>
 				</div>
-				<button type="submit" value="<?php echo esc_attr__( 'Search', 'telens-search-by-image-for-woocommerce' ); ?>"><?php echo esc_html__( 'Search', 'telens-search-by-image-for-woocommerce' ); ?></button>
+				<button type="submit" value="<?php echo esc_attr__( 'Search', 'searchips-search-by-image-for-woocommerce' ); ?>"><?php echo esc_html__( 'Search', 'searchips-search-by-image-for-woocommerce' ); ?></button>
 				<input type="hidden" name="post_type" value="product" />
 			</form>
 		</div>
@@ -261,8 +261,62 @@ class TSBIFW_Search {
 			array(
 				'methods'             => 'POST',
 				'callback'            => array( $this, 'handle_search_request' ),
-				'permission_callback' => '__return_true',
+				'permission_callback' => array( $this, 'check_frontend_search_permission' ),
 			)
+		);
+	}
+
+	/**
+	 * Verify permissions for REST search queries.
+	 *
+	 * @param WP_REST_Request $request REST request object.
+	 * @return bool|WP_Error
+	 */
+	public function check_frontend_search_permission( $request ) {
+		$sandbox = ! empty( $request->get_param( 'sandbox' ) );
+
+		if ( $sandbox ) {
+			if ( current_user_can( 'manage_options' ) ) {
+				$nonce = $request->get_param( 'security' );
+				if ( wp_verify_nonce( $nonce, 'tsbifw_admin_nonce' ) ) {
+					return true;
+				}
+			}
+			return new WP_Error(
+				'rest_forbidden',
+				esc_html__( 'Forbidden: administrator access required.', 'searchips-search-by-image-for-woocommerce' ),
+				array( 'status' => 403 )
+			);
+		}
+
+		$nonce = $request->get_header( 'X-WP-Nonce' );
+		if ( ! $nonce ) {
+			$nonce = $request->get_param( 'security' );
+		}
+
+		if ( wp_verify_nonce( $nonce, 'tsbifw_frontend_search' ) ) {
+			return true;
+		}
+
+		// Fallback check for logged-in users when standard REST cookie authentication header (X-WP-Nonce) is not sent.
+		if ( function_exists( 'wp_validate_auth_cookie' ) ) {
+			$logged_in_user_id = wp_validate_auth_cookie( '', 'logged_in' );
+			if ( $logged_in_user_id ) {
+				$current_user_id = get_current_user_id();
+				wp_set_current_user( $logged_in_user_id );
+				$verified = wp_verify_nonce( $nonce, 'tsbifw_frontend_search' );
+				wp_set_current_user( $current_user_id );
+
+				if ( $verified ) {
+					return true;
+				}
+			}
+		}
+
+		return new WP_Error(
+			'rest_forbidden',
+			esc_html__( 'Forbidden: invalid security token.', 'searchips-search-by-image-for-woocommerce' ),
+			array( 'status' => 403 )
 		);
 	}
 
@@ -275,7 +329,7 @@ class TSBIFW_Search {
 	public function handle_search_request( $request ) {
 		$files = $request->get_file_params();
 		if ( empty( $files ) || ! isset( $files['image'] ) ) {
-			return new WP_Error( 'tsbifw_missing_image', esc_html__( 'No image file uploaded in the request.', 'telens-search-by-image-for-woocommerce' ), array( 'status' => 400 ) );
+			return new WP_Error( 'tsbifw_missing_image', esc_html__( 'No image file uploaded in the request.', 'searchips-search-by-image-for-woocommerce' ), array( 'status' => 400 ) );
 		}
 
 		$uploaded_file = $files['image'];
@@ -283,7 +337,7 @@ class TSBIFW_Search {
 		// Verify file extension/mime type is an image.
 		$file_type = wp_check_filetype( $uploaded_file['name'] );
 		if ( ! in_array( $file_type['type'], array( 'image/jpeg', 'image/png', 'image/webp' ), true ) ) {
-			return new WP_Error( 'tsbifw_invalid_format', esc_html__( 'Unsupported image format. Please upload a JPEG, PNG, or WEBP image.', 'telens-search-by-image-for-woocommerce' ), array( 'status' => 400 ) );
+			return new WP_Error( 'tsbifw_invalid_format', esc_html__( 'Unsupported image format. Please upload a JPEG, PNG, or WEBP image.', 'searchips-search-by-image-for-woocommerce' ), array( 'status' => 400 ) );
 		}
 
 		$strategy      = get_option( 'tsbifw_strategy', 'embeddings' );
@@ -304,14 +358,14 @@ class TSBIFW_Search {
 			TSBIFW_Logger::log( 'Search request failed preparing image file.', array( 'error' => $base64->get_error_message() ) );
 			return $base64;
 		}
-		
+
 		$exclude_percent = get_option( 'tsbifw_exclude_below_percent', '' );
 		if ( '' === $exclude_percent ) {
 			$threshold = (float) get_option( 'tsbifw_similarity_threshold', 0.40 );
 		} else {
 			$threshold = (int) $exclude_percent / 100;
 		}
-		
+
 		$matched_posts = array();
 
 		if ( 'embeddings' === $strategy ) {
@@ -428,7 +482,7 @@ class TSBIFW_Search {
 		if ( $sandbox ) {
 			$nonce = $request->get_param( 'security' );
 			if ( ! wp_verify_nonce( $nonce, 'tsbifw_admin_nonce' ) || ! current_user_can( 'manage_options' ) ) {
-				return new WP_Error( 'tsbifw_forbidden', esc_html__( 'Forbidden.', 'telens-search-by-image-for-woocommerce' ), array( 'status' => 403 ) );
+				return new WP_Error( 'tsbifw_forbidden', esc_html__( 'Forbidden.', 'searchips-search-by-image-for-woocommerce' ), array( 'status' => 403 ) );
 			}
 
 			// Format product response lists for admin test search sandbox.
@@ -500,9 +554,9 @@ class TSBIFW_Search {
 
 		$search_term = '';
 		if ( 'embeddings' === $strategy ) {
-			$search_term = _x( 'image-search', 'default search term for visual search', 'telens-search-by-image-for-woocommerce' );
+			$search_term = _x( 'image-search', 'default search term for visual search', 'searchips-search-by-image-for-woocommerce' );
 		} else {
-			$search_term = ! empty( $description ) ? $description : _x( 'image-search', 'default search term for visual search', 'telens-search-by-image-for-woocommerce' );
+			$search_term = ! empty( $description ) ? $description : _x( 'image-search', 'default search term for visual search', 'searchips-search-by-image-for-woocommerce' );
 		}
 
 		$redirect_url = add_query_arg(

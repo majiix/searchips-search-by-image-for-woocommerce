@@ -1,5 +1,5 @@
 /**
- * Admin Panel Javascript for Telens Search By Image
+ * Admin Panel Javascript for Searchips Search By Image
  */
 jQuery(document).ready(function($) {
 	// Initialize WordPress color picker
@@ -21,8 +21,8 @@ jQuery(document).ready(function($) {
 		// Warn the user to clear index and re-index.
 		if (selected !== initialStrategy) {
 			if ($('#tsbifw-strategy-warning').length === 0) {
-				$('<p id="tsbifw-strategy-warning" class="tsbifw-error-text" style="margin-top: 10px; font-weight: 600;">' + 
-					tsbifw_admin_params.strings.strategy_warning + 
+				$('<p id="tsbifw-strategy-warning" class="tsbifw-error-text" style="margin-top: 10px; font-weight: 600;">' +
+					tsbifw_admin_params.strings.strategy_warning +
 				  '</p>').insertAfter('#tsbifw_strategy');
 			}
 		} else {
@@ -62,7 +62,7 @@ jQuery(document).ready(function($) {
 		indexing_state = 'running';
 		updateIndexerUI();
 		$('.tsbifw-log-output').show();
-		
+
 		var logConsole = $('#tsbifw-log-console');
 		if (logConsole.text().indexOf('Completed') !== -1 || logConsole.text().trim() === '') {
 			logConsole.html('Starting indexing process...\n');
@@ -167,11 +167,11 @@ jQuery(document).ready(function($) {
 		} else {
 			msg = '\n--- Indexing Stopped by User ---\n';
 		}
-		
+
 		var $console = $('#tsbifw-log-console');
 		$console.append(msg);
 		$console.scrollTop($console[0].scrollHeight);
-		
+
 		indexing_state = 'stopped';
 		updateIndexerUI();
 	}
@@ -240,7 +240,7 @@ jQuery(document).ready(function($) {
 				if (response.success) {
 					var $embeddingSelect = $('#tsbifw_embeddings_model');
 					var $visionSelect = $('#tsbifw_vision_model');
-					
+
 					var selectedEmbedding = $embeddingSelect.data('selected');
 					var selectedVision = $visionSelect.data('selected');
 
@@ -289,7 +289,7 @@ jQuery(document).ready(function($) {
 			$temp.val(logText).select();
 			document.execCommand('copy');
 			$temp.remove();
-			
+
 			$btn.text('Copied!').prop('disabled', true);
 			setTimeout(function() {
 				$btn.text('Copy Logs').prop('disabled', false);
@@ -335,27 +335,32 @@ jQuery(document).ready(function($) {
 			}
 		});
 
-		var adminCropper = null;
-
 		$('#tsbifw-admin-search-btn').on('click', function() {
-			if (!adminCropper) return;
+			var canvasEl = document.getElementById('tsbifw-admin-cropper-canvas');
+			if (!canvasEl) return;
+			var selection = canvasEl.querySelector('cropper-selection');
+			if (!selection) return;
 
 			$('#tsbifw-admin-preview-wrapper').find('.tsbifw-scanner-bar').show();
 			$('#tsbifw-admin-preview-wrapper').find('.tsbifw-scanning-overlay').show();
 			$('#tsbifw-admin-search-status').text(tsbifw_admin_params.strings.scanning).addClass('pulse').show();
 			$('#tsbifw-admin-results-grid').hide().html('');
 
-			adminCropper.getCroppedCanvas({
-				maxWidth: 512,
-				maxHeight: 512
-			}).toBlob(function(blob) {
-				if (!blob) {
-					alert('Failed to process cropped image.');
-					return;
-				}
-				var croppedFile = new File([blob], 'cropped_search.jpg', { type: 'image/jpeg' });
-				uploadAdminSearchImage(croppedFile);
-			}, 'image/jpeg', 0.9);
+			selection.$toCanvas({
+				width: 512,
+				height: 512
+			}).then(function(canvas) {
+				canvas.toBlob(function(blob) {
+					if (!blob) {
+						alert('Failed to process cropped image.');
+						return;
+					}
+					var croppedFile = new File([blob], 'cropped_search.jpg', { type: 'image/jpeg' });
+					uploadAdminSearchImage(croppedFile);
+				}, 'image/jpeg', 0.9);
+			}).catch(function() {
+				alert('Failed to crop image.');
+			});
 		});
 
 		$('#tsbifw-admin-reselect-btn').on('click', function() {
@@ -363,15 +368,13 @@ jQuery(document).ready(function($) {
 		});
 	}
 
-	var adminCropper = null;
-
 	function resetAdminSearchUI() {
-		if (adminCropper) {
-			adminCropper.destroy();
-			adminCropper = null;
-		}
 		$('#tsbifw-admin-file-input').val('');
-		$('#tsbifw-admin-preview-image').attr('src', '');
+		var previewImg = document.getElementById('tsbifw-admin-preview-image');
+		if (previewImg) {
+			previewImg.setAttribute('src', '');
+		}
+		$('#tsbifw-admin-cropper-canvas').hide();
 		$('#tsbifw-admin-preview-wrapper').hide();
 		$('#tsbifw-admin-drag-zone').show();
 		$('#tsbifw-admin-preview-wrapper').find('.tsbifw-scanner-bar').hide();
@@ -388,32 +391,42 @@ jQuery(document).ready(function($) {
 
 		var reader = new FileReader();
 		reader.onload = function(e) {
-			var image = document.getElementById('tsbifw-admin-preview-image');
-			image.src = e.target.result;
-
 			$('#tsbifw-admin-drag-zone').hide();
 			$('#tsbifw-admin-preview-wrapper').show();
-			$('#tsbifw-admin-results-grid').hide().html('');
-			$('#tsbifw-admin-search-status').hide().text('');
+			$('#tsbifw-admin-cropper-canvas').show();
 
-			if (adminCropper) {
-				adminCropper.destroy();
+			var image = document.getElementById('tsbifw-admin-preview-image');
+			if (image) {
+				image.setAttribute('src', e.target.result);
+				if (typeof image.$ready === 'function') {
+					image.$ready().then(function() {
+						setTimeout(function() {
+							var canvas = document.getElementById('tsbifw-admin-cropper-canvas');
+							var selection = canvas ? canvas.querySelector('cropper-selection') : null;
+							if (selection && typeof selection.$change === 'function') {
+								var imgRect = image.getBoundingClientRect();
+								var canvasRect = canvas.getBoundingClientRect();
+								if (imgRect.width > 0 && imgRect.height > 0) {
+									var imgLeft = imgRect.left - canvasRect.left;
+									var imgTop = imgRect.top - canvasRect.top;
+									var imgWidth = imgRect.width;
+									var imgHeight = imgRect.height;
+
+									var selectionWidth = imgWidth * 0.9;
+									var selectionHeight = imgHeight * 0.9;
+									var selectionLeft = imgLeft + (imgWidth - selectionWidth) / 2;
+									var selectionTop = imgTop + (imgHeight - selectionHeight) / 2;
+
+									selection.$change(selectionLeft, selectionTop, selectionWidth, selectionHeight);
+								}
+							}
+						}, 50);
+					});
+				}
 			}
 
-			adminCropper = new Cropper(image, {
-				aspectRatio: NaN,
-				viewMode: 1,
-				autoCropArea: 1,
-				responsive: true,
-				restore: false,
-				modal: true,
-				guides: true,
-				center: true,
-				highlight: false,
-				cropBoxMovable: true,
-				cropBoxResizable: true,
-				toggleDragModeOnDblclick: false
-			});
+			$('#tsbifw-admin-results-grid').hide().html('');
+			$('#tsbifw-admin-search-status').hide().text('');
 		};
 		reader.readAsDataURL(file);
 	}
@@ -451,7 +464,7 @@ jQuery(document).ready(function($) {
 					var badgeHtml = product.score ? '<span class="tsbifw-similarity-badge">' + tsbifw_admin_params.strings.similarity_label + ' ' + product.score + '</span>' : '';
 					var cartBtnHtml = product.is_in_stock ? '<a href="' + product.add_to_cart_url + '" target="_blank" class="tsbifw-btn tsbifw-btn-primary">' + tsbifw_admin_params.strings.add_to_cart + '</a>' : '';
 
-					var cardHtml = 
+					var cardHtml =
 						'<div class="tsbifw-product-card">' +
 							badgeHtml +
 							'<div class="tsbifw-card-image-wrapper">' +
@@ -477,7 +490,7 @@ jQuery(document).ready(function($) {
 			error: function(xhr) {
 				$('#tsbifw-admin-preview-wrapper').find('.tsbifw-scanner-bar').hide();
 				$('#tsbifw-admin-preview-wrapper').find('.tsbifw-scanning-overlay').hide();
-				
+
 				var errorMsg = tsbifw_admin_params.strings.error;
 				if (xhr.responseJSON && xhr.responseJSON.message) {
 					errorMsg = xhr.responseJSON.message;
@@ -513,7 +526,7 @@ jQuery(document).ready(function($) {
 			$temp.val(logText).select();
 			document.execCommand('copy');
 			$temp.remove();
-			
+
 			$btn.text('Copied!').prop('disabled', true);
 			setTimeout(function() {
 				$btn.text('Copy Logs').prop('disabled', false);

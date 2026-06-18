@@ -58,7 +58,7 @@ step 18:
 
 step 19:
 1- Created standard readme.txt file for WordPress plugin catalog formatting.
-2- Renamed OpenRouter API X-Title app identifier header to Telens.
+2- Renamed OpenRouter API X-Title app identifier header to Searchips.
 3- Added tsbifw_exclude_below_percent settings field (storing match exclusion as integer percentages, e.g. 40%) with fallback migration logic.
 4- Redesigned admin settings interface to support a clean, modern two-column layout featuring informational sidebar cards explaining options (e.g. thresholds, strategy details).
 
@@ -88,7 +88,7 @@ step 24:
 2- Added sidebar documentation explaining the usage of the search bar shortcode.
 
 step 25:
-1- Updated X-Title header in all OpenRouter API requests to Telens WP.
+1- Updated X-Title header in all OpenRouter API requests to Searchips WP.
 
 step 26:
 1- Refactored product save, update, and metadata update hooks to queue products for background indexing instead of calling the API synchronously, preventing execution timeouts and Error 500.
@@ -221,3 +221,26 @@ step 54:
 6- Added memory object caching wrapper inside class-tsbifw-indexer.php.
 7- Incremented version to 1.1.2.
 8- Enqueued standard REST API nonce to admin scripts and passed it as X-WP-Nonce header in sandbox search AJAX requests to prevent guest session authorization issues during admin sandbox tests.
+
+step 55:
+1- Upgraded Cropper.js library to the latest stable v2.1.1 Web Component release.
+2- Added detailed privacy and terms of service documentation for OpenRouter.
+3- Fixed settings page sanitization callback for logging and indexing checkboxes.
+4- Implemented strict permission_callback checks for the frontend search REST endpoint.
+5- Incremented version to 1.1.3.
+
+step 56:
+1- Removed X-WP-Nonce header from AJAX requests in assets/js/frontend.js to fix frontend Cookie check failed errors.
+2- Added corner crop handles, grid, and crosshair overlay elements inside the cropper-selection tags in assets/js/frontend.js and includes/class-tsbifw-admin.php templates.
+3- Set crop selection aspect ratio to free-form by removing the aspect-ratio constraint locks in assets/js/admin.js and assets/js/frontend.js.
+4- Added custom styling rules for corner handles to assets/css/admin.css and assets/css/frontend.css.
+5- Fixed cropper rendering bug where custom web components do not fire standard native image onload events, preventing the canvas from becoming visible; resolved by loading via native HTML Image objects first.
+6- Decoupled preview image selector class in assets/js/frontend.js to tsbifw-cropper-image to prevent global layout styles (width: 100%, height: auto, object-fit: cover) from overriding the shadow DOM structure and squashing the image.
+
+step 57:
+1- Adjusted crop selection area to cover exactly 90% of the loaded image instead of 90% of the canvas in both frontend.js and admin.js.
+2- Incremented version tags to 1.1.4 in readme.txt and searchips-search-by-image-for-woocommerce.php.
+
+step 58:
+1- Added a fallback validation mechanism `wp_validate_auth_cookie` in `check_frontend_search_permission` inside `includes/class-tsbifw-search.php` to authenticate logged-in sessions when REST API requests do not pass the `X-WP-Nonce` header.
+2- Incremented plugin version tags to 1.1.5 in readme.txt and searchips-search-by-image-for-woocommerce.php.

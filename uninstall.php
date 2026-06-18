@@ -1,11 +1,11 @@
 <?php
 /**
- * Telens Search By Image Uninstall File.
+ * Searchips Search By Image Uninstall File.
  *
  * This file runs when the plugin is deleted via the WordPress Admin.
  * It deletes all plugin options, transients, post metadata, and logs if configured.
  *
- * @package TelensSearchByImageForWooCommerce
+ * @package SearchipsSearchByImageForWooCommerce
  */
 
 if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
@@ -50,7 +50,7 @@ if ( 'yes' === get_option( 'tsbifw_delete_data_on_uninstall', 'no' ) ) {
 	// 2. Clear transients.
 	delete_transient( 'tsbifw_all_vectors' );
 	delete_transient( 'tsbifw_all_descriptions' );
-	
+
 	// Clear any cached models transients.
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 	$wpdb->query( "DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_tsbifw_models_%'" );

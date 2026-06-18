@@ -1,18 +1,18 @@
-=== Telens Search By Image for WooCommerce ===
+=== Searchips Search By Image for WooCommerce ===
 Contributors: micromax2
 Tags: woocommerce, search, image search, search by image, vector search
 Requires at least: 5.6
 Tested up to: 7.0
-Stable tag: 1.1.2
+Stable tag: 1.1.5
 Requires PHP: 7.4
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
-Enable customers to search WooCommerce products using images powered by OpenRouter embeddings and vision models.
+Enable customers to search WooCommerce products using images powered by AI.
 
 == Description ==
 
-Telens Search By Image for WooCommerce is a visual search tool that allows customers to search for visually similar products by uploading or taking photos directly on your shop pages.
+Searchips Search By Image for WooCommerce is a visual search tool that allows customers to search for visually similar products by uploading or taking photos directly on your shop pages.
 
 The plugin offers two search strategies:
 1. Multimodal Vector Embeddings: Matches visual features using advanced machine learning models via OpenRouter.
@@ -20,12 +20,15 @@ The plugin offers two search strategies:
 
 == External Services ==
 
-This plugin relies on the following external service to perform visual searches and indexing:
-* **OpenRouter API** (https://openrouter.ai): Product and query search image base64 payloads are sent to OpenRouter to calculate vector embeddings or generate visual descriptions via machine learning models. A valid API key is required to connect to this service. Please consult OpenRouter's terms and privacy documentation for data usage details.
+This plugin connects to the OpenRouter API to perform image-based searches and catalog indexing using artificial intelligence models.
+
+- What the service is and what it is used for: OpenRouter (https://openrouter.ai) is an external API service used to generate vector embeddings (for visual similarity search) or image descriptions (for vision-to-text search) from product and query images.
+- What data is sent and when: Base64-encoded image data and request parameters are sent to OpenRouter's servers when a store administrator manually runs the product indexer or when products are updated (if auto-indexing is triggered), and when a customer uploads or captures an image to perform a visual search on the frontend.
+- Terms of service and privacy policy: This service is provided by OpenRouter. You can read their Terms of Service at https://openrouter.ai/terms and their Privacy Policy at https://openrouter.ai/privacy.
 
 == Installation ==
 
-1. Upload the plugin files to the `/wp-content/plugins/telens-search-by-image-for-woocommerce` directory, or install the plugin through the WordPress plugins screen.
+1. Upload the plugin files to the `/wp-content/plugins/searchips-search-by-image-for-woocommerce` directory, or install the plugin through the WordPress plugins screen.
 2. Activate the plugin through the 'Plugins' screen in WordPress.
 3. Configure your settings under WooCommerce -> Search by Image.
 4. Run the Product Indexer to process product images.
@@ -78,6 +81,18 @@ No, the indexer automatically skips empty or missing image files to prevent API 
 Ensure that "Background Cron Indexing" is enabled in your General Settings, or simply update a product's featured/gallery image to automatically queue it for re-indexing.
 
 == Changelog ==
+
+= 1.1.5 =
+* Fixed frontend REST API "Forbidden: invalid security token" authorization issue for logged-in users.
+
+= 1.1.4 =
+* Adjusted crop selection area to cover exactly 90% of the loaded image instead of 90% of the canvas.
+
+= 1.1.3 =
+* Upgraded Cropper.js library to the latest stable v2.1.1 Web Component release.
+* Added detailed privacy and terms of service documentation for OpenRouter.
+* Fixed settings page sanitization callback for logging and indexing checkboxes.
+* Implemented strict permission_callback checks for the frontend search REST endpoint.
 
 = 1.1.2 =
 * Hardened input settings sanitization using custom CSS layout, color, and size callbacks.

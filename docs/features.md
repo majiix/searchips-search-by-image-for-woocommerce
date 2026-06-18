@@ -21,6 +21,7 @@
 - **Camera Search Button**: Integrated camera trigger inside search forms.
 - **Camera Styling Customizer**: Option fields inside a dedicated "Styling" settings tab to set custom left position, right position, size, and background color values (using a native WordPress color picker UI) for the frontend camera icon trigger, automatically generating clean inline CSS overrides.
 - **Drag-and-Drop Uploader**: Direct upload overlay with preview.
+- **Client-Side Image Cropping**: Integrates the latest stable version of Cropper.js (v2.1.1) utilizing modern Web Components for smooth client-side cropping before search submission, pre-configured to cover exactly 90% of the loaded image's boundaries.
 - **Scanning Animation**: Visual scanner indicator during processing.
 - **Default Search Page Integration**: Redirects visual search requests directly to your theme's default WooCommerce product search results page using a clean query token (`vquery`) and server-side transients, leveraging your active theme's native styling and archive grid layouts.
 
