@@ -244,3 +244,4 @@ step 57:
 step 58:
 1- Added a fallback validation mechanism `wp_validate_auth_cookie` in `check_frontend_search_permission` inside `includes/class-tsbifw-search.php` to authenticate logged-in sessions when REST API requests do not pass the `X-WP-Nonce` header.
 2- Incremented plugin version tags to 1.1.5 in readme.txt and searchips-search-by-image-for-woocommerce.php.
+3- Changed name from Telens Search By Image for WooCommerce to Searchips Search By Image for WooCommerce.
