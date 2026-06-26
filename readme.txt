@@ -3,12 +3,12 @@ Contributors: micromax2
 Tags: woocommerce, search, image search, search by image, vector search
 Requires at least: 5.6
 Tested up to: 7.0
-Stable tag: 1.1.5
+Stable tag: 1.1.6
 Requires PHP: 7.4
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
-Enable customers to search WooCommerce products using images powered by AI.
+Enable customers to search WooCommerce products using images powered by machine learning.
 
 == Description ==
 
@@ -18,7 +18,7 @@ The plugin offers two search strategies:
 1. Multimodal Vector Embeddings: Matches visual features using advanced machine learning models via OpenRouter.
 2. Vision-to-Text Description Search: Analyzes images to generate descriptive keyword search queries using a vision language model.
 
-== External Services ==
+== External services ==
 
 This plugin connects to the OpenRouter API to perform image-based searches and catalog indexing using artificial intelligence models.
 
@@ -81,6 +81,10 @@ No, the indexer automatically skips empty or missing image files to prevent API 
 Ensure that "Background Cron Indexing" is enabled in your General Settings, or simply update a product's featured/gallery image to automatically queue it for re-indexing.
 
 == Changelog ==
+
+= 1.1.6 =
+* Updated description terms to match standard guidelines.
+* Adjusted External Services section heading casing.
 
 = 1.1.5 =
 * Fixed frontend REST API "Forbidden: invalid security token" authorization issue for logged-in users.
