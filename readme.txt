@@ -3,7 +3,7 @@ Contributors: micromax2
 Tags: woocommerce, search, image search, search by image, vector search
 Requires at least: 5.6
 Tested up to: 7.0
-Stable tag: 1.1.6
+Stable tag: 1.1.9
 Requires PHP: 7.4
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
@@ -81,6 +81,21 @@ No, the indexer automatically skips empty or missing image files to prevent API 
 Ensure that "Background Cron Indexing" is enabled in your General Settings, or simply update a product's featured/gallery image to automatically queue it for re-indexing.
 
 == Changelog ==
+
+= 1.1.9 =
+* Added size checks directly before initiating frontend/sandbox AJAX uploads.
+
+= 1.1.8 =
+* Enforced client-side file size validation in frontend and admin Test Search sandboxes.
+* Displayed maximum upload file size beneath the drag-and-drop zone.
+
+= 1.1.7 =
+* Added a new configuration setting to customize maximum frontend upload file size (defaults to 2MB).
+* Optimized image resizing memory footprint to use intermediate image sizes (medium_large/large) and prevent Out of Memory crashes.
+* Enhanced REST API callback error mapping, preventing unexpected HTTP 500 status codes.
+* Optimized vector and description database fetching queries using an SQL INNER JOIN, removing N+1 performance bottleneck.
+* Added transient lock to throttling database log cleaning routines.
+* Added defensive JavaScript safeguards preventing script breaks if localized parameter injections are deferred.
 
 = 1.1.6 =
 * Updated description terms to match standard guidelines.

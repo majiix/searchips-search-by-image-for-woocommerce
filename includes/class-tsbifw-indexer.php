@@ -386,13 +386,16 @@ class TSBIFW_Indexer {
 		if ( false === $vectors ) {
 			global $wpdb;
 
-			// Do not run direct database calls without caching.
-			// Retrieve all post IDs and vectors in a single query.
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$results = $wpdb->get_results(
 				$wpdb->prepare(
-					"SELECT post_id, meta_value FROM {$wpdb->postmeta} WHERE meta_key = %s",
-					'_tsbifw_vectors'
+					"SELECT pm.post_id, pm.meta_value 
+					FROM {$wpdb->postmeta} pm
+					INNER JOIN {$wpdb->posts} p ON p.ID = pm.post_id
+					WHERE pm.meta_key = %s AND p.post_status = %s AND p.post_type = %s",
+					'_tsbifw_vectors',
+					'publish',
+					'product'
 				),
 				ARRAY_A
 			);
@@ -400,12 +403,6 @@ class TSBIFW_Indexer {
 			$vectors = array();
 			if ( ! empty( $results ) ) {
 				foreach ( $results as $row ) {
-					// Make sure product is published and exists.
-					$post_status = get_post_status( $row['post_id'] );
-					if ( 'publish' !== $post_status ) {
-						continue;
-					}
-
 					$vector_list = maybe_unserialize( $row['meta_value'] );
 					if ( is_array( $vector_list ) ) {
 						$vectors[ $row['post_id'] ] = $vector_list;
@@ -437,12 +434,16 @@ class TSBIFW_Indexer {
 		if ( false === $descriptions ) {
 			global $wpdb;
 
-			// Do not run direct database calls without caching.
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$results = $wpdb->get_results(
 				$wpdb->prepare(
-					"SELECT post_id, meta_value FROM {$wpdb->postmeta} WHERE meta_key = %s",
-					'_tsbifw_descriptions'
+					"SELECT pm.post_id, pm.meta_value 
+					FROM {$wpdb->postmeta} pm
+					INNER JOIN {$wpdb->posts} p ON p.ID = pm.post_id
+					WHERE pm.meta_key = %s AND p.post_status = %s AND p.post_type = %s",
+					'_tsbifw_descriptions',
+					'publish',
+					'product'
 				),
 				ARRAY_A
 			);
@@ -450,11 +451,6 @@ class TSBIFW_Indexer {
 			$descriptions = array();
 			if ( ! empty( $results ) ) {
 				foreach ( $results as $row ) {
-					$post_status = get_post_status( $row['post_id'] );
-					if ( 'publish' !== $post_status ) {
-						continue;
-					}
-
 					$desc_list = maybe_unserialize( $row['meta_value'] );
 					if ( is_array( $desc_list ) ) {
 						$descriptions[ $row['post_id'] ] = $desc_list;

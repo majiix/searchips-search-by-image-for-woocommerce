@@ -2,6 +2,11 @@
  * Frontend Javascript for Searchips Search By Image
  */
 jQuery(document).ready(function($) {
+	// Check if tsbifw_frontend_params is defined to prevent script breaks
+	if (typeof tsbifw_frontend_params === 'undefined') {
+		return;
+	}
+
 	// 1. Auto-inject camera icon into WooCommerce search forms
 	if (tsbifw_frontend_params.auto_inject) {
 		injectCameraTriggers();
@@ -215,6 +220,11 @@ jQuery(document).ready(function($) {
 			return;
 		}
 
+		if (tsbifw_frontend_params.max_upload_size && file.size > tsbifw_frontend_params.max_upload_size) {
+			alert(tsbifw_frontend_params.strings.file_too_large);
+			return;
+		}
+
 		// Show preview using FileReader
 		var reader = new FileReader();
 		reader.onload = function(e) {
@@ -259,6 +269,15 @@ jQuery(document).ready(function($) {
 
 	// AJAX search request to REST API
 	function uploadSearchImage(file) {
+		if (tsbifw_frontend_params.max_upload_size && file.size > tsbifw_frontend_params.max_upload_size) {
+			alert(tsbifw_frontend_params.strings.file_too_large);
+			// Stop scanning animation
+			$('.tsbifw-scanner-bar').hide();
+			$('.tsbifw-scanning-overlay').hide();
+			$('.tsbifw-search-status').hide().removeClass('pulse').text('');
+			return;
+		}
+
 		var formData = new FormData();
 		formData.append('image', file);
 		formData.append('security', tsbifw_frontend_params.nonce);

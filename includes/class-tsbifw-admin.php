@@ -74,6 +74,11 @@ class TSBIFW_Admin {
 		wp_enqueue_style( 'tsbifw-admin-css', TSBIFW_PLUGIN_URL . 'assets/css/admin.css', array( 'wp-color-picker' ), TSBIFW_VERSION );
 		wp_enqueue_script( 'tsbifw-admin-js', TSBIFW_PLUGIN_URL . 'assets/js/admin.js', array( 'jquery', 'cropperjs', 'wp-color-picker' ), TSBIFW_VERSION, true );
 
+		$max_mb = (int) get_option( 'tsbifw_max_upload_size', 2 );
+		if ( $max_mb <= 0 ) {
+			$max_mb = 2;
+		}
+
 		wp_localize_script(
 			'tsbifw-admin-js',
 			'tsbifw_admin_params',
@@ -83,6 +88,7 @@ class TSBIFW_Admin {
 				'wp_rest_nonce'   => wp_create_nonce( 'wp_rest' ),
 				'confirm'         => esc_html__( 'Are you sure you want to clear all indexed vectors and descriptions? This cannot be undone.', 'searchips-search-by-image-for-woocommerce' ),
 				'search_endpoint' => esc_url_raw( rest_url( 'tsbifw/v1/search' ) ),
+				'max_upload_size' => $max_mb * 1024 * 1024,
 				'strings'         => array(
 					'scanning'         => esc_html__( 'Searching...', 'searchips-search-by-image-for-woocommerce' ),
 					'no_results'       => esc_html__( 'No matching products found.', 'searchips-search-by-image-for-woocommerce' ),
@@ -90,9 +96,12 @@ class TSBIFW_Admin {
 					'view_product'     => esc_html__( 'View Product', 'searchips-search-by-image-for-woocommerce' ),
 					'add_to_cart'      => esc_html__( 'Add to Cart', 'searchips-search-by-image-for-woocommerce' ),
 					'similarity_label' => esc_html__( 'Match:', 'searchips-search-by-image-for-woocommerce' ),
-					'drag_drop_text'   => esc_html__( 'Drag and drop an image here or click to browse', 'searchips-search-by-image-for-woocommerce' ),
+					// translators: %d: Max upload size in MB
+					'drag_drop_text'   => sprintf( esc_html__( 'Drag and drop an image here or click to browse (Max size: %dMB)', 'searchips-search-by-image-for-woocommerce' ), $max_mb ),
 					'strategy_warning' => esc_html__( 'Attention: You have changed the Search Strategy. You should Clear / Reset the index and perform a complete re-indexing for matches to work correctly.', 'searchips-search-by-image-for-woocommerce' ),
 					'search_btn_text'  => esc_html__( 'Start Search', 'searchips-search-by-image-for-woocommerce' ),
+					// translators: %d: Max upload size in MB
+					'file_too_large'   => sprintf( esc_html__( 'Selected file is too large. Maximum allowed size is %dMB.', 'searchips-search-by-image-for-woocommerce' ), $max_mb ),
 				),
 			)
 		);
@@ -181,6 +190,9 @@ class TSBIFW_Admin {
 		) );
 		register_setting( 'tsbifw_settings_group', 'tsbifw_delete_data_on_uninstall', array(
 			'sanitize_callback' => array( $this, 'sanitize_yes_no' ),
+		) );
+		register_setting( 'tsbifw_settings_group', 'tsbifw_max_upload_size', array(
+			'sanitize_callback' => array( $this, 'sanitize_max_upload_size' ),
 		) );
 	}
 
@@ -320,6 +332,14 @@ class TSBIFW_Admin {
 										<td>
 											<input type="number" min="0" max="100" name="tsbifw_exclude_below_percent" id="tsbifw_exclude_below_percent" value="<?php echo esc_attr( $exclude_below_percent ); ?>" class="small-text" /> %
 											<p class="description"><?php esc_html_e( 'Exclude products from search results if their similarity match falls below this percentage. Recommended: 35% - 50%.', 'searchips-search-by-image-for-woocommerce' ); ?></p>
+										</td>
+									</tr>
+
+									<tr>
+										<th scope="row"><label for="tsbifw_max_upload_size"><?php esc_html_e( 'Maximum Upload Size (MB)', 'searchips-search-by-image-for-woocommerce' ); ?></label></th>
+										<td>
+											<input type="number" min="1" max="100" name="tsbifw_max_upload_size" id="tsbifw_max_upload_size" value="<?php echo esc_attr( get_option( 'tsbifw_max_upload_size', '2' ) ); ?>" class="small-text" /> MB
+											<p class="description"><?php esc_html_e( 'Set the maximum file size for uploaded images in the frontend search overlay to prevent server memory exhaustion. Default: 2MB.', 'searchips-search-by-image-for-woocommerce' ); ?></p>
 										</td>
 									</tr>
 
@@ -1393,5 +1413,25 @@ class TSBIFW_Admin {
 		$value = sanitize_text_field( $value );
 		$valid = array( 'every_minute', 'every_5_minutes', 'every_15_minutes', 'hourly', 'twice_daily', 'daily' );
 		return in_array( $value, $valid, true ) ? $value : 'hourly';
+	}
+
+	/**
+	 * Sanitize Max Upload Size.
+	 *
+	 * @param mixed $value Input value.
+	 * @return int
+	 */
+	public function sanitize_max_upload_size( $value ) {
+		$num = (int) $value;
+		if ( $num <= 0 ) {
+			add_settings_error(
+				'tsbifw_max_upload_size',
+				'tsbifw_max_upload_size_invalid',
+				esc_html__( 'Maximum upload size must be a positive number.', 'searchips-search-by-image-for-woocommerce' ),
+				'error'
+			);
+			return 2; // Fallback default.
+		}
+		return $num;
 	}
 }

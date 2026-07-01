@@ -121,6 +121,10 @@ class TSBIFW_Search {
 		wp_enqueue_script( 'tsbifw-frontend-js', TSBIFW_PLUGIN_URL . 'assets/js/frontend.js', array( 'jquery', 'cropperjs' ), TSBIFW_VERSION, true );
 
 		$enable_auto_inject = get_option( 'tsbifw_enable_auto_inject', 'yes' );
+		$max_mb             = (int) get_option( 'tsbifw_max_upload_size', 2 );
+		if ( $max_mb <= 0 ) {
+			$max_mb = 2;
+		}
 
 		wp_localize_script(
 			'tsbifw-frontend-js',
@@ -129,13 +133,17 @@ class TSBIFW_Search {
 				'search_endpoint' => esc_url_raw( rest_url( 'tsbifw/v1/search' ) ),
 				'auto_inject'     => ( 'yes' === $enable_auto_inject ),
 				'nonce'           => wp_create_nonce( 'tsbifw_frontend_search' ),
+				'max_upload_size' => $max_mb * 1024 * 1024,
 				'strings'         => array(
-					'modal_title'      => esc_html__( 'Search by Image', 'searchips-search-by-image-for-woocommerce' ),
-					'drag_drop_text'   => esc_html__( 'Drag and drop an image here or click to browse', 'searchips-search-by-image-for-woocommerce' ),
-					'scanning'         => esc_html__( 'Searching...', 'searchips-search-by-image-for-woocommerce' ),
-					'error'            => esc_html__( 'Search failed. Please try again.', 'searchips-search-by-image-for-woocommerce' ),
-					'search_btn_text'  => esc_html__( 'Start Search', 'searchips-search-by-image-for-woocommerce' ),
-					'select_another'   => esc_html__( 'Select Another', 'searchips-search-by-image-for-woocommerce' ),
+					'modal_title'    => esc_html__( 'Search by Image', 'searchips-search-by-image-for-woocommerce' ),
+					// translators: %d: Max upload size in MB
+					'drag_drop_text' => sprintf( esc_html__( 'Drag and drop an image here or click to browse (Max size: %dMB)', 'searchips-search-by-image-for-woocommerce' ), $max_mb ),
+					'scanning'       => esc_html__( 'Searching...', 'searchips-search-by-image-for-woocommerce' ),
+					'error'          => esc_html__( 'Search failed. Please try again.', 'searchips-search-by-image-for-woocommerce' ),
+					'search_btn_text'=> esc_html__( 'Start Search', 'searchips-search-by-image-for-woocommerce' ),
+					'select_another' => esc_html__( 'Select Another', 'searchips-search-by-image-for-woocommerce' ),
+					// translators: %d: Max upload size in MB
+					'file_too_large' => sprintf( esc_html__( 'Selected file is too large. Maximum allowed size is %dMB.', 'searchips-search-by-image-for-woocommerce' ), $max_mb ),
 				),
 			)
 		);
@@ -180,7 +188,7 @@ class TSBIFW_Search {
 
 		// Retrieve matching product IDs from transient
 		$product_ids = get_transient( 'tsbifw_vquery_' . $token );
-		if ( false === $product_ids ) {
+		if ( false === $product_ids || ! is_array( $product_ids ) ) {
 			return;
 		}
 
@@ -356,6 +364,7 @@ class TSBIFW_Search {
 		$base64 = $api->prepare_raw_file( $uploaded_file['tmp_name'] );
 		if ( is_wp_error( $base64 ) ) {
 			TSBIFW_Logger::log( 'Search request failed preparing image file.', array( 'error' => $base64->get_error_message() ) );
+			$base64->add_data( array( 'status' => 400 ) );
 			return $base64;
 		}
 
@@ -372,6 +381,8 @@ class TSBIFW_Search {
 			// Get query vector.
 			$query_vector = $api->get_embeddings( $base64 );
 			if ( is_wp_error( $query_vector ) ) {
+				$status_code = ( 'tsbifw_missing_api_key' === $query_vector->get_error_code() ) ? 400 : 422;
+				$query_vector->add_data( array( 'status' => $status_code ) );
 				return $query_vector;
 			}
 
@@ -416,6 +427,8 @@ class TSBIFW_Search {
 			// Get text description.
 			$description = $api->get_description( $base64 );
 			if ( is_wp_error( $description ) ) {
+				$status_code = ( 'tsbifw_missing_api_key' === $description->get_error_code() ) ? 400 : 422;
+				$description->add_data( array( 'status' => $status_code ) );
 				return $description;
 			}
 
@@ -587,6 +600,9 @@ class TSBIFW_Search {
 	 * @return float Cosine Similarity score.
 	 */
 	private function cosine_similarity( $vec1, $vec2 ) {
+		if ( ! is_array( $vec1 ) || ! is_array( $vec2 ) ) {
+			return 0.0;
+		}
 		$dot_product = 0.0;
 		$norm_a      = 0.0;
 		$norm_b      = 0.0;
@@ -601,7 +617,7 @@ class TSBIFW_Search {
 			$norm_b      += $vec2[ $i ] * $vec2[ $i ];
 		}
 
-		if ( 0.0 == $norm_a || 0.0 == $norm_b ) {
+		if ( $norm_a < 1e-10 || $norm_b < 1e-10 ) {
 			return 0.0;
 		}
 
@@ -616,6 +632,9 @@ class TSBIFW_Search {
 	 * @return float Jaccard Similarity score between 0.0 and 1.0.
 	 */
 	private function jaccard_similarity( $str1, $str2 ) {
+		if ( ! is_string( $str1 ) || ! is_string( $str2 ) ) {
+			return 0.0;
+		}
 		$stop_words = array( 'and', 'or', 'with', 'the', 'for', 'a', 'an', 'in', 'on', 'of', 'to', 'at', 'by', 'this', 'that', 'is', 'are', 'was', 'were', 'it', 'its', 'from', 'product', 'image' );
 
 		$tokenize = function( $str ) use ( $stop_words ) {

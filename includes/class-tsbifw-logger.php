@@ -47,6 +47,13 @@ class TSBIFW_Logger {
 	 * Remove expired logs based on retention days option.
 	 */
 	public static function clean_expired_logs() {
+		if ( false !== get_transient( 'tsbifw_clean_logs_lock' ) ) {
+			return;
+		}
+
+		// Set transient lock for 12 hours.
+		set_transient( 'tsbifw_clean_logs_lock', 'yes', 12 * HOUR_IN_SECONDS );
+
 		$retention_days = (int) get_option( 'tsbifw_log_retention', 7 );
 		if ( 0 === $retention_days ) {
 			return;

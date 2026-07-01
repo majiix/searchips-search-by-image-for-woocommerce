@@ -56,12 +56,30 @@ class TSBIFW_API {
 			return new WP_Error( 'tsbifw_file_not_found', esc_html__( 'Image file path not found or does not exist on disk.', 'searchips-search-by-image-for-woocommerce' ) );
 		}
 
-		$size = filesize( $file_path );
+		$metadata = wp_get_attachment_metadata( $attachment_id );
+		$target_path = $file_path;
+
+		if ( is_array( $metadata ) && isset( $metadata['sizes'] ) ) {
+			// Prefer medium_large (768px) or large (1024px) for resizing if they exist, to save memory.
+			$sizes_to_try = array( 'medium_large', 'large' );
+			foreach ( $sizes_to_try as $size_name ) {
+				if ( isset( $metadata['sizes'][ $size_name ]['file'] ) ) {
+					$dir = dirname( $file_path );
+					$size_file_path = $dir . '/' . $metadata['sizes'][ $size_name ]['file'];
+					if ( file_exists( $size_file_path ) ) {
+						$target_path = $size_file_path;
+						break;
+					}
+				}
+			}
+		}
+
+		$size = filesize( $target_path );
 		if ( false === $size || 0 === $size ) {
 			return new WP_Error( 'tsbifw_empty_image', esc_html__( 'Image file is empty (0 bytes).', 'searchips-search-by-image-for-woocommerce' ) );
 		}
 
-		$editor = wp_get_image_editor( $file_path );
+		$editor = wp_get_image_editor( $target_path );
 		if ( is_wp_error( $editor ) ) {
 			return $editor;
 		}
@@ -103,6 +121,25 @@ class TSBIFW_API {
 		$size = filesize( $uploaded_file_path );
 		if ( false === $size || 0 === $size ) {
 			return new WP_Error( 'tsbifw_empty_image', esc_html__( 'Uploaded file is empty (0 bytes).', 'searchips-search-by-image-for-woocommerce' ) );
+		}
+
+		// Retrieve max upload size setting (default 2MB)
+		$max_mb = (int) get_option( 'tsbifw_max_upload_size', 2 );
+		if ( $max_mb <= 0 ) {
+			$max_mb = 2;
+		}
+		$max_bytes = $max_mb * 1024 * 1024;
+
+		if ( $size > $max_bytes ) {
+			return new WP_Error(
+				'tsbifw_file_too_large',
+				sprintf(
+					// translators: 1: Current size in MB, 2: Max allowed size in MB
+					esc_html__( 'Uploaded image is too large (%1$.2f MB). Maximum allowed size is %2$d MB.', 'searchips-search-by-image-for-woocommerce' ),
+					$size / ( 1024 * 1024 ),
+					$max_mb
+				)
+			);
 		}
 
 		$editor = wp_get_image_editor( $uploaded_file_path );
@@ -201,9 +238,20 @@ class TSBIFW_API {
 
 		if ( 200 !== $response_code ) {
 			$error_data = json_decode( $response_body, true );
+			$api_err_code = isset( $error_data['error']['code'] ) ? $error_data['error']['code'] : $response_code;
 			$err_msg    = isset( $error_data['error']['message'] ) ? $error_data['error']['message'] : esc_html__( 'Unknown API error.', 'searchips-search-by-image-for-woocommerce' );
-			TSBIFW_Logger::log( sprintf( 'OpenRouter Embeddings HTTP Error: %d', $response_code ), array( 'response' => $error_data ) );
-			return new WP_Error( 'tsbifw_api_error', sprintf( '%s: %s', esc_html__( 'OpenRouter API Error', 'searchips-search-by-image-for-woocommerce' ), $err_msg ) );
+			// translators: 1: HTTP Response Code, 2: API Error Code
+			$log_msg = sprintf( 'OpenRouter Embeddings HTTP Error: %1$d (API Code: %2$s)', $response_code, $api_err_code );
+			TSBIFW_Logger::log( $log_msg, array( 'response' => $error_data ) );
+			return new WP_Error(
+				'tsbifw_api_error',
+				sprintf(
+					// translators: 1: API Error Code, 2: Error message
+					esc_html__( 'OpenRouter API Error [Code %1$s]: %2$s', 'searchips-search-by-image-for-woocommerce' ),
+					$api_err_code,
+					$err_msg
+				)
+			);
 		}
 
 		$data = json_decode( $response_body, true );
@@ -291,9 +339,20 @@ class TSBIFW_API {
 
 		if ( 200 !== $response_code ) {
 			$error_data = json_decode( $response_body, true );
+			$api_err_code = isset( $error_data['error']['code'] ) ? $error_data['error']['code'] : $response_code;
 			$err_msg    = isset( $error_data['error']['message'] ) ? $error_data['error']['message'] : esc_html__( 'Unknown API error.', 'searchips-search-by-image-for-woocommerce' );
-			TSBIFW_Logger::log( sprintf( 'OpenRouter Vision HTTP Error: %d', $response_code ), array( 'response' => $error_data ) );
-			return new WP_Error( 'tsbifw_api_error', sprintf( '%s: %s', esc_html__( 'OpenRouter API Error', 'searchips-search-by-image-for-woocommerce' ), $err_msg ) );
+			// translators: 1: HTTP Response Code, 2: API Error Code
+			$log_msg = sprintf( 'OpenRouter Vision HTTP Error: %1$d (API Code: %2$s)', $response_code, $api_err_code );
+			TSBIFW_Logger::log( $log_msg, array( 'response' => $error_data ) );
+			return new WP_Error(
+				'tsbifw_api_error',
+				sprintf(
+					// translators: 1: API Error Code, 2: Error message
+					esc_html__( 'OpenRouter API Error [Code %1$s]: %2$s', 'searchips-search-by-image-for-woocommerce' ),
+					$api_err_code,
+					$err_msg
+				)
+			);
 		}
 
 		$data = json_decode( $response_body, true );

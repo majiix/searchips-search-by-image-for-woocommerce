@@ -2,6 +2,11 @@
  * Admin Panel Javascript for Searchips Search By Image
  */
 jQuery(document).ready(function($) {
+	// Check if tsbifw_admin_params is defined to prevent script breaks
+	if (typeof tsbifw_admin_params === 'undefined') {
+		return;
+	}
+
 	// Initialize WordPress color picker
 	if ($.isFunction($.fn.wpColorPicker)) {
 		$('#tsbifw_camera_bg_color').wpColorPicker();
@@ -389,6 +394,11 @@ jQuery(document).ready(function($) {
 			return;
 		}
 
+		if (tsbifw_admin_params.max_upload_size && file.size > tsbifw_admin_params.max_upload_size) {
+			alert(tsbifw_admin_params.strings.file_too_large);
+			return;
+		}
+
 		var reader = new FileReader();
 		reader.onload = function(e) {
 			$('#tsbifw-admin-drag-zone').hide();
@@ -432,6 +442,15 @@ jQuery(document).ready(function($) {
 	}
 
 	function uploadAdminSearchImage(file) {
+		if (tsbifw_admin_params.max_upload_size && file.size > tsbifw_admin_params.max_upload_size) {
+			alert(tsbifw_admin_params.strings.file_too_large);
+			// Stop scanning animation
+			$('#tsbifw-admin-preview-wrapper').find('.tsbifw-scanner-bar').hide();
+			$('#tsbifw-admin-preview-wrapper').find('.tsbifw-scanning-overlay').hide();
+			$('#tsbifw-admin-search-status').hide().removeClass('pulse').text('');
+			return;
+		}
+
 		var formData = new FormData();
 		formData.append('image', file);
 		formData.append('sandbox', '1');

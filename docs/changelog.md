@@ -245,3 +245,24 @@ step 58:
 1- Added a fallback validation mechanism `wp_validate_auth_cookie` in `check_frontend_search_permission` inside `includes/class-tsbifw-search.php` to authenticate logged-in sessions when REST API requests do not pass the `X-WP-Nonce` header.
 2- Incremented plugin version tags to 1.1.5 in readme.txt and searchips-search-by-image-for-woocommerce.php.
 3- Changed name from Telens Search By Image for WooCommerce to Searchips Search By Image for WooCommerce.
+
+step 59:
+1- Added a new configuration option `tsbifw_max_upload_size` in the WooCommerce settings General tab (defaults to 2MB).
+2- Implemented memory footprint optimization in `prepare_image()` to check and load smaller intermediate WordPress sizes (medium_large/large) instead of huge original files.
+3- Intercepted REST search request callbacks to map error returns to explicit HTTP status codes (400/422) instead of leaving them to default to error 500.
+4- Optimized vector and description database fetching queries in `class-tsbifw-indexer.php` using SQL `INNER JOIN` against the `posts` table, removing N+1 post status loops.
+5- Throttled expired log deletion routines to run at most once every 12 hours via a transient lock.
+6- Added defensive script checks in `frontend.js` and `admin.js` to prevent crashes when global localized parameters are undefined.
+7- Incremented version tags to 1.1.7.
+Commit message: refactor(stability): optimize memory, prevent REST error 500s, speed up database queries, and add max upload size setting
+
+step 60:
+1- Added client-side file size validation in `frontend.js` and `admin.js` to check selected file sizes against the `tsbifw_max_upload_size` limit before initiating uploads or loading previews.
+2- Localized the configured maximum upload file size and warning strings, displaying the limit below the dropzone area (e.g. "(Max size: 2MB)") in frontend and admin sandboxes.
+3- Incremented version tags to 1.1.8 in readme.txt and searchips-search-by-image-for-woocommerce.php.
+Commit message: fix(validation): enforce client-side max file size verification and display upload limit info
+
+step 61:
+1- Added secondary file size check directly inside frontend and admin AJAX upload submission routines to prevent potential oversize uploads.
+2- Incremented version tags to 1.1.9 in readme.txt and searchips-search-by-image-for-woocommerce.php.
+Commit message: fix(validation): add secondary file size validation before AJAX search upload trigger

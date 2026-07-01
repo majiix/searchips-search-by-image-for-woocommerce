@@ -26,6 +26,7 @@ if ( 'yes' === get_option( 'tsbifw_delete_data_on_uninstall', 'no' ) ) {
 		'tsbifw_similarity_threshold',
 		'tsbifw_exclude_below_percent',
 		'tsbifw_results_limit',
+		'tsbifw_max_upload_size',
 		'tsbifw_search_cache_expiry',
 		'tsbifw_enable_auto_inject',
 		'tsbifw_camera_left',
@@ -50,6 +51,7 @@ if ( 'yes' === get_option( 'tsbifw_delete_data_on_uninstall', 'no' ) ) {
 	// 2. Clear transients.
 	delete_transient( 'tsbifw_all_vectors' );
 	delete_transient( 'tsbifw_all_descriptions' );
+	delete_transient( 'tsbifw_clean_logs_lock' );
 
 	// Clear any cached models transients.
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
