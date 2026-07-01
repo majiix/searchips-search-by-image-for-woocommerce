@@ -160,7 +160,7 @@ jQuery(document).ready(function($) {
 			// Start scanning animation
 			$('.tsbifw-scanner-bar').show();
 			$('.tsbifw-scanning-overlay').show();
-			$('.tsbifw-search-status').text(tsbifw_frontend_params.strings.scanning).addClass('pulse').show();
+			startStatusRotation();
 
 			selection.$toCanvas({
 				width: 512,
@@ -199,7 +199,41 @@ jQuery(document).ready(function($) {
 		}
 	}
 
+	var statusInterval = null;
+
+	function startStatusRotation() {
+		if (statusInterval) {
+			clearInterval(statusInterval);
+		}
+
+		var phrases = [
+			tsbifw_frontend_params.strings.scanning,
+			'Analyzing colors and shapes...',
+			'Comparing visual textures...',
+			'Querying product database...',
+			'Finalizing search results...'
+		];
+		var index = 0;
+
+		$('.tsbifw-search-status').text(phrases[0]).addClass('pulse').show();
+
+		statusInterval = setInterval(function() {
+			index = (index + 1) % phrases.length;
+			$('.tsbifw-search-status').fadeOut(200, function() {
+				$(this).text(phrases[index]).fadeIn(200);
+			});
+		}, 1800);
+	}
+
+	function stopStatusRotation() {
+		if (statusInterval) {
+			clearInterval(statusInterval);
+			statusInterval = null;
+		}
+	}
+
 	function resetSearchUI() {
+		stopStatusRotation();
 		$('.tsbifw-file-input').val('');
 		var previewImg = $('.tsbifw-cropper-image')[0];
 		if (previewImg) {
@@ -271,6 +305,7 @@ jQuery(document).ready(function($) {
 	function uploadSearchImage(file) {
 		if (tsbifw_frontend_params.max_upload_size && file.size > tsbifw_frontend_params.max_upload_size) {
 			alert(tsbifw_frontend_params.strings.file_too_large);
+			stopStatusRotation();
 			// Stop scanning animation
 			$('.tsbifw-scanner-bar').hide();
 			$('.tsbifw-scanning-overlay').hide();
@@ -289,6 +324,7 @@ jQuery(document).ready(function($) {
 			processData: false,
 			contentType: false,
 			success: function(response) {
+				stopStatusRotation();
 				$('.tsbifw-scanner-bar').hide();
 				$('.tsbifw-scanning-overlay').hide();
 				$('.tsbifw-search-status').hide().removeClass('pulse');
@@ -302,6 +338,7 @@ jQuery(document).ready(function($) {
 				}
 			},
 			error: function(xhr) {
+				stopStatusRotation();
 				$('.tsbifw-scanner-bar').hide();
 				$('.tsbifw-scanning-overlay').hide();
 

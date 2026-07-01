@@ -348,7 +348,7 @@ jQuery(document).ready(function($) {
 
 			$('#tsbifw-admin-preview-wrapper').find('.tsbifw-scanner-bar').show();
 			$('#tsbifw-admin-preview-wrapper').find('.tsbifw-scanning-overlay').show();
-			$('#tsbifw-admin-search-status').text(tsbifw_admin_params.strings.scanning).addClass('pulse').show();
+			startAdminStatusRotation();
 			$('#tsbifw-admin-results-grid').hide().html('');
 
 			selection.$toCanvas({
@@ -373,7 +373,41 @@ jQuery(document).ready(function($) {
 		});
 	}
 
+	var adminStatusInterval = null;
+
+	function startAdminStatusRotation() {
+		if (adminStatusInterval) {
+			clearInterval(adminStatusInterval);
+		}
+
+		var phrases = [
+			tsbifw_admin_params.strings.scanning,
+			'Analyzing colors and shapes...',
+			'Comparing visual textures...',
+			'Querying product database...',
+			'Finalizing search results...'
+		];
+		var index = 0;
+
+		$('#tsbifw-admin-search-status').text(phrases[0]).addClass('pulse').show();
+
+		adminStatusInterval = setInterval(function() {
+			index = (index + 1) % phrases.length;
+			$('#tsbifw-admin-search-status').fadeOut(200, function() {
+				$(this).text(phrases[index]).fadeIn(200);
+			});
+		}, 1800);
+	}
+
+	function stopAdminStatusRotation() {
+		if (adminStatusInterval) {
+			clearInterval(adminStatusInterval);
+			adminStatusInterval = null;
+		}
+	}
+
 	function resetAdminSearchUI() {
+		stopAdminStatusRotation();
 		$('#tsbifw-admin-file-input').val('');
 		var previewImg = document.getElementById('tsbifw-admin-preview-image');
 		if (previewImg) {
@@ -444,6 +478,7 @@ jQuery(document).ready(function($) {
 	function uploadAdminSearchImage(file) {
 		if (tsbifw_admin_params.max_upload_size && file.size > tsbifw_admin_params.max_upload_size) {
 			alert(tsbifw_admin_params.strings.file_too_large);
+			stopAdminStatusRotation();
 			// Stop scanning animation
 			$('#tsbifw-admin-preview-wrapper').find('.tsbifw-scanner-bar').hide();
 			$('#tsbifw-admin-preview-wrapper').find('.tsbifw-scanning-overlay').hide();
@@ -466,6 +501,7 @@ jQuery(document).ready(function($) {
 				xhr.setRequestHeader('X-WP-Nonce', tsbifw_admin_params.wp_rest_nonce);
 			},
 			success: function(response) {
+				stopAdminStatusRotation();
 				// Stop scanning animation
 				$('#tsbifw-admin-preview-wrapper').find('.tsbifw-scanner-bar').hide();
 				$('#tsbifw-admin-preview-wrapper').find('.tsbifw-scanning-overlay').hide();
@@ -507,6 +543,7 @@ jQuery(document).ready(function($) {
 				});
 			},
 			error: function(xhr) {
+				stopAdminStatusRotation();
 				$('#tsbifw-admin-preview-wrapper').find('.tsbifw-scanner-bar').hide();
 				$('#tsbifw-admin-preview-wrapper').find('.tsbifw-scanning-overlay').hide();
 
