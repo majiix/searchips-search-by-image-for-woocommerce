@@ -266,3 +266,15 @@ step 61:
 1- Added secondary file size check directly inside frontend and admin AJAX upload submission routines to prevent potential oversize uploads.
 2- Incremented version tags to 1.1.9 in readme.txt and searchips-search-by-image-for-woocommerce.php.
 Commit message: fix(validation): add secondary file size validation before AJAX search upload trigger
+
+step 62:
+1- Audited codebase against WordPress 7.1 Field Guide specifications and confirmed full compatibility.
+2- Updated `Tested up to: 7.1` in `readme.txt`.
+3- Incremented plugin version tags to 1.2.0 in `readme.txt` and `searchips-search-by-image-for-woocommerce.php`.
+Commit message: chore(compatibility): update Tested up to 7.1 and bump version to 1.2.0
+
+step 63:
+1- Audited codebase against WooCommerce 11.0.0 changelog specifications and confirmed compatibility.
+2- Added `WC tested up to: 11.0` and `WC requires at least: 5.0` headers in `searchips-search-by-image-for-woocommerce.php` and `readme.txt`.
+3- Declared official feature compatibility for High-Performance Order Storage (`custom_order_tables`) and Cart/Checkout Blocks (`cart_checkout_blocks`) on `before_woocommerce_init`.
+Commit message: feat(woocommerce): declare HPOS and blocks compatibility for WooCommerce 11.0.0

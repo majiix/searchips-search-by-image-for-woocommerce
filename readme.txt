@@ -2,9 +2,11 @@
 Contributors: micromax2
 Tags: woocommerce, search, image search, search by image, vector search
 Requires at least: 5.6
-Tested up to: 7.0
-Stable tag: 1.1.9
+Tested up to: 7.1
 Requires PHP: 7.4
+WC requires at least: 5.0
+WC tested up to: 11.0
+Stable tag: 1.2.0
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -81,6 +83,10 @@ No, the indexer automatically skips empty or missing image files to prevent API 
 Ensure that "Background Cron Indexing" is enabled in your General Settings, or simply update a product's featured/gallery image to automatically queue it for re-indexing.
 
 == Changelog ==
+
+= 1.2.0 =
+* Verified and confirmed compatibility with WordPress 7.1.0 and WooCommerce 11.0.0.
+* Declared official High-Performance Order Storage (HPOS) and Cart/Checkout Blocks compatibility.
 
 = 1.1.9 =
 * Added size checks directly before initiating frontend/sandbox AJAX uploads.
