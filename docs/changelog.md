@@ -278,3 +278,13 @@ step 63:
 2- Added `WC tested up to: 11.0` and `WC requires at least: 5.0` headers in `searchips-search-by-image-for-woocommerce.php` and `readme.txt`.
 3- Declared official feature compatibility for High-Performance Order Storage (`custom_order_tables`) and Cart/Checkout Blocks (`cart_checkout_blocks`) on `before_woocommerce_init`.
 Commit message: feat(woocommerce): declare HPOS and blocks compatibility for WooCommerce 11.0.0
+
+step 64:
+1- Audited codebase against WooCommerce 11.1.0 changelog specifications.
+2- Updated `WC tested up to: 11.1` in `searchips-search-by-image-for-woocommerce.php` and `readme.txt`.
+3- Integrated WooCommerce 11.1.0 `WC_Product::is_viewable()` and catalog visibility validation in `includes/class-tsbifw-search.php` to filter out non-viewable, draft, and hidden products from visual search results.
+4- Sanitized product titles in search response with `wp_strip_all_tags()` to conform with WooCommerce 11.1.0 AJAX search output standards.
+5- Modernized jQuery file input click triggers to native DOM click events in `assets/js/frontend.js` and `assets/js/admin.js`.
+6- Created `docs/project.md` project reference document.
+7- Incremented plugin version tags to 1.2.1 in `readme.txt` and `searchips-search-by-image-for-woocommerce.php`.
+Commit message: chore(release): bump version to 1.2.1 for WooCommerce 11.1.0 compatibility

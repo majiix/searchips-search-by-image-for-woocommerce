@@ -348,8 +348,9 @@ class TSBIFW_Search {
 			return new WP_Error( 'tsbifw_invalid_format', esc_html__( 'Unsupported image format. Please upload a JPEG, PNG, or WEBP image.', 'searchips-search-by-image-for-woocommerce' ), array( 'status' => 400 ) );
 		}
 
-		$strategy      = get_option( 'tsbifw_strategy', 'embeddings' );
-		$limit         = (int) get_option( 'tsbifw_results_limit', 12 );
+		$strategy = get_option( 'tsbifw_strategy', 'embeddings' );
+		$limit    = (int) get_option( 'tsbifw_results_limit', 12 );
+		$sandbox  = ! empty( $request->get_param( 'sandbox' ) );
 
 		TSBIFW_Logger::log(
 			'Incoming REST search request.',
@@ -414,14 +415,20 @@ class TSBIFW_Search {
 			// Sort scores descending.
 			arsort( $scores );
 
-			// Get slice.
-			$scores = array_slice( $scores, 0, $limit, true );
-
 			foreach ( $scores as $product_id => $score ) {
+				$product = wc_get_product( $product_id );
+				if ( ! $this->is_product_viewable_and_visible( $product, $sandbox ) ) {
+					continue;
+				}
+
 				$matched_posts[] = array(
 					'id'    => $product_id,
 					'score' => $score,
 				);
+
+				if ( count( $matched_posts ) >= $limit ) {
+					break;
+				}
 			}
 		} else {
 			// Get text description.
@@ -458,14 +465,20 @@ class TSBIFW_Search {
 				// Sort scores descending.
 				arsort( $scores );
 
-				// Get slice.
-				$scores = array_slice( $scores, 0, $limit, true );
-
 				foreach ( $scores as $product_id => $score ) {
+					$product = wc_get_product( $product_id );
+					if ( ! $this->is_product_viewable_and_visible( $product, $sandbox ) ) {
+						continue;
+					}
+
 					$matched_posts[] = array(
 						'id'    => $product_id,
 						'score' => $score,
 					);
+
+					if ( count( $matched_posts ) >= $limit ) {
+						break;
+					}
 				}
 			} else {
 				// Fallback to standard text search query.
@@ -481,6 +494,11 @@ class TSBIFW_Search {
 				$ids          = $search_query->posts;
 
 				foreach ( $ids as $product_id ) {
+					$product = wc_get_product( $product_id );
+					if ( ! $this->is_product_viewable_and_visible( $product, $sandbox ) ) {
+						continue;
+					}
+
 					$matched_posts[] = array(
 						'id'    => $product_id,
 						'score' => null,
@@ -489,9 +507,7 @@ class TSBIFW_Search {
 			}
 		}
 
-		// Check if it is the admin sandbox request
-		$sandbox = ! empty( $request->get_param( 'sandbox' ) );
-
+		// Check if it is the admin sandbox request.
 		if ( $sandbox ) {
 			$nonce = $request->get_param( 'security' );
 			if ( ! wp_verify_nonce( $nonce, 'tsbifw_admin_nonce' ) || ! current_user_can( 'manage_options' ) ) {
@@ -517,7 +533,7 @@ class TSBIFW_Search {
 
 				$formatted_results[] = array(
 					'id'              => $product_id,
-					'title'           => $product->get_name(),
+					'title'           => wp_strip_all_tags( $product->get_name() ),
 					'permalink'       => esc_url( $product->get_permalink() ),
 					'image'           => esc_url( $image_url ),
 					'price_html'      => $product->get_price_html(),
@@ -660,5 +676,25 @@ class TSBIFW_Search {
 		$union        = array_unique( array_merge( $tokens1, $tokens2 ) );
 
 		return count( $intersection ) / count( $union );
+	}
+
+	private function is_product_viewable_and_visible( $product, $sandbox = false ) {
+		if ( ! $product || ! ( $product instanceof WC_Product ) ) {
+			return false;
+		}
+
+		if ( method_exists( $product, 'is_viewable' ) ) {
+			if ( ! $product->is_viewable() ) {
+				return false;
+			}
+		} elseif ( 'publish' !== $product->get_status() ) {
+			return false;
+		}
+
+		if ( ! $sandbox && ! $product->is_visible() ) {
+			return false;
+		}
+
+		return true;
 	}
 }

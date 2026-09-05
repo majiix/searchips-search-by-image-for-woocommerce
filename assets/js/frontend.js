@@ -113,7 +113,9 @@ jQuery(document).ready(function($) {
 		var $fileInput = $('.tsbifw-file-input');
 
 		$dragZone.on('click', function() {
-			$fileInput.click();
+			if ($fileInput.length) {
+				$fileInput[0].click();
+			}
 		});
 
 		$fileInput.on('click', function(e) {

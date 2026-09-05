@@ -308,7 +308,9 @@ jQuery(document).ready(function($) {
 		var $adminFileInput = $('#tsbifw-admin-file-input');
 
 		$adminDragZone.on('click', function() {
-			$adminFileInput.click();
+			if ($adminFileInput.length) {
+				$adminFileInput[0].click();
+			}
 		});
 
 		$adminFileInput.on('click', function(e) {

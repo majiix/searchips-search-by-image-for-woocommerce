@@ -5,8 +5,8 @@ Requires at least: 5.6
 Tested up to: 7.1
 Requires PHP: 7.4
 WC requires at least: 5.0
-WC tested up to: 11.0
-Stable tag: 1.2.0
+WC tested up to: 11.1
+Stable tag: 1.2.1
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -83,6 +83,12 @@ No, the indexer automatically skips empty or missing image files to prevent API 
 Ensure that "Background Cron Indexing" is enabled in your General Settings, or simply update a product's featured/gallery image to automatically queue it for re-indexing.
 
 == Changelog ==
+
+= 1.2.1 =
+* Verified and confirmed compatibility with WooCommerce 11.1.0.
+* Integrated WooCommerce 11.1.0 WC_Product::is_viewable() and catalog visibility filtering for search results.
+* Added HTML tag stripping for product names in search sandbox responses.
+* Modernized jQuery file input click handlers to native DOM events.
 
 = 1.2.0 =
 * Verified and confirmed compatibility with WordPress 7.1.0 and WooCommerce 11.0.0.
