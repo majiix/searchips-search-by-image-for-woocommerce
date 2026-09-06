@@ -36,7 +36,8 @@ class TSBIFW_Admin {
 	private function __construct() {
 		add_action( 'admin_menu', array( $this, 'add_settings_page' ) );
 		add_action( 'admin_init', array( $this, 'register_settings' ) );
-		add_action( 'admin_init', array( $this, 'check_cron_scheduling' ) );
+		add_action( 'update_option_tsbifw_enable_cron_indexing', array( $this, 'check_cron_scheduling' ) );
+		add_action( 'update_option_tsbifw_cron_interval', array( $this, 'check_cron_scheduling' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_assets' ) );
 
 		// AJAX handlers.
@@ -69,10 +70,10 @@ class TSBIFW_Admin {
 			return;
 		}
 
-		wp_enqueue_script( 'cropperjs', TSBIFW_PLUGIN_URL . 'assets/js/cropper.min.js', array(), '2.1.1', true );
+		wp_enqueue_script( 'tsbifw-cropperjs', TSBIFW_PLUGIN_URL . 'assets/js/cropper.min.js', array(), '2.1.1', true );
 		wp_enqueue_style( 'wp-color-picker' );
 		wp_enqueue_style( 'tsbifw-admin-css', TSBIFW_PLUGIN_URL . 'assets/css/admin.css', array( 'wp-color-picker' ), TSBIFW_VERSION );
-		wp_enqueue_script( 'tsbifw-admin-js', TSBIFW_PLUGIN_URL . 'assets/js/admin.js', array( 'jquery', 'cropperjs', 'wp-color-picker' ), TSBIFW_VERSION, true );
+		wp_enqueue_script( 'tsbifw-admin-js', TSBIFW_PLUGIN_URL . 'assets/js/admin.js', array( 'jquery', 'tsbifw-cropperjs', 'wp-color-picker' ), TSBIFW_VERSION, true );
 
 		$max_mb = (int) get_option( 'tsbifw_max_upload_size', 2 );
 		if ( $max_mb <= 0 ) {
@@ -200,6 +201,8 @@ class TSBIFW_Admin {
 	 * Render settings HTML dashboard.
 	 */
 	public function render_settings_page() {
+		$this->check_cron_scheduling();
+
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		$active_tab = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : 'general';
 		$api_key    = get_option( 'tsbifw_api_key', '' );
@@ -410,12 +413,13 @@ class TSBIFW_Admin {
 										<th scope="row"><label for="tsbifw_cron_interval"><?php esc_html_e( 'Cron Run Interval', 'searchips-search-by-image-for-woocommerce' ); ?></label></th>
 										<td>
 											<select name="tsbifw_cron_interval" id="tsbifw_cron_interval">
-												<option value="every_minute" <?php selected( get_option( 'tsbifw_cron_interval', 'hourly' ), 'every_minute' ); ?>><?php esc_html_e( 'Every Minute', 'searchips-search-by-image-for-woocommerce' ); ?></option>
-												<option value="every_5_minutes" <?php selected( get_option( 'tsbifw_cron_interval', 'hourly' ), 'every_5_minutes' ); ?>><?php esc_html_e( 'Every 5 Minutes', 'searchips-search-by-image-for-woocommerce' ); ?></option>
-												<option value="every_15_minutes" <?php selected( get_option( 'tsbifw_cron_interval', 'hourly' ), 'every_15_minutes' ); ?>><?php esc_html_e( 'Every 15 Minutes', 'searchips-search-by-image-for-woocommerce' ); ?></option>
-												<option value="hourly" <?php selected( get_option( 'tsbifw_cron_interval', 'hourly' ), 'hourly' ); ?>><?php esc_html_e( 'Hourly', 'searchips-search-by-image-for-woocommerce' ); ?></option>
-												<option value="twice_daily" <?php selected( get_option( 'tsbifw_cron_interval', 'hourly' ), 'twice_daily' ); ?>><?php esc_html_e( 'Twice Daily', 'searchips-search-by-image-for-woocommerce' ); ?></option>
-												<option value="daily" <?php selected( get_option( 'tsbifw_cron_interval', 'hourly' ), 'daily' ); ?>><?php esc_html_e( 'Daily', 'searchips-search-by-image-for-woocommerce' ); ?></option>
+												<?php $current_interval = get_option( 'tsbifw_cron_interval', 'hourly' ); ?>
+												<option value="tsbifw_every_minute" <?php selected( in_array( $current_interval, array( 'tsbifw_every_minute', 'every_minute' ), true ) ); ?>><?php esc_html_e( 'Every Minute', 'searchips-search-by-image-for-woocommerce' ); ?></option>
+												<option value="tsbifw_every_5_minutes" <?php selected( in_array( $current_interval, array( 'tsbifw_every_5_minutes', 'every_5_minutes' ), true ) ); ?>><?php esc_html_e( 'Every 5 Minutes', 'searchips-search-by-image-for-woocommerce' ); ?></option>
+												<option value="tsbifw_every_15_minutes" <?php selected( in_array( $current_interval, array( 'tsbifw_every_15_minutes', 'every_15_minutes' ), true ) ); ?>><?php esc_html_e( 'Every 15 Minutes', 'searchips-search-by-image-for-woocommerce' ); ?></option>
+												<option value="hourly" <?php selected( $current_interval, 'hourly' ); ?>><?php esc_html_e( 'Hourly', 'searchips-search-by-image-for-woocommerce' ); ?></option>
+												<option value="twice_daily" <?php selected( $current_interval, 'twice_daily' ); ?>><?php esc_html_e( 'Twice Daily', 'searchips-search-by-image-for-woocommerce' ); ?></option>
+												<option value="daily" <?php selected( $current_interval, 'daily' ); ?>><?php esc_html_e( 'Daily', 'searchips-search-by-image-for-woocommerce' ); ?></option>
 											</select>
 											<p class="description"><?php esc_html_e( 'Choose how frequently the background cron task should execute product indexing runs.', 'searchips-search-by-image-for-woocommerce' ); ?></p>
 										</td>
@@ -1386,7 +1390,17 @@ class TSBIFW_Admin {
 	 */
 	public function sanitize_cron_interval( $value ) {
 		$value = sanitize_text_field( $value );
-		$valid = array( 'every_minute', 'every_5_minutes', 'every_15_minutes', 'hourly', 'twice_daily', 'daily' );
+		$valid = array(
+			'tsbifw_every_minute',
+			'tsbifw_every_5_minutes',
+			'tsbifw_every_15_minutes',
+			'every_minute',
+			'every_5_minutes',
+			'every_15_minutes',
+			'hourly',
+			'twice_daily',
+			'daily',
+		);
 		return in_array( $value, $valid, true ) ? $value : 'hourly';
 	}
 

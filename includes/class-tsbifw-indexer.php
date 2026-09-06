@@ -328,18 +328,24 @@ class TSBIFW_Indexer {
 	 * @return array
 	 */
 	public function add_custom_cron_schedules( $schedules ) {
-		$schedules['every_minute'] = array(
+		$schedules['tsbifw_every_minute'] = array(
 			'interval' => 60,
 			'display'  => esc_html__( 'Every Minute', 'searchips-search-by-image-for-woocommerce' ),
 		);
-		$schedules['every_5_minutes'] = array(
+		$schedules['tsbifw_every_5_minutes'] = array(
 			'interval' => 300,
 			'display'  => esc_html__( 'Every 5 Minutes', 'searchips-search-by-image-for-woocommerce' ),
 		);
-		$schedules['every_15_minutes'] = array(
+		$schedules['tsbifw_every_15_minutes'] = array(
 			'interval' => 900,
 			'display'  => esc_html__( 'Every 15 Minutes', 'searchips-search-by-image-for-woocommerce' ),
 		);
+
+		// Legacy aliases for backwards compatibility.
+		$schedules['every_minute']     = $schedules['tsbifw_every_minute'];
+		$schedules['every_5_minutes']  = $schedules['tsbifw_every_5_minutes'];
+		$schedules['every_15_minutes'] = $schedules['tsbifw_every_15_minutes'];
+
 		return $schedules;
 	}
 

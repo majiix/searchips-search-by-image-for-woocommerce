@@ -12,6 +12,7 @@
  * WC tested up to: 11.1
  * Requires Plugins: woocommerce
  * License:     GPL-2.0+
+ * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  *
  * @package SearchipsSearchByImageForWooCommerce
  */
@@ -67,7 +68,7 @@ add_action( 'plugins_loaded', 'tsbifw_init' );
  */
 function tsbifw_woocommerce_missing_notice() {
 	?>
-	<div class="error">
+	<div class="notice notice-error is-dismissible">
 		<p><?php esc_html_e( 'Searchips Search By Image for WooCommerce requires WooCommerce to be installed and active.', 'searchips-search-by-image-for-woocommerce' ); ?></p>
 	</div>
 	<?php

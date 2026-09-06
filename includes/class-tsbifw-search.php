@@ -50,7 +50,7 @@ class TSBIFW_Search {
 	 * Enqueue scripts and styles.
 	 */
 	public function enqueue_frontend_assets() {
-		wp_enqueue_script( 'cropperjs', TSBIFW_PLUGIN_URL . 'assets/js/cropper.min.js', array(), '2.1.1', true );
+		wp_enqueue_script( 'tsbifw-cropperjs', TSBIFW_PLUGIN_URL . 'assets/js/cropper.min.js', array(), '2.1.1', true );
 		wp_enqueue_style( 'tsbifw-frontend-css', TSBIFW_PLUGIN_URL . 'assets/css/frontend.css', array(), TSBIFW_VERSION );
 
 		$left_val  = trim( get_option( 'tsbifw_camera_left', 'auto' ) );
@@ -118,7 +118,7 @@ class TSBIFW_Search {
 
 		wp_add_inline_style( 'tsbifw-frontend-css', $custom_css );
 
-		wp_enqueue_script( 'tsbifw-frontend-js', TSBIFW_PLUGIN_URL . 'assets/js/frontend.js', array( 'jquery', 'cropperjs' ), TSBIFW_VERSION, true );
+		wp_enqueue_script( 'tsbifw-frontend-js', TSBIFW_PLUGIN_URL . 'assets/js/frontend.js', array( 'jquery', 'tsbifw-cropperjs' ), TSBIFW_VERSION, true );
 
 		$enable_auto_inject = get_option( 'tsbifw_enable_auto_inject', 'yes' );
 		$max_mb             = (int) get_option( 'tsbifw_max_upload_size', 2 );
@@ -150,12 +150,13 @@ class TSBIFW_Search {
 	}
 
 	/**
-	 * Register vquery query variable.
+	 * Register query variables.
 	 *
 	 * @param array $vars Registered query vars.
 	 * @return array Updated list.
 	 */
 	public function register_query_vars( $vars ) {
+		$vars[] = 'tsbifw_vquery';
 		$vars[] = 'vquery';
 		return $vars;
 	}
@@ -170,7 +171,15 @@ class TSBIFW_Search {
 			return;
 		}
 
-		$token = $query->get( 'vquery' );
+		$token = $query->get( 'tsbifw_vquery' );
+		if ( empty( $token ) ) {
+			$token = $query->get( 'vquery' );
+		}
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		if ( empty( $token ) && isset( $_GET['tsbifw_vquery'] ) ) {
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			$token = sanitize_key( wp_unslash( $_GET['tsbifw_vquery'] ) );
+		}
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		if ( empty( $token ) && isset( $_GET['vquery'] ) ) {
 			// phpcs:ignore WordPress.Security.NonceVerification.Recommended
@@ -207,7 +216,7 @@ class TSBIFW_Search {
 	}
 
 	/**
-	 * Clear the standard SQL search clause if vquery token is present.
+	 * Clear the standard SQL search clause if visual search token is present.
 	 *
 	 * @param string   $search   Search SQL clause.
 	 * @param WP_Query $wp_query Query object.
@@ -218,7 +227,15 @@ class TSBIFW_Search {
 			return $search;
 		}
 
-		$token = $wp_query->get( 'vquery' );
+		$token = $wp_query->get( 'tsbifw_vquery' );
+		if ( empty( $token ) ) {
+			$token = $wp_query->get( 'vquery' );
+		}
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		if ( empty( $token ) && isset( $_GET['tsbifw_vquery'] ) ) {
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			$token = sanitize_key( wp_unslash( $_GET['tsbifw_vquery'] ) );
+		}
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		if ( empty( $token ) && isset( $_GET['vquery'] ) ) {
 			// phpcs:ignore WordPress.Security.NonceVerification.Recommended
@@ -246,7 +263,7 @@ class TSBIFW_Search {
 			<form role="search" method="get" class="woocommerce-product-search tsbifw-search-form" action="<?php echo esc_url( home_url( '/' ) ); ?>">
 				<label class="screen-reader-text" for="woocommerce-product-search-field-<?php echo esc_attr( uniqid() ); ?>"><?php esc_html_e( 'Search for:', 'searchips-search-by-image-for-woocommerce' ); ?></label>
 				<div class="tsbifw-search-input-wrapper">
-					<input type="search" class="search-field" placeholder="<?php echo esc_attr__( 'Search products&hellip;', 'searchips-search-by-image-for-woocommerce' ); ?>" value="<?php echo get_search_query(); ?>" name="s" />
+					<input type="search" class="search-field" placeholder="<?php echo esc_attr__( 'Search products&hellip;', 'searchips-search-by-image-for-woocommerce' ); ?>" value="<?php echo esc_attr( get_search_query() ); ?>" name="s" />
 					<button type="button" class="tsbifw-camera-trigger" title="<?php echo esc_attr__( 'Search by Image', 'searchips-search-by-image-for-woocommerce' ); ?>">
 						<svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" class="tsbifw-camera-icon"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
 					</button>
@@ -270,12 +287,25 @@ class TSBIFW_Search {
 				'methods'             => 'POST',
 				'callback'            => array( $this, 'handle_search_request' ),
 				'permission_callback' => array( $this, 'check_frontend_search_permission' ),
+				'args'                => array(
+					'sandbox'  => array(
+						'type'              => 'boolean',
+						'required'          => false,
+						'default'           => false,
+						'sanitize_callback' => 'rest_sanitize_boolean',
+					),
+					'security' => array(
+						'type'              => 'string',
+						'required'          => false,
+						'sanitize_callback' => 'sanitize_text_field',
+					),
+				),
 			)
 		);
 	}
 
 	/**
-	 * Verify permissions for REST search queries.
+	 * Verify permissions and rate limit for REST search queries.
 	 *
 	 * @param WP_REST_Request $request REST request object.
 	 * @return bool|WP_Error
@@ -302,30 +332,43 @@ class TSBIFW_Search {
 			$nonce = $request->get_param( 'security' );
 		}
 
-		if ( wp_verify_nonce( $nonce, 'tsbifw_frontend_search' ) ) {
-			return true;
-		}
+		$valid = wp_verify_nonce( $nonce, 'tsbifw_frontend_search' );
 
 		// Fallback check for logged-in users when standard REST cookie authentication header (X-WP-Nonce) is not sent.
-		if ( function_exists( 'wp_validate_auth_cookie' ) ) {
+		if ( ! $valid && function_exists( 'wp_validate_auth_cookie' ) ) {
 			$logged_in_user_id = wp_validate_auth_cookie( '', 'logged_in' );
 			if ( $logged_in_user_id ) {
 				$current_user_id = get_current_user_id();
 				wp_set_current_user( $logged_in_user_id );
-				$verified = wp_verify_nonce( $nonce, 'tsbifw_frontend_search' );
+				$valid = (bool) wp_verify_nonce( $nonce, 'tsbifw_frontend_search' );
 				wp_set_current_user( $current_user_id );
-
-				if ( $verified ) {
-					return true;
-				}
 			}
 		}
 
-		return new WP_Error(
-			'rest_forbidden',
-			esc_html__( 'Forbidden: invalid security token.', 'searchips-search-by-image-for-woocommerce' ),
-			array( 'status' => 403 )
-		);
+		if ( ! $valid ) {
+			return new WP_Error(
+				'rest_forbidden',
+				esc_html__( 'Forbidden: invalid security token.', 'searchips-search-by-image-for-woocommerce' ),
+				array( 'status' => 403 )
+			);
+		}
+
+		// Rate limit: max 20 search requests per minute per IP address.
+		$client_ip = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : 'unknown';
+		$rl_key    = 'tsbifw_rl_' . md5( $client_ip );
+		$hits      = (int) get_transient( $rl_key );
+
+		if ( $hits >= 20 ) {
+			return new WP_Error(
+				'rest_rate_limited',
+				esc_html__( 'Too many search requests. Please wait a minute and try again.', 'searchips-search-by-image-for-woocommerce' ),
+				array( 'status' => 429 )
+			);
+		}
+
+		set_transient( $rl_key, $hits + 1, MINUTE_IN_SECONDS );
+
+		return true;
 	}
 
 	/**
@@ -541,9 +584,9 @@ class TSBIFW_Search {
 
 		$redirect_url = add_query_arg(
 			array(
-				's'         => $search_term,
-				'vquery'    => $token,
-				'post_type' => 'product',
+				's'             => $search_term,
+				'tsbifw_vquery' => $token,
+				'post_type'     => 'product',
 			),
 			home_url( '/' )
 		);

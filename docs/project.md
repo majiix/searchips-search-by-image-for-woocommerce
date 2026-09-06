@@ -7,7 +7,7 @@ Searchips Search By Image for WooCommerce is a visual search plugin that enables
 ## Tech Stack
 
 - **PHP**: 7.4+ (Tested up to PHP 8.3)
-- **WordPress**: 5.6+ (Tested up to 7.1)
+- **WordPress**: 5.6+ (Tested up to 6.8)
 - **WooCommerce**: 5.0+ (Tested up to 11.1)
 - **JavaScript**: Vanilla ES6+ and jQuery
 - **CSS**: Custom vanilla CSS with responsive layout support
@@ -30,9 +30,9 @@ The plugin is structured into modular components:
 - `searchips-search-by-image-for-woocommerce.php`: Main plugin entry file, declares constants, WooCommerce feature compatibility, and initializes core classes.
 - `includes/class-tsbifw-logger.php`: Handles persistent and transient diagnostic logging with configurable retention.
 - `includes/class-tsbifw-api.php`: Handles OpenRouter API communication, model fetching, image resizing, and base64 encoding.
-- `includes/class-tsbifw-indexer.php`: Handles indexing products (featured and gallery images), managing postmeta, scheduling background cron indexing, and providing memory-efficient attachment ID lookups.
-- `includes/class-tsbifw-admin.php`: Registers admin settings pages, asset enqueueing, AJAX endpoints for batch indexing, model discovery, and sandbox testing.
-- `includes/class-tsbifw-search.php`: Manages frontend search shortcodes, REST API search route (`tsbifw/v1/search`), cursor-based batch similarity streaming, visual search token generation, and query modifications on `pre_get_posts`.
+- `includes/class-tsbifw-indexer.php`: Handles indexing products (featured and gallery images), managing postmeta, scheduling background cron indexing with custom prefixed intervals (`tsbifw_every_minute`, `tsbifw_every_5_minutes`, `tsbifw_every_15_minutes`), and providing memory-efficient attachment ID lookups.
+- `includes/class-tsbifw-admin.php`: Registers admin settings pages, asset enqueueing (`tsbifw-cropperjs`, `tsbifw-admin-js`), AJAX endpoints for batch indexing, model discovery, and sandbox testing.
+- `includes/class-tsbifw-search.php`: Manages frontend search shortcodes, REST API search route (`tsbifw/v1/search`) with input schema validation and IP rate limiting (HTTP 429), cursor-based batch similarity streaming, visual search token generation (`tsbifw_vquery`), and query modifications on `pre_get_posts`.
 - `uninstall.php`: Clean cleanup of options, metadata, transients, and cron hooks upon plugin deletion.
 
 ## Current Features
