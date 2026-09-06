@@ -131,12 +131,6 @@
 	margin-bottom: 6px !important;
 }
 
-.tsbifw-sidebar-card-body hr {
-	border: 0;
-	border-top: 1px solid #f1f5f9;
-	margin: 15px 0;
-}
-
 /* Strategy Field Logic */
 .tsbifw-strategy-field {
 	background-color: #f6f7f7;
@@ -342,14 +336,6 @@
 	margin: 0 auto 25px auto;
 	border-radius: 12px;
 	overflow: hidden;
-}
-
-.tsbifw-preview-image {
-	width: 100%;
-	display: block;
-	height: auto;
-	max-height: 300px;
-	object-fit: cover;
 }
 
 /* Neon Scanning Line Animation */

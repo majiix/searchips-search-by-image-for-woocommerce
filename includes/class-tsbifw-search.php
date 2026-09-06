@@ -456,9 +456,6 @@ class TSBIFW_Search {
 			}
 		} catch ( Throwable $e ) {
 			TSBIFW_Logger::log( 'Search request encountered an exception: ' . $e->getMessage(), array( 'trace' => $e->getTraceAsString() ) );
-			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-				error_log( 'TSBIFW Search Error: ' . $e->getMessage() );
-			}
 			return new WP_Error(
 				'tsbifw_search_exception',
 				esc_html__( 'Search failed. Please try again.', 'searchips-search-by-image-for-woocommerce' ),
@@ -528,20 +525,12 @@ class TSBIFW_Search {
 		$product_ids = array_column( $matched_posts, 'id' );
 		$token       = 'vs_' . wp_generate_password( 8, false );
 
-		$scores = array();
-		foreach ( $matched_posts as $match ) {
-			if ( null !== $match['score'] ) {
-				$scores[ $match['id'] ] = round( $match['score'] * 100 ) . '%';
-			}
-		}
-
 		$cache_expiry = (int) get_option( 'tsbifw_search_cache_expiry', '600' );
 		if ( $cache_expiry <= 0 ) {
 			$cache_expiry = 600;
 		}
 
 		set_transient( 'tsbifw_vquery_' . $token, $product_ids, $cache_expiry );
-		set_transient( 'tsbifw_vquery_scores_' . $token, $scores, $cache_expiry );
 
 		$search_term = '';
 		if ( 'embeddings' === $strategy ) {
@@ -754,38 +743,6 @@ class TSBIFW_Search {
 	}
 
 	/**
-	 * Compute Cosine Similarity between two arrays of floats.
-	 *
-	 * @param array $vec1 Vector A.
-	 * @param array $vec2 Vector B.
-	 * @return float Cosine Similarity score.
-	 */
-	private function cosine_similarity( $vec1, $vec2 ) {
-		if ( ! is_array( $vec1 ) || ! is_array( $vec2 ) ) {
-			return 0.0;
-		}
-		$dot_product = 0.0;
-		$norm_a      = 0.0;
-		$norm_b      = 0.0;
-		$n           = count( $vec1 );
-
-		for ( $i = 0; $i < $n; $i++ ) {
-			if ( ! isset( $vec2[ $i ] ) ) {
-				continue;
-			}
-			$dot_product += $vec1[ $i ] * $vec2[ $i ];
-			$norm_a      += $vec1[ $i ] * $vec1[ $i ];
-			$norm_b      += $vec2[ $i ] * $vec2[ $i ];
-		}
-
-		if ( $norm_a < 1e-10 || $norm_b < 1e-10 ) {
-			return 0.0;
-		}
-
-		return $dot_product / ( sqrt( $norm_a ) * sqrt( $norm_b ) );
-	}
-
-	/**
 	 * Compute Jaccard Similarity between two description strings (fuzzy matching).
 	 *
 	 * @param string $str1 String 1.
@@ -796,22 +753,9 @@ class TSBIFW_Search {
 		if ( ! is_string( $str1 ) || ! is_string( $str2 ) ) {
 			return 0.0;
 		}
-		$stop_words = array( 'and', 'or', 'with', 'the', 'for', 'a', 'an', 'in', 'on', 'of', 'to', 'at', 'by', 'this', 'that', 'is', 'are', 'was', 'were', 'it', 'its', 'from', 'product', 'image' );
 
-		$tokenize = function( $str ) use ( $stop_words ) {
-			$words = explode( ' ', strtolower( $str ) );
-			$tokens = array();
-			foreach ( $words as $word ) {
-				$word = trim( preg_replace( '/[^a-z0-9]/', '', $word ) );
-				if ( strlen( $word ) > 2 && ! in_array( $word, $stop_words, true ) ) {
-					$tokens[] = $word;
-				}
-			}
-			return array_unique( $tokens );
-		};
-
-		$tokens1 = $tokenize( $str1 );
-		$tokens2 = $tokenize( $str2 );
+		$tokens1 = $this->tokenize_description( $str1 );
+		$tokens2 = $this->tokenize_description( $str2 );
 
 		if ( empty( $tokens1 ) || empty( $tokens2 ) ) {
 			return 0.0;
@@ -821,6 +765,30 @@ class TSBIFW_Search {
 		$union        = array_unique( array_merge( $tokens1, $tokens2 ) );
 
 		return count( $intersection ) / count( $union );
+	}
+
+	/**
+	 * Tokenize description text into keywords.
+	 *
+	 * @param string $str Text to tokenize.
+	 * @return array Unique token strings.
+	 */
+	private function tokenize_description( $str ) {
+		static $stop_words = array(
+			'and', 'or', 'with', 'the', 'for', 'a', 'an', 'in', 'on', 'of',
+			'to', 'at', 'by', 'this', 'that', 'is', 'are', 'was', 'were',
+			'it', 'its', 'from', 'product', 'image',
+		);
+
+		$words  = explode( ' ', strtolower( $str ) );
+		$tokens = array();
+		foreach ( $words as $word ) {
+			$word = trim( preg_replace( '/[^a-z0-9]/', '', $word ) );
+			if ( strlen( $word ) > 2 && ! in_array( $word, $stop_words, true ) ) {
+				$tokens[] = $word;
+			}
+		}
+		return array_unique( $tokens );
 	}
 
 	private function is_product_viewable_and_visible( $product, $sandbox = false ) {

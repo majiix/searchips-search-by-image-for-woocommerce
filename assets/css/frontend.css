@@ -192,14 +192,6 @@
 	overflow: hidden;
 }
 
-.tsbifw-preview-image {
-	width: 100%;
-	display: block;
-	height: auto;
-	max-height: 280px;
-	object-fit: cover;
-}
-
 /* Neon Scanning Line Animation - Glowing Laser */
 .tsbifw-scanner-bar {
 	display: none;

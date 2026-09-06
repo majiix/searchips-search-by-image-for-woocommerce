@@ -79,32 +79,7 @@ class TSBIFW_API {
 			return new WP_Error( 'tsbifw_empty_image', esc_html__( 'Image file is empty (0 bytes).', 'searchips-search-by-image-for-woocommerce' ) );
 		}
 
-		$editor = wp_get_image_editor( $target_path );
-		if ( is_wp_error( $editor ) ) {
-			return $editor;
-		}
-
-		// Resize to max 512x512 pixels to reduce payload size and speed up API response.
-		$editor->resize( 512, 512, false );
-
-		$temp_dir  = get_temp_dir();
-		$temp_file = $temp_dir . 'tsbifw_temp_' . uniqid() . '.jpg';
-
-		// Save the resized image as JPEG.
-		$saved = $editor->save( $temp_file, 'image/jpeg' );
-		if ( is_wp_error( $saved ) ) {
-			return $saved;
-		}
-
-		$resized_path = $saved['path'];
-		$content      = file_get_contents( $resized_path );
-		@wp_delete_file( $resized_path ); // Clean up temporary file.
-
-		if ( false === $content ) {
-			return new WP_Error( 'tsbifw_read_failed', esc_html__( 'Failed to read the temporary resized image content.', 'searchips-search-by-image-for-woocommerce' ) );
-		}
-
-		return 'data:image/jpeg;base64,' . base64_encode( $content );
+		return $this->resize_and_encode_image( $target_path );
 	}
 
 	/**
@@ -142,16 +117,25 @@ class TSBIFW_API {
 			);
 		}
 
-		$editor = wp_get_image_editor( $uploaded_file_path );
+		return $this->resize_and_encode_image( $uploaded_file_path );
+	}
+
+	/**
+	 * Resize an image file to max 512x512 JPEG and return base64 data URL.
+	 *
+	 * @param string $file_path Path to image file on disk.
+	 * @return string|WP_Error Base64 data URL or WP_Error.
+	 */
+	private function resize_and_encode_image( $file_path ) {
+		$editor = wp_get_image_editor( $file_path );
 		if ( is_wp_error( $editor ) ) {
 			return $editor;
 		}
 
-		// Resize to max 512x512 pixels.
 		$editor->resize( 512, 512, false );
 
 		$temp_dir  = get_temp_dir();
-		$temp_file = $temp_dir . 'tsbifw_temp_search_' . uniqid() . '.jpg';
+		$temp_file = $temp_dir . 'tsbifw_temp_' . uniqid() . '.jpg';
 
 		$saved = $editor->save( $temp_file, 'image/jpeg' );
 		if ( is_wp_error( $saved ) ) {
@@ -163,7 +147,7 @@ class TSBIFW_API {
 		@wp_delete_file( $resized_path );
 
 		if ( false === $content ) {
-			return new WP_Error( 'tsbifw_read_failed', esc_html__( 'Failed to read search image content.', 'searchips-search-by-image-for-woocommerce' ) );
+			return new WP_Error( 'tsbifw_read_failed', esc_html__( 'Failed to read image content.', 'searchips-search-by-image-for-woocommerce' ) );
 		}
 
 		return 'data:image/jpeg;base64,' . base64_encode( $content );
@@ -423,16 +407,17 @@ class TSBIFW_API {
 	 * @return array Filtered list.
 	 */
 	public function filter_embedding_models( $models ) {
-		$filtered = array();
 		if ( ! is_array( $models ) ) {
-			return $filtered;
+			return array();
 		}
-		foreach ( $models as $model ) {
-			if ( isset( $model['id'] ) ) {
-				$filtered[] = $model;
-			}
-		}
-		return $filtered;
+		return array_values(
+			array_filter(
+				$models,
+				function( $model ) {
+					return isset( $model['id'] );
+				}
+			)
+		);
 	}
 
 	/**

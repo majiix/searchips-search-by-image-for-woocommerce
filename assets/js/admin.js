@@ -276,30 +276,39 @@ jQuery(document).ready(function($) {
 		});
 	}
 
+	function copyTextToClipboard(text, $btn, originalLabel) {
+		if (!text) return;
+		var label = originalLabel || $btn.text();
+		function markCopied() {
+			$btn.text('Copied!').prop('disabled', true);
+			setTimeout(function() {
+				$btn.text(label).prop('disabled', false);
+			}, 2000);
+		}
+		if (navigator.clipboard && navigator.clipboard.writeText) {
+			navigator.clipboard.writeText(text).then(markCopied).catch(function() {
+				fallbackCopy(text, markCopied);
+			});
+		} else {
+			fallbackCopy(text, markCopied);
+		}
+	}
+
+	function fallbackCopy(text, callback) {
+		var $temp = $('<textarea>');
+		$('body').append($temp);
+		$temp.val(text).select();
+		document.execCommand('copy');
+		$temp.remove();
+		if (typeof callback === 'function') {
+			callback();
+		}
+	}
+
 	// Copy logs to clipboard
 	$('#tsbifw-copy-logs').on('click', function() {
 		var logText = $('#tsbifw-log-console').text();
-		if (!logText) return;
-
-		var $btn = $(this);
-		navigator.clipboard.writeText(logText).then(function() {
-			$btn.text('Copied!').prop('disabled', true);
-			setTimeout(function() {
-				$btn.text('Copy Logs').prop('disabled', false);
-			}, 2000);
-		}).catch(function() {
-			// Fallback copy method
-			var $temp = $('<textarea>');
-			$('body').append($temp);
-			$temp.val(logText).select();
-			document.execCommand('copy');
-			$temp.remove();
-
-			$btn.text('Copied!').prop('disabled', true);
-			setTimeout(function() {
-				$btn.text('Copy Logs').prop('disabled', false);
-			}, 2000);
-		});
+		copyTextToClipboard(logText, $(this), 'Copy Logs');
 	});
 
 	// 3. Test Search Tab Functionality
@@ -569,29 +578,8 @@ jQuery(document).ready(function($) {
 			var context = $(this).find('td:eq(2)').text().trim();
 			logLines.push('[' + timestamp + '] ' + message + (context && context !== '-' ? '\nContext: ' + context : ''));
 		});
-		var logText = logLines.join('\n\n');
-		if (!logText) {
-			logText = 'No logs recorded.';
-		}
-
-		var $btn = $(this);
-		navigator.clipboard.writeText(logText).then(function() {
-			$btn.text('Copied!').prop('disabled', true);
-			setTimeout(function() {
-				$btn.text('Copy Logs').prop('disabled', false);
-			}, 2000);
-		}).catch(function() {
-			var $temp = $('<textarea>');
-			$('body').append($temp);
-			$temp.val(logText).select();
-			document.execCommand('copy');
-			$temp.remove();
-
-			$btn.text('Copied!').prop('disabled', true);
-			setTimeout(function() {
-				$btn.text('Copy Logs').prop('disabled', false);
-			}, 2000);
-		});
+		var logText = logLines.length ? logLines.join('\n\n') : 'No logs recorded.';
+		copyTextToClipboard(logText, $(this), 'Copy Logs');
 	});
 
 	// Clear admin logs tab logs

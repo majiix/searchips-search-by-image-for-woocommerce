@@ -65,19 +65,16 @@ class TSBIFW_Logger {
 		}
 
 		$cutoff       = strtotime( "-{$retention_days} days" );
-		$updated_logs = array();
-		$changed      = false;
+		$updated_logs = array_values(
+			array_filter(
+				$logs,
+				function( $log ) use ( $cutoff ) {
+					return isset( $log['timestamp'] ) && strtotime( $log['timestamp'] ) >= $cutoff;
+				}
+			)
+		);
 
-		foreach ( $logs as $log ) {
-			$log_time = strtotime( $log['timestamp'] );
-			if ( $log_time >= $cutoff ) {
-				$updated_logs[] = $log;
-			} else {
-				$changed = true;
-			}
-		}
-
-		if ( $changed ) {
+		if ( count( $updated_logs ) !== count( $logs ) ) {
 			update_option( 'tsbifw_logs', $updated_logs, false );
 		}
 	}

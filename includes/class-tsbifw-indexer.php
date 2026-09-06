@@ -33,11 +33,6 @@ class TSBIFW_Indexer {
 	private $indexed_image_ids = null;
 
 	/**
-	 * Transient cache key for vectors.
-	 */
-	const CACHE_KEY = 'tsbifw_all_vectors';
-
-	/**
 	 * Get class instance.
 	 *
 	 * @return TSBIFW_Indexer
@@ -109,8 +104,6 @@ class TSBIFW_Indexer {
 
 		if ( empty( $target_images ) ) {
 			update_post_meta( $product_id, '_tsbifw_indexed_status', 'skipped' );
-			delete_post_meta( $product_id, '_tsbifw_vector' );
-			delete_post_meta( $product_id, '_tsbifw_description' );
 			delete_post_meta( $product_id, '_tsbifw_vectors' );
 			delete_post_meta( $product_id, '_tsbifw_descriptions' );
 			$this->clear_cache();
@@ -173,9 +166,7 @@ class TSBIFW_Indexer {
 				return true;
 			}
 			update_post_meta( $product_id, '_tsbifw_vectors', $vectors );
-			delete_post_meta( $product_id, '_tsbifw_vector' );
 			delete_post_meta( $product_id, '_tsbifw_descriptions' );
-			delete_post_meta( $product_id, '_tsbifw_description' );
 			update_post_meta( $product_id, '_tsbifw_indexed_status', 'indexed' );
 			delete_post_meta( $product_id, '_tsbifw_index_error' );
 			$this->clear_cache();
@@ -187,9 +178,7 @@ class TSBIFW_Indexer {
 				return true;
 			}
 			update_post_meta( $product_id, '_tsbifw_descriptions', $descriptions );
-			delete_post_meta( $product_id, '_tsbifw_description' );
 			delete_post_meta( $product_id, '_tsbifw_vectors' );
-			delete_post_meta( $product_id, '_tsbifw_vector' );
 			update_post_meta( $product_id, '_tsbifw_indexed_status', 'indexed' );
 			delete_post_meta( $product_id, '_tsbifw_index_error' );
 
@@ -361,8 +350,6 @@ class TSBIFW_Indexer {
 	 */
 	public function on_product_delete( $post_id ) {
 		if ( 'product' === get_post_type( $post_id ) ) {
-			delete_post_meta( $post_id, '_tsbifw_vector' );
-			delete_post_meta( $post_id, '_tsbifw_description' );
 			delete_post_meta( $post_id, '_tsbifw_vectors' );
 			delete_post_meta( $post_id, '_tsbifw_descriptions' );
 			delete_post_meta( $post_id, '_tsbifw_indexed_status' );
@@ -372,96 +359,9 @@ class TSBIFW_Indexer {
 	}
 
 	/**
-	 * Retrieve all indexed vectors from database.
-	 *
-	 * @return array Map of product ID => vector array.
-	 */
-	public function get_all_vectors() {
-		$cache_val = wp_cache_get( self::CACHE_KEY, 'tsbifw_cache' );
-		if ( false !== $cache_val ) {
-			return $cache_val;
-		}
-
-		global $wpdb;
-
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$results = $wpdb->get_results(
-			$wpdb->prepare(
-				"SELECT pm.post_id, pm.meta_value 
-				FROM {$wpdb->postmeta} pm
-				INNER JOIN {$wpdb->posts} p ON p.ID = pm.post_id
-				WHERE pm.meta_key = %s AND p.post_status = %s AND p.post_type = %s",
-				'_tsbifw_vectors',
-				'publish',
-				'product'
-			),
-			ARRAY_A
-		);
-
-		$vectors = array();
-		if ( ! empty( $results ) ) {
-			foreach ( $results as $row ) {
-				$vector_list = maybe_unserialize( $row['meta_value'] );
-				if ( is_array( $vector_list ) ) {
-					$vectors[ $row['post_id'] ] = $vector_list;
-				}
-			}
-		}
-
-		wp_cache_set( self::CACHE_KEY, $vectors, 'tsbifw_cache' );
-		return $vectors;
-	}
-
-	/**
-	 * Retrieve all indexed descriptions from database.
-	 *
-	 * @return array Map of product ID => descriptions array.
-	 */
-	public function get_all_descriptions() {
-		$cache_key = 'tsbifw_all_descriptions';
-		$descriptions = wp_cache_get( $cache_key, 'tsbifw_cache' );
-		if ( false !== $descriptions ) {
-			return $descriptions;
-		}
-
-		global $wpdb;
-
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$results = $wpdb->get_results(
-			$wpdb->prepare(
-				"SELECT pm.post_id, pm.meta_value 
-				FROM {$wpdb->postmeta} pm
-				INNER JOIN {$wpdb->posts} p ON p.ID = pm.post_id
-				WHERE pm.meta_key = %s AND p.post_status = %s AND p.post_type = %s",
-				'_tsbifw_descriptions',
-				'publish',
-				'product'
-			),
-			ARRAY_A
-		);
-
-		$descriptions = array();
-		if ( ! empty( $results ) ) {
-			foreach ( $results as $row ) {
-				$desc_list = maybe_unserialize( $row['meta_value'] );
-				if ( is_array( $desc_list ) ) {
-					$descriptions[ $row['post_id'] ] = $desc_list;
-				}
-			}
-		}
-
-		wp_cache_set( $cache_key, $descriptions, 'tsbifw_cache' );
-		return $descriptions;
-	}
-
-	/**
-	 * Clear the vectors and descriptions cache transients and in-memory caches.
+	 * Clear cached indexing states.
 	 */
 	public function clear_cache() {
-		delete_transient( self::CACHE_KEY );
-		delete_transient( 'tsbifw_all_descriptions' );
-		wp_cache_delete( self::CACHE_KEY, 'tsbifw_cache' );
-		wp_cache_delete( 'tsbifw_all_descriptions', 'tsbifw_cache' );
 		$this->indexed_image_ids = null;
 	}
 

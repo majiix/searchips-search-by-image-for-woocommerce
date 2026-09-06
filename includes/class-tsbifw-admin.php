@@ -247,9 +247,6 @@ class TSBIFW_Admin {
 								$sync_to_tags         = get_option( 'tsbifw_sync_to_tags', 'no' );
 								$results_limit        = get_option( 'tsbifw_results_limit', '12' );
 								$enable_auto_inject   = get_option( 'tsbifw_enable_auto_inject', 'yes' );
-								$camera_left          = get_option( 'tsbifw_camera_left', 'auto' );
-								$camera_right         = get_option( 'tsbifw_camera_right', '14px' );
-								$camera_bg_color      = get_option( 'tsbifw_camera_bg_color', 'transparent' );
 								$index_featured       = get_option( 'tsbifw_index_featured', 'yes' );
 								$index_gallery        = get_option( 'tsbifw_index_gallery', 'no' );
 								?>
@@ -866,7 +863,6 @@ class TSBIFW_Admin {
 
 		$indexer = TSBIFW_Indexer::instance();
 		$logs    = array();
-		$success_count = 0;
 
 		foreach ( $product_ids as $id ) {
 			$title  = get_the_title( $id );
@@ -893,7 +889,6 @@ class TSBIFW_Admin {
 						esc_html__( 'Successfully indexed "%s"', 'searchips-search-by-image-for-woocommerce' ),
 						$title
 					);
-					$success_count++;
 				}
 			}
 		}
@@ -1323,37 +1318,17 @@ class TSBIFW_Admin {
 	 */
 	public function sanitize_css_color( $value ) {
 		$value = trim( sanitize_text_field( $value ) );
-		if ( preg_match( '/^#[a-f0-9]{3,8}$/i', $value ) ) {
-			return $value;
+		if ( '' === $value ) {
+			return 'transparent';
+		}
+		$hex = sanitize_hex_color( $value );
+		if ( ! empty( $hex ) ) {
+			return $hex;
 		}
 		if ( preg_match( '/^(?:rgb|rgba|hsl|hsla)\([^)]*\)$/i', $value ) ) {
 			return $value;
 		}
-		if ( in_array( strtolower( $value ), array( 'transparent', 'initial', 'inherit' ), true ) ) {
-			return strtolower( $value );
-		}
-		$valid_names = array(
-			'aliceblue', 'antiquewhite', 'aqua', 'aquamarine', 'azure', 'beige', 'bisque', 'black', 'blanchedalmond',
-			'blue', 'blueviolet', 'brown', 'burlywood', 'cadetblue', 'chartreuse', 'chocolate', 'coral', 'cornflowerblue',
-			'cornsilk', 'crimson', 'cyan', 'darkblue', 'darkcyan', 'darkgoldenrod', 'darkgray', 'darkgreen', 'darkgrey',
-			'darkkhaki', 'darkmagenta', 'darkolivegreen', 'darkorange', 'darkorchid', 'darkred', 'darksalmon',
-			'darkseagreen', 'darkslateblue', 'darkslategray', 'darkslategrey', 'darkturquoise', 'darkviolet',
-			'deeppink', 'deepskyblue', 'dimgray', 'dimgrey', 'dodgerblue', 'firebrick', 'floralwhite', 'forestgreen',
-			'fuchsia', 'gainsboro', 'ghostwhite', 'gold', 'goldenrod', 'gray', 'green', 'greenyellow', 'grey',
-			'honeydew', 'hotpink', 'indigo', 'ivory', 'khaki', 'lavender', 'lavenderblush', 'lawngreen',
-			'lemonchiffon', 'lightblue', 'lightcoral', 'lightcyan', 'lightgoldenrodyellow', 'lightgray', 'lightgreen',
-			'lightgrey', 'lightpink', 'lightsalmon', 'lightseagreen', 'lightskyblue', 'lightslategray', 'lightslategrey',
-			'lightsteelblue', 'lightyellow', 'lime', 'limegreen', 'linen', 'magenta', 'maroon', 'mediumaquamarine',
-			'mediumblue', 'mediumorchid', 'mediumpurple', 'mediumseagreen', 'mediumslateblue', 'mediumspringgreen',
-			'mediumturquoise', 'mediumvioletred', 'midnightblue', 'mintcream', 'mistyrose', 'moccasin', 'navajowhite',
-			'navy', 'oldlace', 'olive', 'olivedrab', 'orange', 'orangered', 'orchid', 'palegoldenrod', 'palegreen',
-			'paleturquoise', 'palevioletred', 'papayawhip', 'peachpuff', 'peru', 'pink', 'plum', 'powderblue',
-			'purple', 'rebeccapurple', 'red', 'rosybrown', 'royalblue', 'saddlebrown', 'salmon', 'sandybrown',
-			'seagreen', 'seashell', 'sienna', 'silver', 'skyblue', 'slateblue', 'slategray', 'slategrey', 'snow',
-			'springgreen', 'steelblue', 'tan', 'teal', 'thistle', 'tomato', 'turquoise', 'violet', 'wheat', 'white',
-			'whitesmoke', 'yellow', 'yellowgreen'
-		);
-		if ( in_array( strtolower( $value ), $valid_names, true ) ) {
+		if ( preg_match( '/^[a-z]+$/i', $value ) ) {
 			return strtolower( $value );
 		}
 		return 'transparent';
