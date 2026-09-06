@@ -552,6 +552,8 @@ jQuery(document).ready(function($) {
 				var errorMsg = tsbifw_admin_params.strings.error;
 				if (xhr.responseJSON && xhr.responseJSON.message) {
 					errorMsg = xhr.responseJSON.message;
+				} else if (xhr.statusText && xhr.statusText !== 'error') {
+					errorMsg += ' (' + xhr.status + ': ' + xhr.statusText + ')';
 				}
 				$('#tsbifw-admin-search-status').text(errorMsg).removeClass('pulse').show();
 			}

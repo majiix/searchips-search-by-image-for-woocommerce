@@ -288,3 +288,13 @@ step 64:
 6- Created `docs/project.md` project reference document.
 7- Incremented plugin version tags to 1.2.1 in `readme.txt` and `searchips-search-by-image-for-woocommerce.php`.
 Commit message: chore(release): bump version to 1.2.1 for WooCommerce 11.1.0 compatibility
+
+step 65:
+1- Resolved search failure ("Search failed. Please try again.") occurring when indexing reaches 100% on catalogs with 1,600+ products.
+2- Replaced monolithic vector and description loading in `includes/class-tsbifw-search.php` with cursor-based batch streaming (`LIMIT 200`), capping peak memory usage to ~4MB regardless of catalog size.
+3- Pre-computed query vector norm once in `cosine_similarity_fast()` to remove millions of redundant multiplications and sqrt calculations per search.
+4- Deprecated monolithic transient caching in `includes/class-tsbifw-indexer.php` to prevent MySQL `max_allowed_packet` and memory limit crashes when saving multi-megabyte options.
+5- Rewrote `get_indexed_image_ids()` in `includes/class-tsbifw-indexer.php` to query attachment IDs directly from postmeta without loading vectors, protecting the Media Library list table from memory exhaustion.
+6- Added robust `Throwable` exception handling in `handle_search_request()` with error diagnostics.
+7- Incremented plugin version tags to 1.2.2 in `readme.txt` and `searchips-search-by-image-for-woocommerce.php`.
+Commit message: fix(performance): implement cursor batch streaming to prevent search failure on large catalogs

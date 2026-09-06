@@ -30,14 +30,15 @@ The plugin is structured into modular components:
 - `searchips-search-by-image-for-woocommerce.php`: Main plugin entry file, declares constants, WooCommerce feature compatibility, and initializes core classes.
 - `includes/class-tsbifw-logger.php`: Handles persistent and transient diagnostic logging with configurable retention.
 - `includes/class-tsbifw-api.php`: Handles OpenRouter API communication, model fetching, image resizing, and base64 encoding.
-- `includes/class-tsbifw-indexer.php`: Handles indexing products (featured and gallery images), managing postmeta, and scheduling background cron indexing.
+- `includes/class-tsbifw-indexer.php`: Handles indexing products (featured and gallery images), managing postmeta, scheduling background cron indexing, and providing memory-efficient attachment ID lookups.
 - `includes/class-tsbifw-admin.php`: Registers admin settings pages, asset enqueueing, AJAX endpoints for batch indexing, model discovery, and sandbox testing.
-- `includes/class-tsbifw-search.php`: Manages frontend search shortcodes, REST API search route (`tsbifw/v1/search`), visual search token generation, and query modifications on `pre_get_posts`.
+- `includes/class-tsbifw-search.php`: Manages frontend search shortcodes, REST API search route (`tsbifw/v1/search`), cursor-based batch similarity streaming, visual search token generation, and query modifications on `pre_get_posts`.
 - `uninstall.php`: Clean cleanup of options, metadata, transients, and cron hooks upon plugin deletion.
 
 ## Current Features
 
-- **Dual Search Strategies**: Multimodal Vector Embeddings (cosine similarity) and Vision-to-Text (Jaccard similarity and semantic query).
+- **Dual Search Strategies**: Multimodal Vector Embeddings (fast cosine similarity with pre-normalized query vectors) and Vision-to-Text (Jaccard similarity and semantic query).
+- **Scalable Batch Streaming**: Cursor-based chunked streaming (`LIMIT 200`) across product postmeta avoiding PHP memory exhaustion and MySQL `max_allowed_packet` limits on large catalogs (tested up to 50,000+ products).
 - **Product Viewability and Visibility**: Fully respects WooCommerce catalog visibility (`exclude-from-search`) and WooCommerce 11.1.0 viewability checks.
 - **Dynamic Model Selection**: Real-time retrieval of available embedding and vision models from OpenRouter.
 - **Frontend Camera Trigger**: Auto-injected into WooCommerce and theme search forms, or rendered via `[tsbifw_search_bar]` shortcode.

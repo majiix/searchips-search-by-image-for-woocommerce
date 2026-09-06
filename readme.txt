@@ -6,7 +6,7 @@ Tested up to: 7.1
 Requires PHP: 7.4
 WC requires at least: 5.0
 WC tested up to: 11.1
-Stable tag: 1.2.1
+Stable tag: 1.2.2
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -83,6 +83,13 @@ No, the indexer automatically skips empty or missing image files to prevent API 
 Ensure that "Background Cron Indexing" is enabled in your General Settings, or simply update a product's featured/gallery image to automatically queue it for re-indexing.
 
 == Changelog ==
+
+= 1.2.2 =
+* Implemented memory-efficient cursor-based batch streaming for visual vector and description similarity matching, scaling effortlessly to catalogs with thousands of products.
+* Optimized fast cosine similarity computation using pre-normalized query vectors.
+* Prevented database packet size (max_allowed_packet) and memory limit errors when searching large catalogs.
+* Streamlined Media Library indexed status checking to query attachment IDs directly without loading vector blobs.
+* Enhanced REST search error handling and diagnostics for admin test search.
 
 = 1.2.1 =
 * Verified and confirmed compatibility with WooCommerce 11.1.0.

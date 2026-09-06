@@ -372,7 +372,7 @@ class TSBIFW_Indexer {
 	}
 
 	/**
-	 * Retrieve all indexed vectors from database, using WordPress transient caching.
+	 * Retrieve all indexed vectors from database.
 	 *
 	 * @return array Map of product ID => vector array.
 	 */
@@ -382,36 +382,30 @@ class TSBIFW_Indexer {
 			return $cache_val;
 		}
 
-		$vectors = get_transient( self::CACHE_KEY );
-		if ( false === $vectors ) {
-			global $wpdb;
+		global $wpdb;
 
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-			$results = $wpdb->get_results(
-				$wpdb->prepare(
-					"SELECT pm.post_id, pm.meta_value 
-					FROM {$wpdb->postmeta} pm
-					INNER JOIN {$wpdb->posts} p ON p.ID = pm.post_id
-					WHERE pm.meta_key = %s AND p.post_status = %s AND p.post_type = %s",
-					'_tsbifw_vectors',
-					'publish',
-					'product'
-				),
-				ARRAY_A
-			);
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$results = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT pm.post_id, pm.meta_value 
+				FROM {$wpdb->postmeta} pm
+				INNER JOIN {$wpdb->posts} p ON p.ID = pm.post_id
+				WHERE pm.meta_key = %s AND p.post_status = %s AND p.post_type = %s",
+				'_tsbifw_vectors',
+				'publish',
+				'product'
+			),
+			ARRAY_A
+		);
 
-			$vectors = array();
-			if ( ! empty( $results ) ) {
-				foreach ( $results as $row ) {
-					$vector_list = maybe_unserialize( $row['meta_value'] );
-					if ( is_array( $vector_list ) ) {
-						$vectors[ $row['post_id'] ] = $vector_list;
-					}
+		$vectors = array();
+		if ( ! empty( $results ) ) {
+			foreach ( $results as $row ) {
+				$vector_list = maybe_unserialize( $row['meta_value'] );
+				if ( is_array( $vector_list ) ) {
+					$vectors[ $row['post_id'] ] = $vector_list;
 				}
 			}
-
-			// Store in transient for 1 day.
-			set_transient( self::CACHE_KEY, $vectors, DAY_IN_SECONDS );
 		}
 
 		wp_cache_set( self::CACHE_KEY, $vectors, 'tsbifw_cache' );
@@ -419,7 +413,7 @@ class TSBIFW_Indexer {
 	}
 
 	/**
-	 * Retrieve all indexed descriptions from database, using WordPress transient caching.
+	 * Retrieve all indexed descriptions from database.
 	 *
 	 * @return array Map of product ID => descriptions array.
 	 */
@@ -430,36 +424,30 @@ class TSBIFW_Indexer {
 			return $descriptions;
 		}
 
-		$descriptions = get_transient( $cache_key );
-		if ( false === $descriptions ) {
-			global $wpdb;
+		global $wpdb;
 
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-			$results = $wpdb->get_results(
-				$wpdb->prepare(
-					"SELECT pm.post_id, pm.meta_value 
-					FROM {$wpdb->postmeta} pm
-					INNER JOIN {$wpdb->posts} p ON p.ID = pm.post_id
-					WHERE pm.meta_key = %s AND p.post_status = %s AND p.post_type = %s",
-					'_tsbifw_descriptions',
-					'publish',
-					'product'
-				),
-				ARRAY_A
-			);
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$results = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT pm.post_id, pm.meta_value 
+				FROM {$wpdb->postmeta} pm
+				INNER JOIN {$wpdb->posts} p ON p.ID = pm.post_id
+				WHERE pm.meta_key = %s AND p.post_status = %s AND p.post_type = %s",
+				'_tsbifw_descriptions',
+				'publish',
+				'product'
+			),
+			ARRAY_A
+		);
 
-			$descriptions = array();
-			if ( ! empty( $results ) ) {
-				foreach ( $results as $row ) {
-					$desc_list = maybe_unserialize( $row['meta_value'] );
-					if ( is_array( $desc_list ) ) {
-						$descriptions[ $row['post_id'] ] = $desc_list;
-					}
+		$descriptions = array();
+		if ( ! empty( $results ) ) {
+			foreach ( $results as $row ) {
+				$desc_list = maybe_unserialize( $row['meta_value'] );
+				if ( is_array( $desc_list ) ) {
+					$descriptions[ $row['post_id'] ] = $desc_list;
 				}
 			}
-
-			// Store in transient for 1 day.
-			set_transient( $cache_key, $descriptions, DAY_IN_SECONDS );
 		}
 
 		wp_cache_set( $cache_key, $descriptions, 'tsbifw_cache' );
@@ -467,13 +455,14 @@ class TSBIFW_Indexer {
 	}
 
 	/**
-	 * Clear the vectors and descriptions cache transients.
+	 * Clear the vectors and descriptions cache transients and in-memory caches.
 	 */
 	public function clear_cache() {
 		delete_transient( self::CACHE_KEY );
 		delete_transient( 'tsbifw_all_descriptions' );
 		wp_cache_delete( self::CACHE_KEY, 'tsbifw_cache' );
 		wp_cache_delete( 'tsbifw_all_descriptions', 'tsbifw_cache' );
+		$this->indexed_image_ids = null;
 	}
 
 	/**
@@ -493,7 +482,9 @@ class TSBIFW_Indexer {
 	}
 
 	/**
-	 * Retrieve all indexed image attachment IDs across all products.
+	 * Retrieve all indexed image attachment IDs across all products efficiently.
+	 *
+	 * Queries attachment IDs directly from indexed products without loading heavy vectors into memory.
 	 *
 	 * @return array Array of attachment IDs.
 	 */
@@ -503,37 +494,50 @@ class TSBIFW_Indexer {
 		}
 
 		$this->indexed_image_ids = array();
-		$strategy = get_option( 'tsbifw_strategy', 'embeddings' );
+		global $wpdb;
 
-		if ( 'embeddings' === $strategy ) {
-			$all_vectors = $this->get_all_vectors();
-			if ( is_array( $all_vectors ) ) {
-				foreach ( $all_vectors as $product_id => $vector_list ) {
-					if ( is_array( $vector_list ) ) {
-						foreach ( $vector_list as $img_data ) {
-							if ( isset( $img_data['id'] ) ) {
-								$this->indexed_image_ids[] = (int) $img_data['id'];
-							}
-						}
-					}
+		// Query attachment IDs directly from featured image and gallery of indexed published products.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT pm_img.meta_value 
+				FROM {$wpdb->postmeta} pm_status
+				INNER JOIN {$wpdb->posts} p ON p.ID = pm_status.post_id
+				INNER JOIN {$wpdb->postmeta} pm_img ON pm_img.post_id = pm_status.post_id
+				WHERE pm_status.meta_key = %s 
+				  AND pm_status.meta_value = %s 
+				  AND p.post_status = %s 
+				  AND p.post_type = %s 
+				  AND pm_img.meta_key IN ('_thumbnail_id', '_product_image_gallery')",
+				'_tsbifw_indexed_status',
+				'indexed',
+				'publish',
+				'product'
+			),
+			ARRAY_A
+		);
+
+		if ( ! empty( $rows ) ) {
+			foreach ( $rows as $row ) {
+				$val = trim( $row['meta_value'] );
+				if ( '' === $val ) {
+					continue;
 				}
-			}
-		} else {
-			$all_descs = $this->get_all_descriptions();
-			if ( is_array( $all_descs ) ) {
-				foreach ( $all_descs as $product_id => $desc_list ) {
-					if ( is_array( $desc_list ) ) {
-						foreach ( $desc_list as $img_data ) {
-							if ( isset( $img_data['id'] ) ) {
-								$this->indexed_image_ids[] = (int) $img_data['id'];
-							}
+				if ( is_numeric( $val ) ) {
+					$this->indexed_image_ids[] = (int) $val;
+				} else {
+					$ids = explode( ',', $val );
+					foreach ( $ids as $id ) {
+						$id = (int) trim( $id );
+						if ( $id > 0 ) {
+							$this->indexed_image_ids[] = $id;
 						}
 					}
 				}
 			}
 		}
 
-		$this->indexed_image_ids = array_unique( $this->indexed_image_ids );
+		$this->indexed_image_ids = array_values( array_unique( $this->indexed_image_ids ) );
 		return $this->indexed_image_ids;
 	}
 

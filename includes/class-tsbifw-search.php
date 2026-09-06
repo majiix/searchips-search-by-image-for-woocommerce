@@ -378,90 +378,39 @@ class TSBIFW_Search {
 
 		$matched_posts = array();
 
-		if ( 'embeddings' === $strategy ) {
-			// Get query vector.
-			$query_vector = $api->get_embeddings( $base64 );
-			if ( is_wp_error( $query_vector ) ) {
-				$status_code = ( 'tsbifw_missing_api_key' === $query_vector->get_error_code() ) ? 400 : 422;
-				$query_vector->add_data( array( 'status' => $status_code ) );
-				return $query_vector;
+		try {
+			if ( function_exists( 'wp_raise_memory_limit' ) ) {
+				wp_raise_memory_limit( 'admin' );
+			}
+			if ( function_exists( 'set_time_limit' ) ) {
+				@set_time_limit( 120 );
 			}
 
-			// Get all stored vectors.
-			$all_vectors = TSBIFW_Indexer::instance()->get_all_vectors();
-			if ( empty( $all_vectors ) ) {
-				return rest_ensure_response( array() );
+			if ( 'embeddings' === $strategy ) {
+				// Get query vector.
+				$query_vector = $api->get_embeddings( $base64 );
+				if ( is_wp_error( $query_vector ) ) {
+					$status_code = ( 'tsbifw_missing_api_key' === $query_vector->get_error_code() ) ? 400 : 422;
+					$query_vector->add_data( array( 'status' => $status_code ) );
+					return $query_vector;
+				}
+
+				// Calculate similarity scores in cursor batches to prevent memory and packet limits.
+				$scores = $this->calculate_vector_scores( $query_vector, $threshold );
+			} else {
+				// Get text description.
+				$description = $api->get_description( $base64 );
+				if ( is_wp_error( $description ) ) {
+					$status_code = ( 'tsbifw_missing_api_key' === $description->get_error_code() ) ? 400 : 422;
+					$description->add_data( array( 'status' => $status_code ) );
+					return $description;
+				}
+
+				// Calculate similarity scores in cursor batches.
+				$scores = $this->calculate_description_scores( $description, $threshold );
 			}
 
-			// Perform similarity matching across multiple images per product.
-			$scores = array();
-			foreach ( $all_vectors as $product_id => $vector_list ) {
-				$max_score = 0.0;
-				if ( is_array( $vector_list ) ) {
-					foreach ( $vector_list as $img_data ) {
-						if ( isset( $img_data['vector'] ) && is_array( $img_data['vector'] ) ) {
-							$score = $this->cosine_similarity( $query_vector, $img_data['vector'] );
-							if ( $score > $max_score ) {
-								$max_score = $score;
-							}
-						}
-					}
-				}
-				if ( $max_score >= $threshold ) {
-					$scores[ $product_id ] = $max_score;
-				}
-			}
-
-			// Sort scores descending.
-			arsort( $scores );
-
-			foreach ( $scores as $product_id => $score ) {
-				$product = wc_get_product( $product_id );
-				if ( ! $this->is_product_viewable_and_visible( $product, $sandbox ) ) {
-					continue;
-				}
-
-				$matched_posts[] = array(
-					'id'    => $product_id,
-					'score' => $score,
-				);
-
-				if ( count( $matched_posts ) >= $limit ) {
-					break;
-				}
-			}
-		} else {
-			// Get text description.
-			$description = $api->get_description( $base64 );
-			if ( is_wp_error( $description ) ) {
-				$status_code = ( 'tsbifw_missing_api_key' === $description->get_error_code() ) ? 400 : 422;
-				$description->add_data( array( 'status' => $status_code ) );
-				return $description;
-			}
-
-			// Get all stored descriptions.
-			$all_descs = TSBIFW_Indexer::instance()->get_all_descriptions();
-
-			if ( ! empty( $all_descs ) ) {
-				$scores = array();
-				foreach ( $all_descs as $product_id => $desc_list ) {
-					$max_score = 0.0;
-					if ( is_array( $desc_list ) ) {
-						foreach ( $desc_list as $img_data ) {
-							if ( isset( $img_data['description'] ) ) {
-								$score = $this->jaccard_similarity( $description, $img_data['description'] );
-								if ( $score > $max_score ) {
-									$max_score = $score;
-								}
-							}
-						}
-					}
-					// Only include if the Jaccard similarity meets the threshold.
-					if ( $max_score >= $threshold ) {
-						$scores[ $product_id ] = $max_score;
-					}
-				}
-
+			if ( ! empty( $scores ) ) {
 				// Sort scores descending.
 				arsort( $scores );
 
@@ -480,8 +429,8 @@ class TSBIFW_Search {
 						break;
 					}
 				}
-			} else {
-				// Fallback to standard text search query.
+			} elseif ( 'embeddings' !== $strategy && ! empty( $description ) ) {
+				// Fallback to standard text search query for description strategy when no jaccard matches found.
 				$args = array(
 					'post_type'      => 'product',
 					'post_status'    => 'publish',
@@ -505,6 +454,19 @@ class TSBIFW_Search {
 					);
 				}
 			}
+		} catch ( Throwable $e ) {
+			TSBIFW_Logger::log( 'Search request encountered an exception: ' . $e->getMessage(), array( 'trace' => $e->getTraceAsString() ) );
+			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+				error_log( 'TSBIFW Search Error: ' . $e->getMessage() );
+			}
+			return new WP_Error(
+				'tsbifw_search_exception',
+				esc_html__( 'Search failed. Please try again.', 'searchips-search-by-image-for-woocommerce' ),
+				array(
+					'status'  => 500,
+					'details' => ( defined( 'WP_DEBUG' ) && WP_DEBUG ) ? $e->getMessage() : '',
+				)
+			);
 		}
 
 		// Check if it is the admin sandbox request.
@@ -606,6 +568,189 @@ class TSBIFW_Search {
 		);
 
 		return rest_ensure_response( array( 'redirect_url' => $redirect_url ) );
+	}
+
+	/**
+	 * Calculate cosine similarity scores for all published products using cursor batching.
+	 *
+	 * @param array $query_vector Query embedding vector.
+	 * @param float $threshold    Minimum similarity threshold.
+	 * @return array Map of product ID => similarity score.
+	 */
+	private function calculate_vector_scores( $query_vector, $threshold ) {
+		if ( ! is_array( $query_vector ) || empty( $query_vector ) ) {
+			return array();
+		}
+
+		$norm_query = 0.0;
+		foreach ( $query_vector as $v ) {
+			$norm_query += $v * $v;
+		}
+		$norm_query = sqrt( $norm_query );
+		if ( $norm_query < 1e-10 ) {
+			return array();
+		}
+
+		global $wpdb;
+		$scores       = array();
+		$batch_size   = 200;
+		$last_post_id = 0;
+
+		do {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			$rows = $wpdb->get_results(
+				$wpdb->prepare(
+					"SELECT pm.post_id, pm.meta_value 
+					FROM {$wpdb->postmeta} pm
+					INNER JOIN {$wpdb->posts} p ON p.ID = pm.post_id
+					WHERE pm.meta_key = %s 
+					  AND p.post_status = %s 
+					  AND p.post_type = %s 
+					  AND pm.post_id > %d
+					ORDER BY pm.post_id ASC
+					LIMIT %d",
+					'_tsbifw_vectors',
+					'publish',
+					'product',
+					$last_post_id,
+					$batch_size
+				),
+				ARRAY_A
+			);
+
+			if ( empty( $rows ) ) {
+				break;
+			}
+
+			foreach ( $rows as $row ) {
+				$last_post_id = (int) $row['post_id'];
+				$vector_list  = maybe_unserialize( $row['meta_value'] );
+				if ( ! is_array( $vector_list ) ) {
+					continue;
+				}
+
+				$max_score = 0.0;
+				foreach ( $vector_list as $img_data ) {
+					if ( isset( $img_data['vector'] ) && is_array( $img_data['vector'] ) ) {
+						$score = $this->cosine_similarity_fast( $query_vector, $norm_query, $img_data['vector'] );
+						if ( $score > $max_score ) {
+							$max_score = $score;
+						}
+					}
+				}
+
+				if ( $max_score >= $threshold ) {
+					$scores[ $last_post_id ] = $max_score;
+				}
+			}
+
+			unset( $rows );
+		} while ( true );
+
+		return $scores;
+	}
+
+	/**
+	 * Calculate Jaccard similarity scores for all published products using cursor batching.
+	 *
+	 * @param string $query_desc Query text description.
+	 * @param float  $threshold  Minimum similarity threshold.
+	 * @return array Map of product ID => similarity score.
+	 */
+	private function calculate_description_scores( $query_desc, $threshold ) {
+		if ( ! is_string( $query_desc ) || '' === trim( $query_desc ) ) {
+			return array();
+		}
+
+		global $wpdb;
+		$scores       = array();
+		$batch_size   = 200;
+		$last_post_id = 0;
+
+		do {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			$rows = $wpdb->get_results(
+				$wpdb->prepare(
+					"SELECT pm.post_id, pm.meta_value 
+					FROM {$wpdb->postmeta} pm
+					INNER JOIN {$wpdb->posts} p ON p.ID = pm.post_id
+					WHERE pm.meta_key = %s 
+					  AND p.post_status = %s 
+					  AND p.post_type = %s 
+					  AND pm.post_id > %d
+					ORDER BY pm.post_id ASC
+					LIMIT %d",
+					'_tsbifw_descriptions',
+					'publish',
+					'product',
+					$last_post_id,
+					$batch_size
+				),
+				ARRAY_A
+			);
+
+			if ( empty( $rows ) ) {
+				break;
+			}
+
+			foreach ( $rows as $row ) {
+				$last_post_id = (int) $row['post_id'];
+				$desc_list    = maybe_unserialize( $row['meta_value'] );
+				if ( ! is_array( $desc_list ) ) {
+					continue;
+				}
+
+				$max_score = 0.0;
+				foreach ( $desc_list as $img_data ) {
+					if ( isset( $img_data['description'] ) && is_string( $img_data['description'] ) ) {
+						$score = $this->jaccard_similarity( $query_desc, $img_data['description'] );
+						if ( $score > $max_score ) {
+							$max_score = $score;
+						}
+					}
+				}
+
+				if ( $max_score >= $threshold ) {
+					$scores[ $last_post_id ] = $max_score;
+				}
+			}
+
+			unset( $rows );
+		} while ( true );
+
+		return $scores;
+	}
+
+	/**
+	 * Compute fast Cosine Similarity using a pre-calculated query vector norm.
+	 *
+	 * @param array $vec1   Query vector.
+	 * @param float $norm_a Euclidean norm of vec1.
+	 * @param array $vec2   Candidate vector.
+	 * @return float Cosine similarity score.
+	 */
+	private function cosine_similarity_fast( $vec1, $norm_a, $vec2 ) {
+		if ( ! is_array( $vec1 ) || ! is_array( $vec2 ) ) {
+			return 0.0;
+		}
+
+		$dot_product = 0.0;
+		$norm_b      = 0.0;
+		$n           = count( $vec1 );
+
+		for ( $i = 0; $i < $n; $i++ ) {
+			if ( ! isset( $vec2[ $i ] ) ) {
+				continue;
+			}
+			$dot_product += $vec1[ $i ] * $vec2[ $i ];
+			$norm_b      += $vec2[ $i ] * $vec2[ $i ];
+		}
+
+		if ( $norm_b < 1e-10 ) {
+			return 0.0;
+		}
+
+		return $dot_product / ( $norm_a * sqrt( $norm_b ) );
 	}
 
 	/**
