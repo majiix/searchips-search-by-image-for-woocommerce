@@ -37,9 +37,32 @@ jQuery(document).ready(function($) {
 		});
 	}
 
+	function ensureCropperLoaded(callback) {
+		if (typeof window.customElements !== 'undefined' && window.customElements.get('cropper-canvas')) {
+			if (typeof callback === 'function') callback();
+			return;
+		}
+		if (document.getElementById('tsbifw-cropper-script')) {
+			if (typeof callback === 'function') callback();
+			return;
+		}
+		if (!tsbifw_frontend_params.cropper_src) {
+			if (typeof callback === 'function') callback();
+			return;
+		}
+		var script = document.createElement('script');
+		script.id = 'tsbifw-cropper-script';
+		script.src = tsbifw_frontend_params.cropper_src;
+		script.onload = function() {
+			if (typeof callback === 'function') callback();
+		};
+		document.head.appendChild(script);
+	}
+
 	// 2. Click handler for camera triggers (delegated to support dynamically loaded forms)
 	$(document).on('click', '.tsbifw-camera-trigger', function(e) {
 		e.preventDefault();
+		ensureCropperLoaded();
 		initModal();
 		openModal();
 	});
@@ -261,6 +284,12 @@ jQuery(document).ready(function($) {
 			return;
 		}
 
+		ensureCropperLoaded(function() {
+			processSelectedFile(file);
+		});
+	}
+
+	function processSelectedFile(file) {
 		// Show preview using FileReader
 		var reader = new FileReader();
 		reader.onload = function(e) {

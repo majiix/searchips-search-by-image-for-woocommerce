@@ -50,7 +50,7 @@ class TSBIFW_Search {
 	 * Enqueue scripts and styles.
 	 */
 	public function enqueue_frontend_assets() {
-		wp_enqueue_script( 'tsbifw-cropperjs', TSBIFW_PLUGIN_URL . 'assets/js/cropper.min.js', array(), '2.1.1', true );
+		wp_register_script( 'tsbifw-cropperjs', TSBIFW_PLUGIN_URL . 'assets/js/cropper.min.js', array(), '2.1.1', true );
 		wp_enqueue_style( 'tsbifw-frontend-css', TSBIFW_PLUGIN_URL . 'assets/css/frontend.css', array(), TSBIFW_VERSION );
 
 		$left_val  = trim( get_option( 'tsbifw_camera_left', 'auto' ) );
@@ -118,7 +118,7 @@ class TSBIFW_Search {
 
 		wp_add_inline_style( 'tsbifw-frontend-css', $custom_css );
 
-		wp_enqueue_script( 'tsbifw-frontend-js', TSBIFW_PLUGIN_URL . 'assets/js/frontend.js', array( 'jquery', 'tsbifw-cropperjs' ), TSBIFW_VERSION, true );
+		wp_enqueue_script( 'tsbifw-frontend-js', TSBIFW_PLUGIN_URL . 'assets/js/frontend.js', array( 'jquery' ), TSBIFW_VERSION, true );
 
 		$enable_auto_inject = get_option( 'tsbifw_enable_auto_inject', 'yes' );
 		$max_mb             = (int) get_option( 'tsbifw_max_upload_size', 2 );
@@ -131,6 +131,7 @@ class TSBIFW_Search {
 			'tsbifw_frontend_params',
 			array(
 				'search_endpoint' => esc_url_raw( rest_url( 'tsbifw/v1/search' ) ),
+				'cropper_src'     => esc_url_raw( TSBIFW_PLUGIN_URL . 'assets/js/cropper.min.js' ),
 				'auto_inject'     => ( 'yes' === $enable_auto_inject ),
 				'nonce'           => wp_create_nonce( 'tsbifw_frontend_search' ),
 				'max_upload_size' => $max_mb * 1024 * 1024,
@@ -401,13 +402,14 @@ class TSBIFW_Search {
 				'filename' => $uploaded_file['name'],
 				'size'     => $uploaded_file['size'],
 				'strategy' => $strategy,
-			)
+			),
+			$sandbox
 		);
 
 		$api = TSBIFW_API::instance();
 		$base64 = $api->prepare_raw_file( $uploaded_file['tmp_name'] );
 		if ( is_wp_error( $base64 ) ) {
-			TSBIFW_Logger::log( 'Search request failed preparing image file.', array( 'error' => $base64->get_error_message() ) );
+			TSBIFW_Logger::log( 'Search request failed preparing image file.', array( 'error' => $base64->get_error_message() ), $sandbox );
 			$base64->add_data( array( 'status' => 400 ) );
 			return $base64;
 		}
@@ -457,6 +459,13 @@ class TSBIFW_Search {
 				// Sort scores descending.
 				arsort( $scores );
 
+				// Pre-prime post, postmeta, and taxonomy caches for candidates to prevent N+1 queries.
+				$candidate_ids = array_slice( array_keys( $scores ), 0, max( $limit * 3, 50 ) );
+				if ( function_exists( '_prime_post_caches' ) ) {
+					_prime_post_caches( $candidate_ids, true, true );
+				}
+
+				$resolved_products = array();
 				foreach ( $scores as $product_id => $score ) {
 					$product = wc_get_product( $product_id );
 					if ( ! $this->is_product_viewable_and_visible( $product, $sandbox ) ) {
@@ -467,6 +476,9 @@ class TSBIFW_Search {
 						'id'    => $product_id,
 						'score' => $score,
 					);
+					if ( $sandbox && $product ) {
+						$resolved_products[ $product_id ] = $product;
+					}
 
 					if ( count( $matched_posts ) >= $limit ) {
 						break;
@@ -485,6 +497,11 @@ class TSBIFW_Search {
 				$search_query = new WP_Query( $args );
 				$ids          = $search_query->posts;
 
+				if ( function_exists( '_prime_post_caches' ) && ! empty( $ids ) ) {
+					_prime_post_caches( $ids, true, true );
+				}
+
+				$resolved_products = array();
 				foreach ( $ids as $product_id ) {
 					$product = wc_get_product( $product_id );
 					if ( ! $this->is_product_viewable_and_visible( $product, $sandbox ) ) {
@@ -495,10 +512,13 @@ class TSBIFW_Search {
 						'id'    => $product_id,
 						'score' => null,
 					);
+					if ( $sandbox && $product ) {
+						$resolved_products[ $product_id ] = $product;
+					}
 				}
 			}
 		} catch ( Throwable $e ) {
-			TSBIFW_Logger::log( 'Search request encountered an exception: ' . $e->getMessage(), array( 'trace' => $e->getTraceAsString() ) );
+			TSBIFW_Logger::log( 'Search request encountered an exception: ' . $e->getMessage(), array( 'trace' => $e->getTraceAsString() ), true );
 			return new WP_Error(
 				'tsbifw_search_exception',
 				esc_html__( 'Search failed. Please try again.', 'searchips-search-by-image-for-woocommerce' ),
@@ -516,11 +536,25 @@ class TSBIFW_Search {
 				return new WP_Error( 'tsbifw_forbidden', esc_html__( 'Forbidden.', 'searchips-search-by-image-for-woocommerce' ), array( 'status' => 403 ) );
 			}
 
+			// Pre-prime attachment image caches for sandbox results.
+			$image_ids = array();
+			foreach ( $matched_posts as $match ) {
+				$product_id = $match['id'];
+				$product    = isset( $resolved_products[ $product_id ] ) ? $resolved_products[ $product_id ] : wc_get_product( $product_id );
+				if ( $product && $product->get_image_id() ) {
+					$image_ids[] = $product->get_image_id();
+				}
+			}
+
+			if ( function_exists( '_prime_post_caches' ) && ! empty( $image_ids ) ) {
+				_prime_post_caches( $image_ids, false, true );
+			}
+
 			// Format product response lists for admin test search sandbox.
 			$formatted_results = array();
 			foreach ( $matched_posts as $match ) {
 				$product_id = $match['id'];
-				$product    = wc_get_product( $product_id );
+				$product    = isset( $resolved_products[ $product_id ] ) ? $resolved_products[ $product_id ] : wc_get_product( $product_id );
 				if ( ! $product ) {
 					continue;
 				}
@@ -558,7 +592,8 @@ class TSBIFW_Search {
 						},
 						$formatted_results
 					),
-				)
+				),
+				true
 			);
 
 			return rest_ensure_response( $formatted_results );
@@ -596,7 +631,8 @@ class TSBIFW_Search {
 			array(
 				'redirect' => $redirect_url,
 				'ids'      => $product_ids,
-			)
+			),
+			$sandbox
 		);
 
 		return rest_ensure_response( array( 'redirect_url' => $redirect_url ) );

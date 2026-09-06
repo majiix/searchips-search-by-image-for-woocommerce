@@ -27,16 +27,18 @@ Searchips Search By Image for WooCommerce is a visual search plugin that enables
 
 The plugin is structured into modular components:
 
-- `searchips-search-by-image-for-woocommerce.php`: Main plugin entry file, declares constants, WooCommerce feature compatibility, and initializes core classes.
-- `includes/class-tsbifw-logger.php`: Handles persistent and transient diagnostic logging with configurable retention.
+- `searchips-search-by-image-for-woocommerce.php`: Main plugin entry file, declares constants, WooCommerce feature compatibility, and initializes core modules with contextual isolation (`TSBIFW_Admin` instantiated only for admin/AJAX requests).
+- `includes/class-tsbifw-logger.php`: Handles diagnostic logging supporting WooCommerce file logs (`wc_get_logger()`), non-blocking database writes for high-concurrency requests, and autoload-free option storage.
 - `includes/class-tsbifw-api.php`: Handles OpenRouter API communication, model fetching, image resizing, and base64 encoding.
-- `includes/class-tsbifw-indexer.php`: Handles indexing products (featured and gallery images), managing postmeta, scheduling background cron indexing with custom prefixed intervals (`tsbifw_every_minute`, `tsbifw_every_5_minutes`, `tsbifw_every_15_minutes`), and providing memory-efficient attachment ID lookups.
-- `includes/class-tsbifw-admin.php`: Registers admin settings pages, asset enqueueing (`tsbifw-cropperjs`, `tsbifw-admin-js`), AJAX endpoints for batch indexing, model discovery, and sandbox testing.
-- `includes/class-tsbifw-search.php`: Manages frontend search shortcodes, REST API search route (`tsbifw/v1/search`) with input schema validation and IP rate limiting (HTTP 429), cursor-based batch similarity streaming, visual search token generation (`tsbifw_vquery`), and query modifications on `pre_get_posts`.
+- `includes/class-tsbifw-indexer.php`: Handles product image indexing, metadata mutations with early meta key guards, batch queue priming, custom prefixed cron intervals, and transient-cached O(1) attachment lookups.
+- `includes/class-tsbifw-admin.php`: Registers admin settings pages, asset enqueueing (`tsbifw-cropperjs`, `tsbifw-admin-js`), consolidated status count queries with transient caching, AJAX endpoints for batch indexing with primed post caches, and test sandbox.
+- `includes/class-tsbifw-search.php`: Manages frontend search shortcodes, on-demand lazy loading of Cropper.js, REST API search route (`tsbifw/v1/search`) with rate limiting (HTTP 429), bulk candidate cache pre-priming (`_prime_post_caches`), cursor-based similarity streaming, and query modifications.
 - `uninstall.php`: Clean cleanup of options, metadata, transients, and cron hooks upon plugin deletion.
 
 ## Current Features
 
+- **High-Traffic Scalability**: Pre-warmed object/post/taxonomy caches (`_prime_post_caches()`) eliminating N+1 queries during search scoring; non-blocking file-based WooCommerce logging under load; consolidated status count queries.
+- **On-Demand Asset Loading**: Lightweight CSS and trigger JS loaded globally, with Cropper.js (40+ KB) lazy-loaded on demand only when the camera modal is opened.
 - **Dual Search Strategies**: Multimodal Vector Embeddings (fast cosine similarity with pre-normalized query vectors) and Vision-to-Text (Jaccard similarity and semantic query).
 - **Scalable Batch Streaming**: Cursor-based chunked streaming (`LIMIT 200`) across product postmeta avoiding PHP memory exhaustion and MySQL `max_allowed_packet` limits on large catalogs (tested up to 50,000+ products).
 - **Product Viewability and Visibility**: Fully respects WooCommerce catalog visibility (`exclude-from-search`) and WooCommerce 11.1.0 viewability checks.
@@ -45,7 +47,7 @@ The plugin is structured into modular components:
 - **Image Cropping**: Client-side interactive image cropping using Cropper.js before submission.
 - **Admin Test Search Sandbox**: Integrated backend testing tool with visual scanning indicators and formatted product cards.
 - **Batch and Background Indexing**: AJAX progress indexer with pause/stop controls and automated WP Cron background tasks.
-- **Diagnostic Logging**: In-database activity logs with configurable retention and clipboard copy.
+- **Diagnostic Logging**: Configurable in-database logs with clipboard copy and automatic delegation to WooCommerce logger files.
 
 ## Verification Commands
 

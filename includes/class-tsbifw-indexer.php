@@ -26,11 +26,11 @@ class TSBIFW_Indexer {
 	private $indexed_products = array();
 
 	/**
-	 * Track indexed image attachment IDs.
+	 * Track indexed image attachment IDs map for O(1) hash lookups.
 	 *
 	 * @var array|null
 	 */
-	private $indexed_image_ids = null;
+	private $indexed_image_map = null;
 
 	/**
 	 * Get class instance.
@@ -200,6 +200,10 @@ class TSBIFW_Indexer {
 	}
 
 	public function on_meta_update( $meta_id, $object_id, $meta_key, $meta_value ) {
+		if ( '_thumbnail_id' !== $meta_key && '_product_image_gallery' !== $meta_key ) {
+			return;
+		}
+
 		if ( 'product' !== get_post_type( $object_id ) ) {
 			return;
 		}
@@ -227,6 +231,10 @@ class TSBIFW_Indexer {
 	}
 
 	public function on_meta_delete( $meta_ids, $object_id, $meta_key, $meta_value ) {
+		if ( '_thumbnail_id' !== $meta_key && '_product_image_gallery' !== $meta_key ) {
+			return;
+		}
+
 		if ( 'product' !== get_post_type( $object_id ) ) {
 			return;
 		}
@@ -302,6 +310,10 @@ class TSBIFW_Indexer {
 			return;
 		}
 
+		if ( function_exists( '_prime_post_caches' ) ) {
+			_prime_post_caches( $product_ids, true, false );
+		}
+
 		TSBIFW_Logger::log( sprintf( 'Cron Indexing: Found %d products to index.', count( $product_ids ) ), array( 'ids' => $product_ids ) );
 
 		$indexed_count = 0;
@@ -365,13 +377,6 @@ class TSBIFW_Indexer {
 	}
 
 	/**
-	 * Clear cached indexing states.
-	 */
-	public function clear_cache() {
-		$this->indexed_image_ids = null;
-	}
-
-	/**
 	 * Clear all indexed data from the database.
 	 */
 	public function clear_all_indexed_data() {
@@ -388,6 +393,16 @@ class TSBIFW_Indexer {
 	}
 
 	/**
+	 * Invalidate indexer caches and transients.
+	 */
+	public function clear_cache() {
+		$this->indexed_image_map = null;
+		delete_transient( 'tsbifw_indexed_image_ids' );
+		wp_cache_delete( 'tsbifw_indexing_stats', 'tsbifw_cache' );
+		delete_transient( 'tsbifw_indexing_stats' );
+	}
+
+	/**
 	 * Retrieve all indexed image attachment IDs across all products efficiently.
 	 *
 	 * Queries attachment IDs directly from indexed products without loading heavy vectors into memory.
@@ -395,11 +410,18 @@ class TSBIFW_Indexer {
 	 * @return array Array of attachment IDs.
 	 */
 	public function get_indexed_image_ids() {
-		if ( null !== $this->indexed_image_ids ) {
-			return $this->indexed_image_ids;
+		if ( null !== $this->indexed_image_map ) {
+			return array_keys( $this->indexed_image_map );
 		}
 
-		$this->indexed_image_ids = array();
+		$cached = get_transient( 'tsbifw_indexed_image_ids' );
+		if ( is_array( $cached ) ) {
+			$this->indexed_image_map = array_fill_keys( $cached, true );
+			return $cached;
+		}
+
+		$this->indexed_image_map = array();
+		$image_ids               = array();
 		global $wpdb;
 
 		// Query attachment IDs directly from featured image and gallery of indexed published products.
@@ -430,31 +452,40 @@ class TSBIFW_Indexer {
 					continue;
 				}
 				if ( is_numeric( $val ) ) {
-					$this->indexed_image_ids[] = (int) $val;
+					$id = (int) $val;
+					if ( $id > 0 ) {
+						$this->indexed_image_map[ $id ] = true;
+						$image_ids[]                    = $id;
+					}
 				} else {
 					$ids = explode( ',', $val );
-					foreach ( $ids as $id ) {
-						$id = (int) trim( $id );
+					foreach ( $ids as $id_str ) {
+						$id = (int) trim( $id_str );
 						if ( $id > 0 ) {
-							$this->indexed_image_ids[] = $id;
+							$this->indexed_image_map[ $id ] = true;
+							$image_ids[]                    = $id;
 						}
 					}
 				}
 			}
 		}
 
-		$this->indexed_image_ids = array_values( array_unique( $this->indexed_image_ids ) );
-		return $this->indexed_image_ids;
+		$image_ids = array_values( array_unique( $image_ids ) );
+		set_transient( 'tsbifw_indexed_image_ids', $image_ids, 12 * HOUR_IN_SECONDS );
+
+		return $image_ids;
 	}
 
 	/**
-	 * Check if an image attachment is indexed.
+	 * Check if an image attachment is indexed using O(1) hash map lookup.
 	 *
 	 * @param int $attachment_id Attachment ID.
 	 * @return bool True if indexed, false otherwise.
 	 */
 	public function is_image_indexed( $attachment_id ) {
-		$ids = $this->get_indexed_image_ids();
-		return in_array( (int) $attachment_id, $ids, true );
+		if ( null === $this->indexed_image_map ) {
+			$this->get_indexed_image_ids();
+		}
+		return isset( $this->indexed_image_map[ (int) $attachment_id ] );
 	}
 }

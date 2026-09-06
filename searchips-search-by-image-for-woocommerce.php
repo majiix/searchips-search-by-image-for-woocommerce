@@ -58,7 +58,9 @@ function tsbifw_init() {
 	// Instantiate core modules.
 	TSBIFW_API::instance();
 	TSBIFW_Indexer::instance();
-	TSBIFW_Admin::instance();
+	if ( is_admin() || ( defined( 'DOING_AJAX' ) && DOING_AJAX ) ) {
+		TSBIFW_Admin::instance();
+	}
 	TSBIFW_Search::instance();
 }
 add_action( 'plugins_loaded', 'tsbifw_init' );

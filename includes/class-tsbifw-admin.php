@@ -750,8 +750,13 @@ class TSBIFW_Admin {
 
 		$cache_key = 'tsbifw_indexing_stats';
 		$stats     = wp_cache_get( $cache_key, 'tsbifw_cache' );
-
 		if ( false !== $stats ) {
+			return $stats;
+		}
+
+		$stats = get_transient( $cache_key );
+		if ( false !== $stats ) {
+			wp_cache_set( $cache_key, $stats, 'tsbifw_cache', 60 );
 			return $stats;
 		}
 
@@ -764,41 +769,24 @@ class TSBIFW_Admin {
 			)
 		);
 
+		// Single aggregated query grouping counts by status instead of 3 separate table scans.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$indexed = (int) $wpdb->get_var(
+		$status_rows = $wpdb->get_results(
 			$wpdb->prepare(
-				"SELECT COUNT(post_id) FROM {$wpdb->postmeta} pm
-				JOIN {$wpdb->posts} p ON p.ID = pm.post_id
-				WHERE pm.meta_key = %s AND pm.meta_value = %s AND p.post_status = %s",
+				"SELECT pm.meta_value AS status_val, COUNT(pm.post_id) AS cnt
+				FROM {$wpdb->postmeta} pm
+				INNER JOIN {$wpdb->posts} p ON p.ID = pm.post_id
+				WHERE pm.meta_key = %s AND p.post_status = %s
+				GROUP BY pm.meta_value",
 				'_tsbifw_indexed_status',
-				'indexed',
 				'publish'
-			)
+			),
+			OBJECT_K
 		);
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$skipped = (int) $wpdb->get_var(
-			$wpdb->prepare(
-				"SELECT COUNT(post_id) FROM {$wpdb->postmeta} pm
-				JOIN {$wpdb->posts} p ON p.ID = pm.post_id
-				WHERE pm.meta_key = %s AND pm.meta_value = %s AND p.post_status = %s",
-				'_tsbifw_indexed_status',
-				'skipped',
-				'publish'
-			)
-		);
-
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$errors = (int) $wpdb->get_var(
-			$wpdb->prepare(
-				"SELECT COUNT(post_id) FROM {$wpdb->postmeta} pm
-				JOIN {$wpdb->posts} p ON p.ID = pm.post_id
-				WHERE pm.meta_key = %s AND pm.meta_value = %s AND p.post_status = %s",
-				'_tsbifw_indexed_status',
-				'error',
-				'publish'
-			)
-		);
+		$indexed = isset( $status_rows['indexed'] ) ? (int) $status_rows['indexed']->cnt : 0;
+		$skipped = isset( $status_rows['skipped'] ) ? (int) $status_rows['skipped']->cnt : 0;
+		$errors  = isset( $status_rows['error'] ) ? (int) $status_rows['error']->cnt : 0;
 
 		$processed  = $indexed + $skipped + $errors;
 		$percentage = ( $total > 0 ) ? round( ( $processed / $total ) * 100 ) : 0;
@@ -812,7 +800,8 @@ class TSBIFW_Admin {
 			'percentage' => $percentage,
 		);
 
-		wp_cache_set( $cache_key, $stats, 'tsbifw_cache', 30 );
+		wp_cache_set( $cache_key, $stats, 'tsbifw_cache', 60 );
+		set_transient( $cache_key, $stats, 60 );
 
 		return $stats;
 	}
@@ -863,6 +852,10 @@ class TSBIFW_Admin {
 					'stats'     => $stats,
 				)
 			);
+		}
+
+		if ( function_exists( '_prime_post_caches' ) ) {
+			_prime_post_caches( $product_ids, true, false );
 		}
 
 		$indexer = TSBIFW_Indexer::instance();

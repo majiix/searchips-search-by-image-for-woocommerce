@@ -12,13 +12,23 @@ if ( ! defined( 'ABSPATH' ) ) {
 class TSBIFW_Logger {
 
 	/**
-	 * Log a message to the database if logging is enabled.
+	 * Log a message to the database and WooCommerce logger.
 	 *
 	 * @param string $message Log message.
 	 * @param array  $context Optional context metadata.
+	 * @param bool   $db_log  Whether to persist to in-database option (defaults to true; set false on high-concurrency requests).
 	 */
-	public static function log( $message, $context = array() ) {
+	public static function log( $message, $context = array(), $db_log = true ) {
+		if ( function_exists( 'wc_get_logger' ) ) {
+			wc_get_logger()->info( $message, array( 'source' => 'tsbifw', 'context' => $context ) );
+		}
+
 		if ( 'yes' !== get_option( 'tsbifw_enable_logging', 'yes' ) ) {
+			return;
+		}
+
+		// Skip database option write if db_log is disabled and not in WP_DEBUG mode.
+		if ( ! $db_log && ! ( defined( 'WP_DEBUG' ) && WP_DEBUG ) ) {
 			return;
 		}
 
@@ -41,6 +51,9 @@ class TSBIFW_Logger {
 		}
 
 		update_option( 'tsbifw_logs', $logs, false );
+		if ( function_exists( 'wp_set_option_autoload' ) ) {
+			wp_set_option_autoload( 'tsbifw_logs', 'no' );
+		}
 	}
 
 	/**
