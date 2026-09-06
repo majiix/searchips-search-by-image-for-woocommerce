@@ -143,7 +143,11 @@ class TSBIFW_API {
 
 		$editor->resize( 512, 512, false );
 
-		$temp_file = wp_tempnam( 'tsbifw_' );
+		if ( ! function_exists( 'wp_tempnam' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/file.php';
+		}
+
+		$temp_file = function_exists( 'wp_tempnam' ) ? wp_tempnam( 'tsbifw_' ) : tempnam( get_temp_dir(), 'tsbifw_' );
 		if ( ! $temp_file ) {
 			return new WP_Error( 'tsbifw_temp_file_failed', esc_html__( 'Could not create temporary file for image processing.', 'searchips-search-by-image-for-woocommerce' ) );
 		}

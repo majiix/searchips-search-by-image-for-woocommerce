@@ -427,21 +427,6 @@ class TSBIFW_Search {
 			$sandbox
 		);
 
-		$api = TSBIFW_API::instance();
-		$base64 = $api->prepare_raw_file( $uploaded_file['tmp_name'] );
-		if ( is_wp_error( $base64 ) ) {
-			TSBIFW_Logger::log( 'Search request failed preparing image file.', array( 'error' => $base64->get_error_message() ), $sandbox );
-			$base64->add_data( array( 'status' => 400 ) );
-			return $base64;
-		}
-
-		$exclude_percent = get_option( 'tsbifw_exclude_below_percent', '' );
-		if ( '' === $exclude_percent ) {
-			$threshold = (float) get_option( 'tsbifw_similarity_threshold', 0.40 );
-		} else {
-			$threshold = (int) $exclude_percent / 100;
-		}
-
 		$matched_posts = array();
 
 		try {
@@ -450,6 +435,21 @@ class TSBIFW_Search {
 			}
 			if ( function_exists( 'set_time_limit' ) ) {
 				@set_time_limit( 120 );
+			}
+
+			$api    = TSBIFW_API::instance();
+			$base64 = $api->prepare_raw_file( $uploaded_file['tmp_name'] );
+			if ( is_wp_error( $base64 ) ) {
+				TSBIFW_Logger::log( 'Search request failed preparing image file.', array( 'error' => $base64->get_error_message() ), $sandbox );
+				$base64->add_data( array( 'status' => 400 ) );
+				return $base64;
+			}
+
+			$exclude_percent = get_option( 'tsbifw_exclude_below_percent', '' );
+			if ( '' === $exclude_percent ) {
+				$threshold = (float) get_option( 'tsbifw_similarity_threshold', 0.40 );
+			} else {
+				$threshold = (int) $exclude_percent / 100;
 			}
 
 			if ( 'embeddings' === $strategy ) {
