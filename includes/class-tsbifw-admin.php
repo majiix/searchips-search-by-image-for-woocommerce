@@ -1322,10 +1322,16 @@ class TSBIFW_Admin {
 		if ( ! empty( $hex ) ) {
 			return $hex;
 		}
-		if ( preg_match( '/^(?:rgb|rgba|hsl|hsla)\([^)]*\)$/i', $value ) ) {
+		// Strict RGB/RGBA check: numeric comma-separated values only, no CSS delimiters (; or }).
+		if ( preg_match( '/^rgba?\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}(?:\s*,\s*(?:0|1|0?\.\d+))?\s*\)$/i', $value ) ) {
 			return $value;
 		}
-		if ( preg_match( '/^[a-z]+$/i', $value ) ) {
+		// Strict HSL/HSLA check:
+		if ( preg_match( '/^hsla?\(\s*\d{1,3}(?:deg)?\s*,\s*\d{1,3}%\s*,\s*\d{1,3}%(?:\s*,\s*(?:0|1|0?\.\d+))?\s*\)$/i', $value ) ) {
+			return $value;
+		}
+		// Named colors: letters only (3 to 20 characters, e.g. transparent, red, white).
+		if ( preg_match( '/^[a-z]{3,20}$/i', $value ) ) {
 			return strtolower( $value );
 		}
 		return 'transparent';

@@ -117,6 +117,15 @@ class TSBIFW_API {
 			);
 		}
 
+		// Verify image dimensions before loading into GD/Imagick to prevent memory exhaustion / decompression bomb.
+		$dimensions = @getimagesize( $uploaded_file_path );
+		if ( false === $dimensions ) {
+			return new WP_Error( 'tsbifw_invalid_image', esc_html__( 'Unable to read image dimensions or invalid image file.', 'searchips-search-by-image-for-woocommerce' ) );
+		}
+		if ( $dimensions[0] > 6000 || $dimensions[1] > 6000 ) {
+			return new WP_Error( 'tsbifw_image_dimensions_too_large', esc_html__( 'Image dimensions exceed the allowed limit (max 6000x6000px).', 'searchips-search-by-image-for-woocommerce' ) );
+		}
+
 		return $this->resize_and_encode_image( $uploaded_file_path );
 	}
 
@@ -134,17 +143,23 @@ class TSBIFW_API {
 
 		$editor->resize( 512, 512, false );
 
-		$temp_dir  = get_temp_dir();
-		$temp_file = $temp_dir . 'tsbifw_temp_' . uniqid() . '.jpg';
+		$temp_file = wp_tempnam( 'tsbifw_' );
+		if ( ! $temp_file ) {
+			return new WP_Error( 'tsbifw_temp_file_failed', esc_html__( 'Could not create temporary file for image processing.', 'searchips-search-by-image-for-woocommerce' ) );
+		}
 
 		$saved = $editor->save( $temp_file, 'image/jpeg' );
 		if ( is_wp_error( $saved ) ) {
+			@wp_delete_file( $temp_file );
 			return $saved;
 		}
 
 		$resized_path = $saved['path'];
 		$content      = file_get_contents( $resized_path );
 		@wp_delete_file( $resized_path );
+		if ( $resized_path !== $temp_file ) {
+			@wp_delete_file( $temp_file );
+		}
 
 		if ( false === $content ) {
 			return new WP_Error( 'tsbifw_read_failed', esc_html__( 'Failed to read image content.', 'searchips-search-by-image-for-woocommerce' ) );

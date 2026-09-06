@@ -49,6 +49,16 @@ The plugin is structured into modular components:
 - **Batch and Background Indexing**: AJAX progress indexer with pause/stop controls and automated WP Cron background tasks.
 - **Diagnostic Logging**: Configurable in-database logs with clipboard copy and automatic delegation to WooCommerce logger files.
 
+## Security Controls
+
+- **Magic Byte & MIME Validation**: Strict verification of uploaded binary headers via `wp_check_filetype_and_ext()` preventing MIME-spoofing and malicious file execution (CWE-434).
+- **Decompression Bomb Protection**: Hard dimension boundaries (max 6000x6000px) verified via `@getimagesize()` prior to image decompression into GD/Imagick memory (CWE-400).
+- **Search Token Isolation & Leakage Prevention**: Cryptographic token verification enforcing empty catalog responses (`post__in => [0]`) on expired, forged, or missing transients, mitigating search filter suppression bypass (OWASP A01 / CWE-284).
+- **Upstream API Information Disclosure Protection**: Upstream OpenRouter failure details and exception traces are masked for non-sandbox public shoppers, returning generic 503 errors while recording details to administrative diagnostic logs (OWASP API3 / CWE-209).
+- **Safe Metadata Deserialization**: Meta deserialization restricted using `@unserialize( $data, ['allowed_classes' => false] )` to eliminate PHP Object Injection vectors (OWASP A08 / CWE-502).
+- **Strict CSS Property Sanitization**: Inline CSS style options sanitized with strict numeric RGBA/HSLA and character boundary checks, preventing style delimiter breakout and CSS injection (OWASP A03 / CWE-94).
+- **Cryptographically Secure Temporary Files**: Safe temporary file creation using `wp_tempnam()` rather than predictable timestamp-based naming (OWASP A02 / CWE-338).
+
 ## Verification Commands
 
 Run PHP syntax linting across the plugin files:

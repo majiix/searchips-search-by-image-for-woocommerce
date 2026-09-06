@@ -163,15 +163,12 @@ class TSBIFW_Search {
 	}
 
 	/**
-	 * Modify standard search query to show visual search results.
+	 * Extract visual search token from query or GET parameters.
 	 *
 	 * @param WP_Query $query Query object.
+	 * @return string Sanitized token or empty string.
 	 */
-	public function modify_search_query( $query ) {
-		if ( is_admin() || ! $query->is_main_query() || ! $query->is_search() ) {
-			return;
-		}
-
+	private function get_request_token( $query ) {
 		$token = $query->get( 'tsbifw_vquery' );
 		if ( empty( $token ) ) {
 			$token = $query->get( 'vquery' );
@@ -187,6 +184,20 @@ class TSBIFW_Search {
 			$token = sanitize_key( wp_unslash( $_GET['vquery'] ) );
 		}
 
+		return is_string( $token ) ? $token : '';
+	}
+
+	/**
+	 * Modify standard search query to show visual search results.
+	 *
+	 * @param WP_Query $query Query object.
+	 */
+	public function modify_search_query( $query ) {
+		if ( is_admin() || ! $query->is_main_query() || ! $query->is_search() ) {
+			return;
+		}
+
+		$token = $this->get_request_token( $query );
 		if ( empty( $token ) ) {
 			return;
 		}
@@ -199,12 +210,16 @@ class TSBIFW_Search {
 		// Retrieve matching product IDs from transient
 		$product_ids = get_transient( 'tsbifw_vquery_' . $token );
 		if ( false === $product_ids || ! is_array( $product_ids ) ) {
+			// Token is expired, invalid, or forged. Force zero results to prevent full catalog dump.
+			$query->set( 'post__in', array( 0 ) );
+			$query->set( 'post_type', 'product' );
 			return;
 		}
 
 		if ( empty( $product_ids ) ) {
 			// Force zero results if no products matched
 			$query->set( 'post__in', array( 0 ) );
+			$query->set( 'post_type', 'product' );
 			return;
 		}
 
@@ -228,22 +243,14 @@ class TSBIFW_Search {
 			return $search;
 		}
 
-		$token = $wp_query->get( 'tsbifw_vquery' );
+		$token = $this->get_request_token( $wp_query );
 		if ( empty( $token ) ) {
-			$token = $wp_query->get( 'vquery' );
-		}
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
-		if ( empty( $token ) && isset( $_GET['tsbifw_vquery'] ) ) {
-			// phpcs:ignore WordPress.Security.NonceVerification.Recommended
-			$token = sanitize_key( wp_unslash( $_GET['tsbifw_vquery'] ) );
-		}
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
-		if ( empty( $token ) && isset( $_GET['vquery'] ) ) {
-			// phpcs:ignore WordPress.Security.NonceVerification.Recommended
-			$token = sanitize_key( wp_unslash( $_GET['vquery'] ) );
+			return $search;
 		}
 
-		if ( ! empty( $token ) ) {
+		// Only suppress keyword search clause if the visual search token is valid and active.
+		$product_ids = get_transient( 'tsbifw_vquery_' . $token );
+		if ( false !== $product_ids && is_array( $product_ids ) ) {
 			return ''; // Suppress the keyword search WHERE clause
 		}
 
@@ -386,10 +393,22 @@ class TSBIFW_Search {
 
 		$uploaded_file = $files['image'];
 
-		// Verify file extension/mime type is an image.
-		$file_type = wp_check_filetype( $uploaded_file['name'] );
-		if ( ! in_array( $file_type['type'], array( 'image/jpeg', 'image/png', 'image/webp' ), true ) ) {
-			return new WP_Error( 'tsbifw_invalid_format', esc_html__( 'Unsupported image format. Please upload a JPEG, PNG, or WEBP image.', 'searchips-search-by-image-for-woocommerce' ), array( 'status' => 400 ) );
+		// Verify binary file type against real magic bytes and allowed mimes.
+		$checked_file = wp_check_filetype_and_ext(
+			$uploaded_file['tmp_name'],
+			$uploaded_file['name'],
+			array(
+				'jpg|jpeg|jpe' => 'image/jpeg',
+				'png'          => 'image/png',
+				'webp'         => 'image/webp',
+			)
+		);
+		if ( ! $checked_file['type'] || ! in_array( $checked_file['type'], array( 'image/jpeg', 'image/png', 'image/webp' ), true ) ) {
+			return new WP_Error(
+				'tsbifw_invalid_format',
+				esc_html__( 'Unsupported image format. Please upload a valid JPEG, PNG, or WEBP image.', 'searchips-search-by-image-for-woocommerce' ),
+				array( 'status' => 400 )
+			);
 		}
 
 		$strategy = get_option( 'tsbifw_strategy', 'embeddings' );
@@ -435,6 +454,13 @@ class TSBIFW_Search {
 				// Get query vector.
 				$query_vector = $api->get_embeddings( $base64 );
 				if ( is_wp_error( $query_vector ) ) {
+					if ( ! $sandbox ) {
+						return new WP_Error(
+							'tsbifw_search_failed',
+							esc_html__( 'Search failed. Please try again.', 'searchips-search-by-image-for-woocommerce' ),
+							array( 'status' => 503 )
+						);
+					}
 					$status_code = ( 'tsbifw_missing_api_key' === $query_vector->get_error_code() ) ? 400 : 422;
 					$query_vector->add_data( array( 'status' => $status_code ) );
 					return $query_vector;
@@ -446,6 +472,13 @@ class TSBIFW_Search {
 				// Get text description.
 				$description = $api->get_description( $base64 );
 				if ( is_wp_error( $description ) ) {
+					if ( ! $sandbox ) {
+						return new WP_Error(
+							'tsbifw_search_failed',
+							esc_html__( 'Search failed. Please try again.', 'searchips-search-by-image-for-woocommerce' ),
+							array( 'status' => 503 )
+						);
+					}
 					$status_code = ( 'tsbifw_missing_api_key' === $description->get_error_code() ) ? 400 : 422;
 					$description->add_data( array( 'status' => $status_code ) );
 					return $description;
@@ -692,7 +725,7 @@ class TSBIFW_Search {
 
 			foreach ( $rows as $row ) {
 				$last_post_id = (int) $row['post_id'];
-				$vector_list  = maybe_unserialize( $row['meta_value'] );
+				$vector_list  = $this->safe_unserialize( $row['meta_value'] );
 				if ( ! is_array( $vector_list ) ) {
 					continue;
 				}
@@ -763,7 +796,7 @@ class TSBIFW_Search {
 
 			foreach ( $rows as $row ) {
 				$last_post_id = (int) $row['post_id'];
-				$desc_list    = maybe_unserialize( $row['meta_value'] );
+				$desc_list    = $this->safe_unserialize( $row['meta_value'] );
 				if ( ! is_array( $desc_list ) ) {
 					continue;
 				}
@@ -888,5 +921,19 @@ class TSBIFW_Search {
 		}
 
 		return true;
+	}
+
+	/**
+	 * Safely unserialize data without instantiating objects (CWE-502 mitigation).
+	 *
+	 * @param mixed $data Serialized string or data.
+	 * @return mixed Unserialized data or original input.
+	 */
+	private function safe_unserialize( $data ) {
+		if ( ! is_serialized( $data ) ) {
+			return $data;
+		}
+
+		return @unserialize( $data, array( 'allowed_classes' => false ) );
 	}
 }
