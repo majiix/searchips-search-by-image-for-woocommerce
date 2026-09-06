@@ -819,7 +819,7 @@ class TSBIFW_Admin {
 		// Invalidate indexing stats cache.
 		wp_cache_delete( 'tsbifw_indexing_stats', 'tsbifw_cache' );
 
-		// Find products that are not indexed or returned error.
+		// Find products that are not yet indexed.
 		$query_args = array(
 			'post_type'      => 'product',
 			'post_status'    => 'publish',
@@ -827,15 +827,9 @@ class TSBIFW_Admin {
 			'fields'         => 'ids',
 			// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query
 			'meta_query'     => array(
-				'relation' => 'OR',
 				array(
 					'key'     => '_tsbifw_indexed_status',
 					'compare' => 'NOT EXISTS',
-				),
-				array(
-					'key'     => '_tsbifw_indexed_status',
-					'value'   => 'error',
-					'compare' => '=',
 				),
 			),
 		);

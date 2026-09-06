@@ -175,12 +175,14 @@ class TSBIFW_Indexer {
 				update_post_meta( $product_id, '_tsbifw_indexed_status', 'skipped' );
 				delete_post_meta( $product_id, '_tsbifw_descriptions' );
 				delete_post_meta( $product_id, '_tsbifw_index_error' );
+				$this->clear_cache();
 				return true;
 			}
 			update_post_meta( $product_id, '_tsbifw_descriptions', $descriptions );
 			delete_post_meta( $product_id, '_tsbifw_vectors' );
 			update_post_meta( $product_id, '_tsbifw_indexed_status', 'indexed' );
 			delete_post_meta( $product_id, '_tsbifw_index_error' );
+			$this->clear_cache();
 
 			$sync_tags = get_option( 'tsbifw_sync_to_tags', 'no' );
 			if ( 'yes' === $sync_tags && ! empty( $all_keywords ) ) {
@@ -281,7 +283,7 @@ class TSBIFW_Indexer {
 			$batch_size = 5;
 		}
 
-		// Query up to configured batch size products to prevent background execution timeouts.
+		// Query up to configured batch size unindexed products to prevent background execution timeouts.
 		$query_args = array(
 			'post_type'      => 'product',
 			'post_status'    => 'publish',
@@ -289,15 +291,9 @@ class TSBIFW_Indexer {
 			'fields'         => 'ids',
 			// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query
 			'meta_query'     => array(
-				'relation' => 'OR',
 				array(
 					'key'     => '_tsbifw_indexed_status',
 					'compare' => 'NOT EXISTS',
-				),
-				array(
-					'key'     => '_tsbifw_indexed_status',
-					'value'   => 'error',
-					'compare' => '=',
 				),
 			),
 		);
@@ -424,7 +420,33 @@ class TSBIFW_Indexer {
 		$image_ids               = array();
 		global $wpdb;
 
-		// Query attachment IDs directly from featured image and gallery of indexed published products.
+		$index_featured = ( get_option( 'tsbifw_index_featured', 'yes' ) === 'yes' );
+		$index_gallery  = ( get_option( 'tsbifw_index_gallery', 'no' ) === 'yes' );
+
+		$meta_keys = array();
+		if ( $index_featured ) {
+			$meta_keys[] = '_thumbnail_id';
+		}
+		if ( $index_gallery ) {
+			$meta_keys[] = '_product_image_gallery';
+		}
+
+		if ( empty( $meta_keys ) ) {
+			return array();
+		}
+
+		$placeholders = implode( ', ', array_fill( 0, count( $meta_keys ), '%s' ) );
+		$prepare_args = array_merge(
+			array(
+				'_tsbifw_indexed_status',
+				'indexed',
+				'publish',
+				'product',
+			),
+			$meta_keys
+		);
+
+		// Query attachment IDs directly from configured image metadata of indexed published products.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$rows = $wpdb->get_results(
 			$wpdb->prepare(
@@ -436,11 +458,8 @@ class TSBIFW_Indexer {
 				  AND pm_status.meta_value = %s 
 				  AND p.post_status = %s 
 				  AND p.post_type = %s 
-				  AND pm_img.meta_key IN ('_thumbnail_id', '_product_image_gallery')",
-				'_tsbifw_indexed_status',
-				'indexed',
-				'publish',
-				'product'
+				  AND pm_img.meta_key IN ($placeholders)",
+				$prepare_args
 			),
 			ARRAY_A
 		);

@@ -49,9 +49,10 @@ if ( 'yes' === get_option( 'tsbifw_delete_data_on_uninstall', 'no' ) ) {
 	}
 
 	// 2. Clear transients.
-	delete_transient( 'tsbifw_all_vectors' );
-	delete_transient( 'tsbifw_all_descriptions' );
 	delete_transient( 'tsbifw_clean_logs_lock' );
+	delete_transient( 'tsbifw_indexed_image_ids' );
+	delete_transient( 'tsbifw_indexing_stats' );
+	wp_cache_delete( 'tsbifw_indexing_stats', 'tsbifw_cache' );
 
 	// Clear any cached models transients.
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
@@ -77,6 +78,7 @@ if ( 'yes' === get_option( 'tsbifw_delete_data_on_uninstall', 'no' ) ) {
 		delete_post_meta_by_key( $tsbifw_key );
 	}
 
-	// 4. Clean up scheduled cron indexing job.
+	// 4. Clean up scheduled cron jobs.
 	wp_clear_scheduled_hook( 'tsbifw_cron_indexing' );
+	wp_clear_scheduled_hook( 'tsbifw_clear_index_cron' );
 }

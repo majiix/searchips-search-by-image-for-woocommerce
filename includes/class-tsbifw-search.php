@@ -202,8 +202,10 @@ class TSBIFW_Search {
 			return;
 		}
 
-		// Clear the dummy keyword 'image-search' so input fields are clean
-		if ( 'image-search' === $query->get( 's' ) ) {
+		// Clear the dummy keyword so input fields and archive titles are clean.
+		$dummy_keyword = _x( 'image-search', 'default search term for visual search', 'searchips-search-by-image-for-woocommerce' );
+		$current_s     = (string) $query->get( 's' );
+		if ( 'image-search' === $current_s || $dummy_keyword === $current_s ) {
 			$query->set( 's', '' );
 		}
 
@@ -835,9 +837,13 @@ class TSBIFW_Search {
 			return 0.0;
 		}
 
+		$n = count( $vec1 );
+		if ( $n !== count( $vec2 ) ) {
+			return 0.0; // Vector dimensions mismatch.
+		}
+
 		$dot_product = 0.0;
 		$norm_b      = 0.0;
-		$n           = count( $vec1 );
 
 		for ( $i = 0; $i < $n; $i++ ) {
 			if ( ! isset( $vec2[ $i ] ) ) {

@@ -368,6 +368,10 @@ jQuery(document).ready(function($) {
 			}).then(function(canvas) {
 				canvas.toBlob(function(blob) {
 					if (!blob) {
+						stopAdminStatusRotation();
+						$('#tsbifw-admin-preview-wrapper').find('.tsbifw-scanner-bar').hide();
+						$('#tsbifw-admin-preview-wrapper').find('.tsbifw-scanning-overlay').hide();
+						$('#tsbifw-admin-search-status').hide().removeClass('pulse').text('');
 						alert('Failed to process cropped image.');
 						return;
 					}
@@ -375,6 +379,10 @@ jQuery(document).ready(function($) {
 					uploadAdminSearchImage(croppedFile);
 				}, 'image/jpeg', 0.9);
 			}).catch(function() {
+				stopAdminStatusRotation();
+				$('#tsbifw-admin-preview-wrapper').find('.tsbifw-scanner-bar').hide();
+				$('#tsbifw-admin-preview-wrapper').find('.tsbifw-scanning-overlay').hide();
+				$('#tsbifw-admin-search-status').hide().removeClass('pulse').text('');
 				alert('Failed to crop image.');
 			});
 		});

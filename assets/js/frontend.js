@@ -42,8 +42,11 @@ jQuery(document).ready(function($) {
 			if (typeof callback === 'function') callback();
 			return;
 		}
-		if (document.getElementById('tsbifw-cropper-script')) {
-			if (typeof callback === 'function') callback();
+		var existingScript = document.getElementById('tsbifw-cropper-script');
+		if (existingScript) {
+			if (typeof callback === 'function') {
+				existingScript.addEventListener('load', callback, { once: true });
+			}
 			return;
 		}
 		if (!tsbifw_frontend_params.cropper_src) {
@@ -193,6 +196,10 @@ jQuery(document).ready(function($) {
 			}).then(function(canvas) {
 				canvas.toBlob(function(blob) {
 					if (!blob) {
+						stopStatusRotation();
+						$('.tsbifw-scanner-bar').hide();
+						$('.tsbifw-scanning-overlay').hide();
+						$('.tsbifw-search-status').hide().removeClass('pulse').text('');
 						alert('Failed to process cropped image.');
 						return;
 					}
@@ -200,6 +207,10 @@ jQuery(document).ready(function($) {
 					uploadSearchImage(croppedFile);
 				}, 'image/jpeg', 0.9);
 			}).catch(function() {
+				stopStatusRotation();
+				$('.tsbifw-scanner-bar').hide();
+				$('.tsbifw-scanning-overlay').hide();
+				$('.tsbifw-search-status').hide().removeClass('pulse').text('');
 				alert('Failed to crop image.');
 			});
 		});
