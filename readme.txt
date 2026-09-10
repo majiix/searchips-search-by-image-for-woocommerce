@@ -6,7 +6,7 @@ Tested up to: 7.1
 Requires PHP: 7.4
 WC requires at least: 5.0
 WC tested up to: 11.1
-Stable tag: 1.2.3
+Stable tag: 1.2.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -30,33 +30,34 @@ The plugin offers two search strategies:
 
 == Free vs Pro Feature Comparison ==
 
-| Feature | Free Version | Pro Addon |
-| :--- | :---: | :---: |
-| Multimodal Vector Similarity Search | Yes | Yes |
-| Unlimited Product Catalog Indexing | Yes | Yes |
-| Auto-Index on Product Save and Update | Yes | Yes |
-| Interactive Image Cropper (Cropper.js) | Yes | Yes |
-| OpenRouter AI Gateway Integration | Yes | Yes |
-| Customizable Camera Trigger Styling | Yes | Yes |
-| Scanner Glow Accent Color Picker | Yes | Yes |
-| Live Scanner Animation Preview Stage | Yes | Yes |
-| Dedicated Pro Interactive Preview Tab | Yes | Yes |
-| Admin Test Search Sandbox | Yes | Yes |
-| System Logs and Diagnostic Event Viewer | Yes | Yes |
-| Visual Search Analytics Dashboard | No | Yes |
-| Unfulfilled Demand Tracking (0-Results) | No | Yes |
-| Click-Through Rate (CTR) Measurement | No | Yes |
-| Product Variation Images Indexing | No | Yes |
-| Direct Variation URL and Thumbnail Swap | No | Yes |
-| Smart Image Hashing (MD5 Cost Saver) | No | Yes |
-| Direct OpenAI Gateway (Embeddings and Vision) | No | Yes |
-| Direct Google Gemini Gateway | No | Yes |
-| Native Mobile Camera Instant Capture | No | Yes |
-| Priority Similarity Boost (On-Sale / Featured) | No | Yes |
-| Category Exclusion Filters | No | Yes |
-| Vision-to-Text Description Search (Strategy 2) | No | Yes |
-| Visual Scanning Animations | Laser Sweep | 6 Futuristic FX |
-| High-Throughput WP-CLI and Cron Indexing | Full Access | Unlimited High-Speed |
+= Free Version (100% Free Forever) =
+* Multimodal Vector Similarity Search: Fast AI vector search powered by OpenRouter (Strategy 1).
+* Unlimited Product Catalog Indexing: Process stores of any size with pause, resume, and stop controls.
+* Instant Auto-Indexing: Automatically re-indexes products upon publishing or updating catalog images.
+* Client-Side Image Cropper: Shoppers can crop and frame search images with Cropper.js before submitting.
+* OpenRouter AI Gateway: Full access to multimodal embeddings via OpenRouter with custom model choices.
+* Flexible Camera Trigger: Place anywhere in search inputs or via shortcode with custom colors and sizes.
+* Scanner Glow Accent Color: Custom color picker for scanner animation accents.
+* Live Scanner Animation Preview Stage: Test animations in real time directly inside the admin settings.
+* Dedicated Pro Interactive Preview Tab: Explore Pro capabilities with interactive mockups (100% clean, zero nag locks).
+* Admin Test Search Sandbox: Test visual search with similarity score readouts and telemetry diagnostics.
+* System Event Logs: Built-in event logger with copy, clear, and configurable retention controls.
+* Classic Laser Line Animation: Neon vertical scanning sweep effect.
+* WP-CLI and Cron Automation: Built-in WP-CLI command and automated background indexing cron jobs.
+
+= Pro Addon (Enterprise Capabilities) =
+* Visual Search Analytics Dashboard: Review shopper photo queries with high-resolution 150x150 thumbnails.
+* Unfulfilled Demand Tracking: Filter zero-result queries to discover products shoppers want that you do not yet sell.
+* Click-Through Rate (CTR) Measurement: Non-blocking tracking beacons record customer conversions.
+* Product Variation Images Indexing: Match specific variation colors/styles and automatically deep-link to them.
+* Smart Image Hashing (MD5 Cost Saver): Skips remote AI API calls when saving products if image files are unchanged.
+* Direct AI Gateways: Connect directly to your own OpenAI and Google Gemini API keys without third-party fees.
+* Native Mobile Camera Photo Capture: Shoppers can tap "Take Photo" to launch their smartphone camera directly.
+* Priority Similarity Boost: Apply a configurable similarity bonus (+1% to +30%) to on-sale and featured products.
+* Category Exclusion Filters: Exclude non-physical, virtual, or gift card categories from vector indexing.
+* Vision-to-Text Description Search: Strategy 2 descriptive AI keyword queries for broader catalog matches.
+* 6 Futuristic Scanning FX: Access Reticle, Radar, Matrix, Ripple, Hologram, and Laser scanner effects.
+* High-Throughput Indexing: Action Scheduler integration for fast, reliable background processing.
 
 == Why Upgrade to Searchips Pro? ==
 
@@ -210,6 +211,9 @@ No, the indexer automatically detects and skips empty, missing, or corrupt image
 Search results inherit your site's WordPress Reading Settings ("Blog pages show at most X posts" under Settings -> Reading), ensuring consistent archive page pagination.
 
 == Changelog ==
+
+= 1.2.4 =
+* Documentation: Converted the feature comparison table into structured subheadings and bulleted lists to ensure clean, native typography on the WordPress.org Plugin Directory.
 
 = 1.2.3 =
 * Standards & Code Quality: Refined filesystem operations in uninstaller using WP_Filesystem API and resolved PHPCS sniffs for dynamic query placeholders and execution limits.
