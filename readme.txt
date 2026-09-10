@@ -6,7 +6,7 @@ Tested up to: 7.1
 Requires PHP: 7.4
 WC requires at least: 5.0
 WC tested up to: 11.1
-Stable tag: 1.2.2
+Stable tag: 1.2.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -210,6 +210,11 @@ No, the indexer automatically detects and skips empty, missing, or corrupt image
 Search results inherit your site's WordPress Reading Settings ("Blog pages show at most X posts" under Settings -> Reading), ensuring consistent archive page pagination.
 
 == Changelog ==
+
+= 1.2.3 =
+* Standards & Code Quality: Refined filesystem operations in uninstaller using WP_Filesystem API and resolved PHPCS sniffs for dynamic query placeholders and execution limits.
+* Pro Addon Uninstall Integration: Added dedicated uninstaller for the Pro Addon with automated table drops, directory cleanup, and Action Scheduler unscheduling.
+* Enhanced Pro Tab Previews: Included interactive live animations for all five futuristic scanner FX styles and a demo visual analytics dashboard for free tier users.
 
 = 1.2.2 =
 * WordPress.org Guideline 5 Compliance: Decoupled settings architecture using WordPress action hooks (`searchips_after_provider_settings`, `searchips_after_indexing_settings`). Completely eliminated locked or disabled form controls, upsell badges on active input labels, and intrusive inline upgrade banners from free settings tabs.
