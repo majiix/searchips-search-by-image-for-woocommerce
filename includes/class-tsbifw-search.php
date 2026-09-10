@@ -19,6 +19,13 @@ class TSBIFW_Search {
 	private static $instance = null;
 
 	/**
+	 * Active visual search matched metadata (e.g. matched variation ID and image ID).
+	 *
+	 * @var array
+	 */
+	private $active_matched_meta = array();
+
+	/**
 	 * Get class instance.
 	 *
 	 * @return TSBIFW_Search
@@ -44,13 +51,26 @@ class TSBIFW_Search {
 		add_action( 'pre_get_posts', array( $this, 'modify_search_query' ) );
 		add_filter( 'query_vars', array( $this, 'register_query_vars' ) );
 		add_filter( 'posts_search', array( $this, 'clear_search_keyword_sql' ), 10, 2 );
+
+		// Hook into product image and loop link for matched variation swap.
+		add_filter( 'woocommerce_product_get_image', array( $this, 'filter_product_image_for_matched_variation' ), 10, 5 );
+		add_filter( 'woocommerce_loop_product_link', array( $this, 'filter_product_link_for_matched_variation' ), 10, 2 );
 	}
 
 	/**
 	 * Enqueue scripts and styles.
 	 */
 	public function enqueue_frontend_assets() {
-		wp_register_script( 'tsbifw-cropperjs', TSBIFW_PLUGIN_URL . 'assets/js/cropper.min.js', array(), '2.1.1', true );
+		wp_register_script(
+			'tsbifw-cropperjs',
+			TSBIFW_PLUGIN_URL . 'assets/js/cropper.min.js',
+			array(),
+			'2.1.1',
+			array(
+				'in_footer' => true,
+				'strategy'  => 'defer',
+			)
+		);
 		wp_enqueue_style( 'tsbifw-frontend-css', TSBIFW_PLUGIN_URL . 'assets/css/frontend.css', array(), TSBIFW_VERSION );
 
 		$left_val  = trim( get_option( 'tsbifw_camera_left', 'auto' ) );
@@ -118,33 +138,63 @@ class TSBIFW_Search {
 
 		wp_add_inline_style( 'tsbifw-frontend-css', $custom_css );
 
-		wp_enqueue_script( 'tsbifw-frontend-js', TSBIFW_PLUGIN_URL . 'assets/js/frontend.js', array( 'jquery' ), TSBIFW_VERSION, true );
+		wp_enqueue_script(
+			'tsbifw-frontend-js',
+			TSBIFW_PLUGIN_URL . 'assets/js/frontend.js',
+			array( 'jquery' ),
+			TSBIFW_VERSION,
+			array(
+				'in_footer' => true,
+				'strategy'  => 'defer',
+			)
+		);
 
-		$enable_auto_inject = get_option( 'tsbifw_enable_auto_inject', 'yes' );
-		$max_mb             = (int) get_option( 'tsbifw_max_upload_size', 2 );
+		$enable_auto_inject   = get_option( 'tsbifw_enable_auto_inject', 'yes' );
+		$is_pro               = apply_filters( 'tsbifw_is_pro_active', false );
+		$enable_mobile_camera = apply_filters( 'tsbifw_enable_mobile_camera', ( 'yes' === get_option( 'tsbifw_enable_mobile_camera', 'yes' ) ) );
+		$max_mb               = (int) get_option( 'tsbifw_max_upload_size', 2 );
 		if ( $max_mb <= 0 ) {
 			$max_mb = 2;
 		}
+
+		$current_vquery       = $this->get_request_token();
+
+		$scanning_effect      = get_option( 'tsbifw_scanning_effect', 'laser' );
+		$allowed_effects      = apply_filters( 'tsbifw_scanning_effects', array( 'laser' => esc_html__( 'Laser line', 'searchips-search-by-image-for-woocommerce' ) ) );
+		if ( ! isset( $allowed_effects[ $scanning_effect ] ) ) {
+			$scanning_effect = 'laser';
+		}
+		$scanning_color       = get_option( 'tsbifw_scanning_color', '#6366f1' );
 
 		wp_localize_script(
 			'tsbifw-frontend-js',
 			'tsbifw_frontend_params',
 			array(
-				'search_endpoint' => esc_url_raw( rest_url( 'tsbifw/v1/search' ) ),
-				'cropper_src'     => esc_url_raw( TSBIFW_PLUGIN_URL . 'assets/js/cropper.min.js' ),
-				'auto_inject'     => ( 'yes' === $enable_auto_inject ),
-				'nonce'           => wp_create_nonce( 'tsbifw_frontend_search' ),
-				'max_upload_size' => $max_mb * 1024 * 1024,
-				'strings'         => array(
-					'modal_title'    => esc_html__( 'Search by Image', 'searchips-search-by-image-for-woocommerce' ),
+				'search_endpoint'      => esc_url_raw( rest_url( 'tsbifw/v1/search' ) ),
+				'track_endpoint'       => esc_url_raw( rest_url( 'tsbifw/v1/track-click' ) ),
+				'current_vquery'       => $current_vquery,
+				'cropper_src'          => esc_url_raw( TSBIFW_PLUGIN_URL . 'assets/js/cropper.min.js' ),
+				'auto_inject'          => ( 'yes' === $enable_auto_inject ),
+				'enable_mobile_camera' => $enable_mobile_camera,
+				'is_pro'               => $is_pro,
+				'scanning_effect'      => $scanning_effect,
+				'scanning_color'       => $scanning_color,
+				'nonce'                => wp_create_nonce( 'tsbifw_frontend_search' ),
+				'max_upload_size'      => $max_mb * 1024 * 1024,
+				'strings'              => array(
+					'modal_title'        => esc_html__( 'Search by Image', 'searchips-search-by-image-for-woocommerce' ),
+					'take_photo'         => esc_html__( 'Take Photo', 'searchips-search-by-image-for-woocommerce' ),
+					'upload_gallery'     => esc_html__( 'Upload from Gallery', 'searchips-search-by-image-for-woocommerce' ),
+					'or_divider'         => esc_html__( 'or', 'searchips-search-by-image-for-woocommerce' ),
+					'camera_pro_tooltip' => esc_html__( 'Mobile Camera Capture is available with the Pro Addon.', 'searchips-search-by-image-for-woocommerce' ),
 					// translators: %d: Max upload size in MB
-					'drag_drop_text' => sprintf( esc_html__( 'Drag and drop an image here or click to browse (Max size: %dMB)', 'searchips-search-by-image-for-woocommerce' ), $max_mb ),
-					'scanning'       => esc_html__( 'Searching...', 'searchips-search-by-image-for-woocommerce' ),
-					'error'          => esc_html__( 'Search failed. Please try again.', 'searchips-search-by-image-for-woocommerce' ),
-					'search_btn_text'=> esc_html__( 'Start Search', 'searchips-search-by-image-for-woocommerce' ),
-					'select_another' => esc_html__( 'Select Another', 'searchips-search-by-image-for-woocommerce' ),
+					'drag_drop_text'     => sprintf( esc_html__( 'Drag and drop an image here or click to browse (Max size: %dMB)', 'searchips-search-by-image-for-woocommerce' ), $max_mb ),
+					'scanning'           => esc_html__( 'Searching...', 'searchips-search-by-image-for-woocommerce' ),
+					'error'              => esc_html__( 'Search failed. Please try again.', 'searchips-search-by-image-for-woocommerce' ),
+					'search_btn_text'    => esc_html__( 'Start Search', 'searchips-search-by-image-for-woocommerce' ),
+					'select_another'     => esc_html__( 'Select Another', 'searchips-search-by-image-for-woocommerce' ),
 					// translators: %d: Max upload size in MB
-					'file_too_large' => sprintf( esc_html__( 'Selected file is too large. Maximum allowed size is %dMB.', 'searchips-search-by-image-for-woocommerce' ), $max_mb ),
+					'file_too_large'     => sprintf( esc_html__( 'Selected file is too large. Maximum allowed size is %dMB.', 'searchips-search-by-image-for-woocommerce' ), $max_mb ),
 				),
 			)
 		);
@@ -165,13 +215,16 @@ class TSBIFW_Search {
 	/**
 	 * Extract visual search token from query or GET parameters.
 	 *
-	 * @param WP_Query $query Query object.
+	 * @param WP_Query|null $query Query object or null.
 	 * @return string Sanitized token or empty string.
 	 */
-	private function get_request_token( $query ) {
-		$token = $query->get( 'tsbifw_vquery' );
-		if ( empty( $token ) ) {
-			$token = $query->get( 'vquery' );
+	private function get_request_token( $query = null ) {
+		$token = '';
+		if ( $query instanceof WP_Query ) {
+			$token = $query->get( 'tsbifw_vquery' );
+			if ( empty( $token ) ) {
+				$token = $query->get( 'vquery' );
+			}
 		}
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		if ( empty( $token ) && isset( $_GET['tsbifw_vquery'] ) ) {
@@ -209,13 +262,22 @@ class TSBIFW_Search {
 			$query->set( 's', '' );
 		}
 
-		// Retrieve matching product IDs from transient
-		$product_ids = get_transient( 'tsbifw_vquery_' . $token );
-		if ( false === $product_ids || ! is_array( $product_ids ) ) {
+		// Retrieve matching product IDs and matched metadata from transient.
+		$transient_data = get_transient( 'tsbifw_vquery_' . $token );
+		if ( false === $transient_data || ! is_array( $transient_data ) ) {
 			// Token is expired, invalid, or forged. Force zero results to prevent full catalog dump.
 			$query->set( 'post__in', array( 0 ) );
 			$query->set( 'post_type', 'product' );
 			return;
+		}
+
+		if ( isset( $transient_data['ids'] ) && is_array( $transient_data['ids'] ) ) {
+			$product_ids               = $transient_data['ids'];
+			$this->active_matched_meta = isset( $transient_data['matches'] ) && is_array( $transient_data['matches'] ) ? $transient_data['matches'] : array();
+		} else {
+			// Backward compatibility for flat ID arrays.
+			$product_ids               = $transient_data;
+			$this->active_matched_meta = array();
 		}
 
 		if ( empty( $product_ids ) ) {
@@ -231,6 +293,79 @@ class TSBIFW_Search {
 
 		// Order results by the matched IDs order (sorted by similarity score descending)
 		$query->set( 'orderby', 'post__in' );
+	}
+
+	/**
+	 * Ensure matched metadata is populated from transient token for current request.
+	 */
+	private function ensure_active_matched_meta() {
+		if ( ! empty( $this->active_matched_meta ) ) {
+			return;
+		}
+		$token = $this->get_request_token();
+		if ( ! empty( $token ) ) {
+			$transient_data = get_transient( 'tsbifw_vquery_' . $token );
+			if ( is_array( $transient_data ) && isset( $transient_data['matches'] ) && is_array( $transient_data['matches'] ) ) {
+				$this->active_matched_meta = $transient_data['matches'];
+			}
+		}
+	}
+
+	/**
+	 * Filter product catalog image to show the matched variation image when searching by image.
+	 *
+	 * @param string       $image       Product image HTML.
+	 * @param WC_Product   $product     Product object.
+	 * @param string|array $size        Image size.
+	 * @param array        $attr        Image attributes.
+	 * @param bool         $placeholder Placeholder flag.
+	 * @return string Modified image HTML.
+	 */
+	public function filter_product_image_for_matched_variation( $image, $product, $size = 'woocommerce_thumbnail', $attr = array(), $placeholder = true ) {
+		$this->ensure_active_matched_meta();
+		if ( empty( $this->active_matched_meta ) || ! $product ) {
+			return $image;
+		}
+
+		$product_id = $product->get_id();
+		if ( isset( $this->active_matched_meta[ $product_id ]['image_id'] ) ) {
+			$matched_img_id = (int) $this->active_matched_meta[ $product_id ]['image_id'];
+			if ( $matched_img_id > 0 && $matched_img_id !== (int) $product->get_image_id() ) {
+				$var_image = wp_get_attachment_image( $matched_img_id, $size, false, $attr );
+				if ( ! empty( $var_image ) ) {
+					return $var_image;
+				}
+			}
+		}
+
+		return $image;
+	}
+
+	/**
+	 * Filter product loop link to navigate to matched variation with attributes pre-selected.
+	 *
+	 * @param string     $link    Product permalink.
+	 * @param WC_Product $product Product object.
+	 * @return string Modified permalink.
+	 */
+	public function filter_product_link_for_matched_variation( $link, $product ) {
+		$this->ensure_active_matched_meta();
+		if ( empty( $this->active_matched_meta ) || ! $product ) {
+			return $link;
+		}
+
+		$product_id = $product->get_id();
+		if ( isset( $this->active_matched_meta[ $product_id ]['variation_id'] ) ) {
+			$var_id = (int) $this->active_matched_meta[ $product_id ]['variation_id'];
+			if ( $var_id > 0 ) {
+				$variation = wc_get_product( $var_id );
+				if ( $variation ) {
+					return esc_url( $variation->get_permalink() );
+				}
+			}
+		}
+
+		return $link;
 	}
 
 	/**
@@ -251,8 +386,8 @@ class TSBIFW_Search {
 		}
 
 		// Only suppress keyword search clause if the visual search token is valid and active.
-		$product_ids = get_transient( 'tsbifw_vquery_' . $token );
-		if ( false !== $product_ids && is_array( $product_ids ) ) {
+		$transient_data = get_transient( 'tsbifw_vquery_' . $token );
+		if ( false !== $transient_data && is_array( $transient_data ) ) {
 			return ''; // Suppress the keyword search WHERE clause
 		}
 
@@ -298,13 +433,19 @@ class TSBIFW_Search {
 				'callback'            => array( $this, 'handle_search_request' ),
 				'permission_callback' => array( $this, 'check_frontend_search_permission' ),
 				'args'                => array(
-					'sandbox'  => array(
+					'sandbox'        => array(
 						'type'              => 'boolean',
 						'required'          => false,
 						'default'           => false,
 						'sanitize_callback' => 'rest_sanitize_boolean',
 					),
-					'security' => array(
+					'include_hidden' => array(
+						'type'              => 'boolean',
+						'required'          => false,
+						'default'           => false,
+						'sanitize_callback' => 'rest_sanitize_boolean',
+					),
+					'security'       => array(
 						'type'              => 'string',
 						'required'          => false,
 						'sanitize_callback' => 'sanitize_text_field',
@@ -312,6 +453,100 @@ class TSBIFW_Search {
 				),
 			)
 		);
+
+		register_rest_route(
+			'tsbifw/v1',
+			'/track-click',
+			array(
+				'methods'             => 'POST',
+				'callback'            => array( $this, 'handle_track_click' ),
+				'permission_callback' => array( $this, 'check_track_click_permission' ),
+				'args'                => array(
+					'token'      => array(
+						'type'              => 'string',
+						'required'          => true,
+						'sanitize_callback' => 'sanitize_text_field',
+					),
+					'product_id' => array(
+						'type'              => 'integer',
+						'required'          => true,
+						'sanitize_callback' => 'absint',
+					),
+					'security'   => array(
+						'type'              => 'string',
+						'required'          => false,
+						'sanitize_callback' => 'sanitize_text_field',
+					),
+				),
+			)
+		);
+	}
+
+	/**
+	 * Verify permissions and rate limit for REST click tracking beacons.
+	 *
+	 * @param WP_REST_Request $request REST request object.
+	 * @return bool|WP_Error True if allowed, WP_Error otherwise.
+	 */
+	public function check_track_click_permission( $request ) {
+		$nonce = $request->get_header( 'X-WP-Nonce' );
+		if ( ! $nonce ) {
+			$nonce = $request->get_param( 'security' );
+		}
+
+		$valid = wp_verify_nonce( $nonce, 'tsbifw_frontend_search' ) || wp_verify_nonce( $nonce, 'tsbifw_admin_nonce' );
+
+		if ( ! $valid && function_exists( 'wp_validate_auth_cookie' ) ) {
+			$logged_in_user_id = wp_validate_auth_cookie( '', 'logged_in' );
+			if ( $logged_in_user_id ) {
+				$current_user_id = get_current_user_id();
+				wp_set_current_user( $logged_in_user_id );
+				$valid = (bool) ( wp_verify_nonce( $nonce, 'tsbifw_frontend_search' ) || wp_verify_nonce( $nonce, 'tsbifw_admin_nonce' ) );
+				wp_set_current_user( $current_user_id );
+			}
+		}
+
+		if ( ! $valid ) {
+			return new WP_Error(
+				'rest_forbidden',
+				esc_html__( 'Forbidden: invalid security token.', 'searchips-search-by-image-for-woocommerce' ),
+				array( 'status' => 403 )
+			);
+		}
+
+		// Rate limit: max 60 click beacons per minute per IP address.
+		$client_ip = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : 'unknown';
+		$rl_key    = 'tsbifw_rl_click_' . md5( $client_ip );
+		$hits      = (int) get_transient( $rl_key );
+
+		if ( $hits >= 60 ) {
+			return new WP_Error(
+				'rest_rate_limited',
+				esc_html__( 'Too many click tracking requests. Please wait a minute and try again.', 'searchips-search-by-image-for-woocommerce' ),
+				array( 'status' => 429 )
+			);
+		}
+
+		set_transient( $rl_key, $hits + 1, MINUTE_IN_SECONDS );
+
+		return true;
+	}
+
+	/**
+	 * Handle visual search click tracking beacon.
+	 *
+	 * @param WP_REST_Request $request REST request object.
+	 * @return WP_REST_Response
+	 */
+	public function handle_track_click( $request ) {
+		$token      = $request->get_param( 'token' );
+		$product_id = absint( $request->get_param( 'product_id' ) );
+
+		if ( ! empty( $token ) && $product_id > 0 ) {
+			do_action( 'tsbifw_record_click', $token, $product_id );
+		}
+
+		return rest_ensure_response( array( 'success' => true ) );
 	}
 
 	/**
@@ -389,11 +624,38 @@ class TSBIFW_Search {
 	 */
 	public function handle_search_request( $request ) {
 		$files = $request->get_file_params();
-		if ( empty( $files ) || ! isset( $files['image'] ) ) {
+		if ( empty( $files ) || ! isset( $files['image'] ) || ! is_array( $files['image'] ) ) {
 			return new WP_Error( 'tsbifw_missing_image', esc_html__( 'No image file uploaded in the request.', 'searchips-search-by-image-for-woocommerce' ), array( 'status' => 400 ) );
 		}
 
 		$uploaded_file = $files['image'];
+
+		// Verify that the file was genuinely uploaded via HTTP POST to prevent arbitrary local file disclosure.
+		if ( empty( $uploaded_file['tmp_name'] ) || ! is_uploaded_file( $uploaded_file['tmp_name'] ) ) {
+			return new WP_Error(
+				'tsbifw_invalid_upload',
+				esc_html__( 'Invalid uploaded file.', 'searchips-search-by-image-for-woocommerce' ),
+				array( 'status' => 400 )
+			);
+		}
+
+		// Enforce maximum file size early before raising memory limits or logging.
+		$max_mb = (int) get_option( 'tsbifw_max_upload_size', 2 );
+		if ( $max_mb <= 0 ) {
+			$max_mb = 2;
+		}
+		$file_size = (int) ( isset( $uploaded_file['size'] ) ? $uploaded_file['size'] : @filesize( $uploaded_file['tmp_name'] ) );
+		if ( $file_size <= 0 || $file_size > ( $max_mb * 1024 * 1024 ) ) {
+			return new WP_Error(
+				'tsbifw_file_too_large',
+				sprintf(
+					/* translators: 1: Current size in MB, 2: Max allowed size in MB */
+					esc_html__( 'Uploaded image is invalid or exceeds the maximum allowed size (%1$d MB).', 'searchips-search-by-image-for-woocommerce' ),
+					$max_mb
+				),
+				array( 'status' => 400 )
+			);
+		}
 
 		// Verify binary file type against real magic bytes and allowed mimes.
 		$checked_file = wp_check_filetype_and_ext(
@@ -413,9 +675,27 @@ class TSBIFW_Search {
 			);
 		}
 
-		$strategy = get_option( 'tsbifw_strategy', 'embeddings' );
-		$limit    = (int) get_option( 'tsbifw_results_limit', 12 );
-		$sandbox  = ! empty( $request->get_param( 'sandbox' ) );
+		// Verify image dimensions early to prevent decompression bombs.
+		$dimensions = @getimagesize( $uploaded_file['tmp_name'] );
+		if ( false === $dimensions || $dimensions[0] <= 0 || $dimensions[1] <= 0 || $dimensions[0] > 6000 || $dimensions[1] > 6000 ) {
+			return new WP_Error(
+				'tsbifw_invalid_image',
+				esc_html__( 'Invalid image or image dimensions exceed the allowed limit (max 6000x6000px).', 'searchips-search-by-image-for-woocommerce' ),
+				array( 'status' => 400 )
+			);
+		}
+
+		$strategy   = get_option( 'tsbifw_strategy', 'embeddings' );
+		$strategies = apply_filters( 'tsbifw_search_strategies', array( 'embeddings' => esc_html__( 'Strategy 1: Image Embeddings', 'searchips-search-by-image-for-woocommerce' ) ) );
+		if ( ! isset( $strategies[ $strategy ] ) ) {
+			$strategy = 'embeddings';
+		}
+		$limit = (int) get_option( 'posts_per_page', 10 );
+		if ( $limit <= 0 ) {
+			$limit = 10;
+		}
+		$sandbox        = ! empty( $request->get_param( 'sandbox' ) );
+		$include_hidden = $sandbox && ! empty( $request->get_param( 'include_hidden' ) );
 
 		TSBIFW_Logger::log(
 			'Incoming REST search request.',
@@ -428,13 +708,11 @@ class TSBIFW_Search {
 		);
 
 		$matched_posts = array();
+		$match_meta    = array();
 
 		try {
 			if ( function_exists( 'wp_raise_memory_limit' ) ) {
 				wp_raise_memory_limit( 'admin' );
-			}
-			if ( function_exists( 'set_time_limit' ) ) {
-				@set_time_limit( 120 );
 			}
 
 			$api    = TSBIFW_API::instance();
@@ -469,7 +747,7 @@ class TSBIFW_Search {
 				}
 
 				// Calculate similarity scores in cursor batches to prevent memory and packet limits.
-				$scores = $this->calculate_vector_scores( $query_vector, $threshold );
+				$scores = $this->calculate_vector_scores( $query_vector, $threshold, $match_meta );
 			} else {
 				// Get text description.
 				$description = $api->get_description( $base64 );
@@ -487,7 +765,7 @@ class TSBIFW_Search {
 				}
 
 				// Calculate similarity scores in cursor batches.
-				$scores = $this->calculate_description_scores( $description, $threshold );
+				$scores = $this->calculate_description_scores( $description, $threshold, $match_meta );
 			}
 
 			if ( ! empty( $scores ) ) {
@@ -503,13 +781,15 @@ class TSBIFW_Search {
 				$resolved_products = array();
 				foreach ( $scores as $product_id => $score ) {
 					$product = wc_get_product( $product_id );
-					if ( ! $this->is_product_viewable_and_visible( $product, $sandbox ) ) {
+					if ( ! $this->is_product_viewable_and_visible( $product, $include_hidden ) ) {
 						continue;
 					}
 
 					$matched_posts[] = array(
-						'id'    => $product_id,
-						'score' => $score,
+						'id'           => $product_id,
+						'score'        => $score,
+						'image_id'     => isset( $match_meta[ $product_id ]['image_id'] ) ? $match_meta[ $product_id ]['image_id'] : 0,
+						'variation_id' => isset( $match_meta[ $product_id ]['variation_id'] ) ? $match_meta[ $product_id ]['variation_id'] : 0,
 					);
 					if ( $sandbox && $product ) {
 						$resolved_products[ $product_id ] = $product;
@@ -539,13 +819,15 @@ class TSBIFW_Search {
 				$resolved_products = array();
 				foreach ( $ids as $product_id ) {
 					$product = wc_get_product( $product_id );
-					if ( ! $this->is_product_viewable_and_visible( $product, $sandbox ) ) {
+					if ( ! $this->is_product_viewable_and_visible( $product, $include_hidden ) ) {
 						continue;
 					}
 
 					$matched_posts[] = array(
-						'id'    => $product_id,
-						'score' => null,
+						'id'           => $product_id,
+						'score'        => null,
+						'image_id'     => 0,
+						'variation_id' => 0,
 					);
 					if ( $sandbox && $product ) {
 						$resolved_products[ $product_id ] = $product;
@@ -559,7 +841,7 @@ class TSBIFW_Search {
 				esc_html__( 'Search failed. Please try again.', 'searchips-search-by-image-for-woocommerce' ),
 				array(
 					'status'  => 500,
-					'details' => ( defined( 'WP_DEBUG' ) && WP_DEBUG ) ? $e->getMessage() : '',
+					'details' => ( $sandbox && current_user_can( 'manage_options' ) && defined( 'WP_DEBUG' ) && WP_DEBUG ) ? $e->getMessage() : '',
 				)
 			);
 		}
@@ -571,18 +853,28 @@ class TSBIFW_Search {
 				return new WP_Error( 'tsbifw_forbidden', esc_html__( 'Forbidden.', 'searchips-search-by-image-for-woocommerce' ), array( 'status' => 403 ) );
 			}
 
-			// Pre-prime attachment image caches for sandbox results.
-			$image_ids = array();
+			// Pre-prime attachment image and variation product caches for sandbox results to avoid N+1 queries.
+			$image_ids     = array();
+			$variation_ids = array();
 			foreach ( $matched_posts as $match ) {
-				$product_id = $match['id'];
-				$product    = isset( $resolved_products[ $product_id ] ) ? $resolved_products[ $product_id ] : wc_get_product( $product_id );
-				if ( $product && $product->get_image_id() ) {
-					$image_ids[] = $product->get_image_id();
+				$product_id  = $match['id'];
+				$product     = isset( $resolved_products[ $product_id ] ) ? $resolved_products[ $product_id ] : wc_get_product( $product_id );
+				$matched_img = ! empty( $match['image_id'] ) ? (int) $match['image_id'] : ( $product ? (int) $product->get_image_id() : 0 );
+				if ( $matched_img ) {
+					$image_ids[] = $matched_img;
+				}
+				if ( ! empty( $match['variation_id'] ) ) {
+					$variation_ids[] = (int) $match['variation_id'];
 				}
 			}
 
-			if ( function_exists( '_prime_post_caches' ) && ! empty( $image_ids ) ) {
-				_prime_post_caches( $image_ids, false, true );
+			if ( function_exists( '_prime_post_caches' ) ) {
+				if ( ! empty( $image_ids ) ) {
+					_prime_post_caches( $image_ids, false, true );
+				}
+				if ( ! empty( $variation_ids ) ) {
+					_prime_post_caches( $variation_ids, true, true );
+				}
 			}
 
 			// Format product response lists for admin test search sandbox.
@@ -594,23 +886,30 @@ class TSBIFW_Search {
 					continue;
 				}
 
-				$image_id  = $product->get_image_id();
+				$variation_id = ! empty( $match['variation_id'] ) ? (int) $match['variation_id'] : 0;
+				$variation    = $variation_id ? wc_get_product( $variation_id ) : null;
+
+				$image_id  = ! empty( $match['image_id'] ) ? (int) $match['image_id'] : (int) $product->get_image_id();
 				$image_url = $image_id ? wp_get_attachment_image_url( $image_id, 'medium' ) : wc_placeholder_img_src();
 
 				$score_percentage = null !== $match['score'] ? round( $match['score'] * 100 ) . '%' : null;
 
 				// Add to Cart integration.
-				$add_to_cart_url = esc_url( $product->add_to_cart_url() );
+				$add_to_cart_url = esc_url( $variation ? $variation->add_to_cart_url() : $product->add_to_cart_url() );
+				$title           = $variation ? wp_strip_all_tags( $variation->get_name() ) : wp_strip_all_tags( $product->get_name() );
+				$permalink       = $variation ? esc_url( $variation->get_permalink() ) : esc_url( $product->get_permalink() );
 
 				$formatted_results[] = array(
-					'id'              => $product_id,
-					'title'           => wp_strip_all_tags( $product->get_name() ),
-					'permalink'       => esc_url( $product->get_permalink() ),
-					'image'           => esc_url( $image_url ),
-					'price_html'      => $product->get_price_html(),
-					'score'           => $score_percentage,
-					'add_to_cart_url' => $add_to_cart_url,
-					'is_in_stock'     => $product->is_in_stock(),
+					'id'                 => $product_id,
+					'variation_id'       => $variation_id,
+					'title'              => $title,
+					'permalink'          => $permalink,
+					'image'              => esc_url( $image_url ),
+					'price_html'         => $variation ? $variation->get_price_html() : $product->get_price_html(),
+					'score'              => $score_percentage,
+					'add_to_cart_url'    => $add_to_cart_url,
+					'is_in_stock'        => $variation ? $variation->is_in_stock() : $product->is_in_stock(),
+					'is_catalog_visible' => $product->is_visible(),
 				);
 			}
 
@@ -631,26 +930,67 @@ class TSBIFW_Search {
 				true
 			);
 
-			return rest_ensure_response( $formatted_results );
+			$sandbox_token = 'sandbox_' . wp_generate_password( 8, false );
+
+			// Save transient for live storefront verification.
+			$cache_expiry = (int) get_option( 'tsbifw_search_cache_expiry', 300 );
+			if ( $cache_expiry <= 0 ) {
+				$cache_expiry = 300;
+			}
+			$transient_payload = array(
+				'ids'     => array_column( $matched_posts, 'id' ),
+				'matches' => $match_meta,
+			);
+			set_transient( 'tsbifw_vquery_' . $sandbox_token, $transient_payload, $cache_expiry );
+
+			$search_term = ( 'vision' === $strategy && ! empty( $description ) ) ? $description : _x( 'image-search', 'default search term for visual search', 'searchips-search-by-image-for-woocommerce' );
+
+			$redirect_url = add_query_arg(
+				array(
+					's'             => $search_term,
+					'tsbifw_vquery' => $sandbox_token,
+					'post_type'     => 'product',
+				),
+				home_url( '/' )
+			);
+
+			// Record sandbox search in analytics if enabled.
+			if ( ! empty( $uploaded_file['tmp_name'] ) ) {
+				do_action( 'tsbifw_record_search', $sandbox_token, $uploaded_file['tmp_name'], $strategy . ' (test)', count( $formatted_results ) );
+			}
+
+			return rest_ensure_response(
+				array(
+					'products'     => $formatted_results,
+					'token'        => $sandbox_token,
+					'redirect_url' => $redirect_url,
+					'count'        => count( $formatted_results ),
+				)
+			);
 		}
 
 		// Otherwise, this is a frontend request. Perform redirect using transient and token.
 		$product_ids = array_column( $matched_posts, 'id' );
 		$token       = 'vs_' . wp_generate_password( 8, false );
 
-		$cache_expiry = (int) get_option( 'tsbifw_search_cache_expiry', '600' );
+		$cache_expiry = (int) get_option( 'tsbifw_search_cache_expiry', 300 );
 		if ( $cache_expiry <= 0 ) {
-			$cache_expiry = 600;
+			$cache_expiry = 300;
 		}
 
-		set_transient( 'tsbifw_vquery_' . $token, $product_ids, $cache_expiry );
+		$transient_payload = array(
+			'ids'     => $product_ids,
+			'matches' => $match_meta,
+		);
 
-		$search_term = '';
-		if ( 'embeddings' === $strategy ) {
-			$search_term = _x( 'image-search', 'default search term for visual search', 'searchips-search-by-image-for-woocommerce' );
-		} else {
-			$search_term = ! empty( $description ) ? $description : _x( 'image-search', 'default search term for visual search', 'searchips-search-by-image-for-woocommerce' );
+		set_transient( 'tsbifw_vquery_' . $token, $transient_payload, $cache_expiry );
+
+		// Record visual search query in analytics.
+		if ( ! empty( $uploaded_file['tmp_name'] ) ) {
+			do_action( 'tsbifw_record_search', $token, $uploaded_file['tmp_name'], $strategy, count( $product_ids ) );
 		}
+
+		$search_term = ( 'vision' === $strategy && ! empty( $description ) ) ? $description : _x( 'image-search', 'default search term for visual search', 'searchips-search-by-image-for-woocommerce' );
 
 		$redirect_url = add_query_arg(
 			array(
@@ -673,30 +1013,33 @@ class TSBIFW_Search {
 		return rest_ensure_response( array( 'redirect_url' => $redirect_url ) );
 	}
 
+
+
 	/**
-	 * Calculate cosine similarity scores for all published products using cursor batching.
+	 * Retrieve cached catalog vectors with multi-tier caching (in-memory static -> persistent object cache -> transient -> db).
 	 *
-	 * @param array $query_vector Query embedding vector.
-	 * @param float $threshold    Minimum similarity threshold.
-	 * @return array Map of product ID => similarity score.
+	 * @return array Map of product ID => array of image vector data.
 	 */
-	private function calculate_vector_scores( $query_vector, $threshold ) {
-		if ( ! is_array( $query_vector ) || empty( $query_vector ) ) {
-			return array();
+	private function get_cached_catalog_vectors() {
+		static $memory_cache = null;
+		if ( null !== $memory_cache ) {
+			return $memory_cache;
 		}
 
-		$norm_query = 0.0;
-		foreach ( $query_vector as $v ) {
-			$norm_query += $v * $v;
+		$cache_key = 'tsbifw_catalog_vectors';
+		$cached    = wp_cache_get( $cache_key, 'tsbifw_cache' );
+		if ( false === $cached ) {
+			$cached = get_transient( $cache_key );
 		}
-		$norm_query = sqrt( $norm_query );
-		if ( $norm_query < 1e-10 ) {
-			return array();
+
+		if ( is_array( $cached ) ) {
+			$memory_cache = $cached;
+			return $memory_cache;
 		}
 
 		global $wpdb;
-		$scores       = array();
-		$batch_size   = 200;
+		$vectors      = array();
+		$batch_size   = 500;
 		$last_post_id = 0;
 
 		do {
@@ -728,46 +1071,46 @@ class TSBIFW_Search {
 			foreach ( $rows as $row ) {
 				$last_post_id = (int) $row['post_id'];
 				$vector_list  = $this->safe_unserialize( $row['meta_value'] );
-				if ( ! is_array( $vector_list ) ) {
-					continue;
-				}
-
-				$max_score = 0.0;
-				foreach ( $vector_list as $img_data ) {
-					if ( isset( $img_data['vector'] ) && is_array( $img_data['vector'] ) ) {
-						$score = $this->cosine_similarity_fast( $query_vector, $norm_query, $img_data['vector'] );
-						if ( $score > $max_score ) {
-							$max_score = $score;
-						}
-					}
-				}
-
-				if ( $max_score >= $threshold ) {
-					$scores[ $last_post_id ] = $max_score;
+				if ( is_array( $vector_list ) && ! empty( $vector_list ) ) {
+					$vectors[ $last_post_id ] = $vector_list;
 				}
 			}
 
 			unset( $rows );
 		} while ( true );
 
-		return $scores;
+		$memory_cache = $vectors;
+		wp_cache_set( $cache_key, $vectors, 'tsbifw_cache', 12 * HOUR_IN_SECONDS );
+		set_transient( $cache_key, $vectors, 12 * HOUR_IN_SECONDS );
+
+		return $memory_cache;
 	}
 
 	/**
-	 * Calculate Jaccard similarity scores for all published products using cursor batching.
+	 * Retrieve cached catalog descriptions with multi-tier caching (in-memory static -> persistent object cache -> transient -> db).
 	 *
-	 * @param string $query_desc Query text description.
-	 * @param float  $threshold  Minimum similarity threshold.
-	 * @return array Map of product ID => similarity score.
+	 * @return array Map of product ID => array of image description data.
 	 */
-	private function calculate_description_scores( $query_desc, $threshold ) {
-		if ( ! is_string( $query_desc ) || '' === trim( $query_desc ) ) {
-			return array();
+	private function get_cached_catalog_descriptions() {
+		static $memory_cache = null;
+		if ( null !== $memory_cache ) {
+			return $memory_cache;
+		}
+
+		$cache_key = 'tsbifw_catalog_descriptions';
+		$cached    = wp_cache_get( $cache_key, 'tsbifw_cache' );
+		if ( false === $cached ) {
+			$cached = get_transient( $cache_key );
+		}
+
+		if ( is_array( $cached ) ) {
+			$memory_cache = $cached;
+			return $memory_cache;
 		}
 
 		global $wpdb;
-		$scores       = array();
-		$batch_size   = 200;
+		$descriptions = array();
+		$batch_size   = 500;
 		$last_post_id = 0;
 
 		do {
@@ -799,27 +1142,128 @@ class TSBIFW_Search {
 			foreach ( $rows as $row ) {
 				$last_post_id = (int) $row['post_id'];
 				$desc_list    = $this->safe_unserialize( $row['meta_value'] );
-				if ( ! is_array( $desc_list ) ) {
-					continue;
-				}
-
-				$max_score = 0.0;
-				foreach ( $desc_list as $img_data ) {
-					if ( isset( $img_data['description'] ) && is_string( $img_data['description'] ) ) {
-						$score = $this->jaccard_similarity( $query_desc, $img_data['description'] );
-						if ( $score > $max_score ) {
-							$max_score = $score;
-						}
-					}
-				}
-
-				if ( $max_score >= $threshold ) {
-					$scores[ $last_post_id ] = $max_score;
+				if ( is_array( $desc_list ) && ! empty( $desc_list ) ) {
+					$descriptions[ $last_post_id ] = $desc_list;
 				}
 			}
 
 			unset( $rows );
 		} while ( true );
+
+		$memory_cache = $descriptions;
+		wp_cache_set( $cache_key, $descriptions, 'tsbifw_cache', 12 * HOUR_IN_SECONDS );
+		set_transient( $cache_key, $descriptions, 12 * HOUR_IN_SECONDS );
+
+		return $memory_cache;
+	}
+
+	/**
+	 * Calculate cosine similarity scores for all published products using cached catalog vectors.
+	 *
+	 * @param array $query_vector Query embedding vector.
+	 * @param float $threshold    Minimum similarity threshold.
+	 * @param array $match_meta   Optional by-reference array populated with best matching image_id and variation_id per product.
+	 * @return array Map of product ID => similarity score.
+	 */
+	private function calculate_vector_scores( $query_vector, $threshold, &$match_meta = array() ) {
+		if ( ! is_array( $query_vector ) || empty( $query_vector ) ) {
+			return array();
+		}
+
+		$norm_query = 0.0;
+		foreach ( $query_vector as $v ) {
+			$norm_query += $v * $v;
+		}
+		$norm_query = sqrt( $norm_query );
+		if ( $norm_query < 1e-10 ) {
+			return array();
+		}
+
+		$scores          = array();
+		$catalog_vectors = $this->get_cached_catalog_vectors();
+
+		foreach ( $catalog_vectors as $post_id => $vector_list ) {
+			$max_score   = 0.0;
+			$best_img_id = 0;
+			$best_var_id = 0;
+			foreach ( $vector_list as $img_data ) {
+				if ( isset( $img_data['vector'] ) && is_array( $img_data['vector'] ) ) {
+					$score = $this->cosine_similarity_fast( $query_vector, $norm_query, $img_data['vector'] );
+					if ( $score > $max_score ) {
+						$max_score   = $score;
+						$best_img_id = isset( $img_data['id'] ) ? (int) $img_data['id'] : 0;
+						$best_var_id = isset( $img_data['variation_id'] ) ? (int) $img_data['variation_id'] : 0;
+					}
+				}
+			}
+
+			if ( $max_score > 0.0 ) {
+				$scores[ $post_id ]     = $max_score;
+				$match_meta[ $post_id ] = array(
+					'image_id'     => $best_img_id,
+					'variation_id' => $best_var_id,
+				);
+			}
+		}
+
+		$scores = apply_filters( 'tsbifw_candidate_scores', $scores, $threshold );
+		foreach ( $scores as $post_id => $score ) {
+			if ( $score < $threshold ) {
+				unset( $scores[ $post_id ] );
+				unset( $match_meta[ $post_id ] );
+			}
+		}
+
+		return $scores;
+	}
+
+	/**
+	 * Calculate Jaccard similarity scores for all published products using cached catalog descriptions.
+	 *
+	 * @param string $query_desc Query text description.
+	 * @param float  $threshold  Minimum similarity threshold.
+	 * @param array  $match_meta Optional by-reference array populated with best matching image_id and variation_id per product.
+	 * @return array Map of product ID => similarity score.
+	 */
+	private function calculate_description_scores( $query_desc, $threshold, &$match_meta = array() ) {
+		if ( ! is_string( $query_desc ) || '' === trim( $query_desc ) ) {
+			return array();
+		}
+
+		$scores               = array();
+		$catalog_descriptions = $this->get_cached_catalog_descriptions();
+
+		foreach ( $catalog_descriptions as $post_id => $desc_list ) {
+			$max_score   = 0.0;
+			$best_img_id = 0;
+			$best_var_id = 0;
+			foreach ( $desc_list as $img_data ) {
+				if ( isset( $img_data['description'] ) && is_string( $img_data['description'] ) ) {
+					$score = $this->jaccard_similarity( $query_desc, $img_data['description'] );
+					if ( $score > $max_score ) {
+						$max_score   = $score;
+						$best_img_id = isset( $img_data['id'] ) ? (int) $img_data['id'] : 0;
+						$best_var_id = isset( $img_data['variation_id'] ) ? (int) $img_data['variation_id'] : 0;
+					}
+				}
+			}
+
+			if ( $max_score > 0.0 ) {
+				$scores[ $post_id ]     = $max_score;
+				$match_meta[ $post_id ] = array(
+					'image_id'     => $best_img_id,
+					'variation_id' => $best_var_id,
+				);
+			}
+		}
+
+		$scores = apply_filters( 'tsbifw_candidate_scores', $scores, $threshold );
+		foreach ( $scores as $post_id => $score ) {
+			if ( $score < $threshold ) {
+				unset( $scores[ $post_id ] );
+				unset( $match_meta[ $post_id ] );
+			}
+		}
 
 		return $scores;
 	}
@@ -909,7 +1353,14 @@ class TSBIFW_Search {
 		return array_unique( $tokens );
 	}
 
-	private function is_product_viewable_and_visible( $product, $sandbox = false ) {
+	/**
+	 * Determine if a product is viewable and visible in the WooCommerce catalog.
+	 *
+	 * @param WC_Product|mixed $product        Product instance.
+	 * @param bool             $include_hidden Whether to bypass catalog visibility exclusions.
+	 * @return bool True if product should be included in search results.
+	 */
+	private function is_product_viewable_and_visible( $product, $include_hidden = false ) {
 		if ( ! $product || ! ( $product instanceof WC_Product ) ) {
 			return false;
 		}
@@ -922,7 +1373,7 @@ class TSBIFW_Search {
 			return false;
 		}
 
-		if ( ! $sandbox && ! $product->is_visible() ) {
+		if ( ! $include_hidden && ! $product->is_visible() ) {
 			return false;
 		}
 

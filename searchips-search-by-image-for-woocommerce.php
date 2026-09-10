@@ -25,7 +25,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 define( 'TSBIFW_VERSION', '1.2.2' );
 define( 'TSBIFW_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'TSBIFW_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
-define( 'TSBIFW_FILE', __FILE__ );
 
 /**
  * Declare compatibility with WooCommerce features (HPOS and Cart/Checkout Blocks).
@@ -66,9 +65,21 @@ function tsbifw_init() {
 add_action( 'plugins_loaded', 'tsbifw_init' );
 
 /**
+ * Clean up scheduled cron hooks upon plugin deactivation.
+ */
+function tsbifw_deactivate() {
+	wp_clear_scheduled_hook( 'tsbifw_cron_indexing' );
+	wp_clear_scheduled_hook( 'tsbifw_clear_index_cron' );
+}
+register_deactivation_hook( __FILE__, 'tsbifw_deactivate' );
+
+/**
  * Display notice if WooCommerce is not active.
  */
 function tsbifw_woocommerce_missing_notice() {
+	if ( ! current_user_can( 'activate_plugins' ) ) {
+		return;
+	}
 	?>
 	<div class="notice notice-error is-dismissible">
 		<p><?php esc_html_e( 'Searchips Search By Image for WooCommerce requires WooCommerce to be installed and active.', 'searchips-search-by-image-for-woocommerce' ); ?></p>

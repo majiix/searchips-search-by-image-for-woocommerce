@@ -840,6 +840,211 @@ msgid ""
 "installed and active."
 msgstr ""
 
+#: includes/class-tsbifw-admin.php:387
+msgid "Product Variation Images"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:388
+msgid ""
+"Automatically index WooCommerce product variation images. If a customer searches for a variation (e.g. a red shirt), they match the variation image directly rather than just the featured thumbnail."
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:433
+msgid "Skip Unchanged Images"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:436
+msgid "Skip AI re-indexing if product images have not changed (Image Hashing)"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:443
+msgid ""
+"Calculates an MD5 hash of product image attachments. Skips expensive remote AI API calls when saving products or running cron if image files are identical."
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:467
+msgid "Exclude Product Categories"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:476
+msgid "No product categories found."
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:489
+msgid ""
+"Blacklist specific product categories from visual indexing (e.g., skip digital downloads, gift cards, or service items). Available with Pro Addon."
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:491
+msgid ""
+"Select product categories to exclude from visual indexing (hold Ctrl or Cmd to select multiple). Products in these categories will be skipped without consuming AI credits."
+msgstr ""
+
+#: includes/class-tsbifw-indexer.php:185
+msgid "Skipped: Product belongs to an excluded category."
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:584
+msgid "Mobile Camera Capture"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:594
+msgid "Yes (Allow instant camera photo capture on mobile)"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:595
+msgid "No (File gallery upload only)"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:600
+msgid "Allow mobile shoppers to open their device camera directly to take photos for visual search. Available with the Pro Addon."
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:602
+msgid "Enables a \"Take Photo\" button in the visual search modal that launches the smartphone camera directly."
+msgstr ""
+
+#: includes/class-tsbifw-search.php:151
+msgid "Take Photo"
+msgstr ""
+
+#: includes/class-tsbifw-search.php:152
+msgid "Upload from Gallery"
+msgstr ""
+
+#: includes/class-tsbifw-search.php:153
+msgid "or"
+msgstr ""
+
+#: includes/class-tsbifw-search.php:154
+msgid "Mobile Camera Capture is available with the Pro Addon."
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:555
+msgid "Similarity Score Boost"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:572
+msgid "Enable similarity score bonus for prioritized inventory"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:575
+msgid "Boost Targets:"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:578
+msgid "Featured Products"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:582
+msgid "On-Sale Products"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:586
+msgid "Boost Amount:"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:593
+msgid "Give a score boost (+5% to +30%) to featured products or on-sale items to prioritize them in visual search results. Available with the Pro Addon."
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:595
+msgid "Adds an algorithmic score bonus to qualifying products, lifting them above the similarity threshold and higher in search rankings. Maximum similarity score is capped at 100%."
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:999
+msgid "Visual Search Analytics Dashboard"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:1001
+msgid "Gain deep visibility into what images shoppers upload. Track overall Click-Through Rate (CTR), inspect uploaded photo queries, and identify unfulfilled customer demand (0-result searches). Available exclusively with the Pro Addon."
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:1005
+msgid "Uploaded Query Images"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:1006
+msgid "See exact photo thumbnails uploaded by shoppers."
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:1009
+msgid "Click-Through Rate (CTR)"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:1010
+msgid "Track conversion from visual search to product page clicks."
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:1013
+msgid "Unfulfilled Demand"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:1014
+msgid "Spot zero-result searches to stock missing products."
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:1032
+msgid "Total Visual Searches"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:1036
+msgid "Overall CTR"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:1040
+msgid "Matched Searches"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:1044
+msgid "Unfulfilled Demand (0 Results)"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:1052
+msgid "All Searches"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:1055
+msgid "Unfulfilled Demand Only"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:1062
+msgid "Prune > 30 Days"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:1063
+msgid "Clear All Data"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:1071
+msgid "Query Image"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:1073
+msgid "Strategy"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:1074
+msgid "Results"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:1075
+msgid "Clicked Product (CTR)"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:1082
+msgid "No visual search queries recorded yet."
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:2208
+msgid "All analytics data and thumbnails have been permanently cleared."
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:2231
+#, php-format
+msgid "Successfully pruned %d expired analytics record(s)."
+msgstr ""
+
 #. Plugin Name of the plugin/theme
 msgid "Searchips Search By Image for WooCommerce"
 msgstr ""
@@ -853,3 +1058,5 @@ msgstr ""
 #. Author of the plugin/theme
 msgid "micromax"
 msgstr ""
+
+

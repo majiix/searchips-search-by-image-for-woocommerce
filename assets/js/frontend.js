@@ -62,6 +62,14 @@ jQuery(document).ready(function($) {
 		document.head.appendChild(script);
 	}
 
+	function startScanningAnimation() {
+		$('.tsbifw-scan-container').show().addClass('tsbifw-scan-active');
+	}
+
+	function stopScanningAnimation() {
+		$('.tsbifw-scan-container').hide().removeClass('tsbifw-scan-active');
+	}
+
 	// 2. Click handler for camera triggers (delegated to support dynamically loaded forms)
 	$(document).on('click', '.tsbifw-camera-trigger', function(e) {
 		e.preventDefault();
@@ -74,6 +82,39 @@ jQuery(document).ready(function($) {
 	function initModal() {
 		if ($('.tsbifw-modal-overlay').length) return;
 
+		var isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
+			(window.matchMedia && window.matchMedia('(pointer: coarse) and (max-width: 1024px)').matches);
+		var showCameraBtn = isMobileDevice && (tsbifw_frontend_params.enable_mobile_camera || !tsbifw_frontend_params.is_pro);
+		var cameraSectionHtml = '';
+
+		if (showCameraBtn) {
+			var isProLocked = !tsbifw_frontend_params.is_pro;
+			var cameraDisabledAttr = isProLocked ? ' disabled="disabled"' : '';
+			var cameraClass = isProLocked ? 'tsbifw-take-photo-btn tsbifw-btn-pro-locked' : 'tsbifw-take-photo-btn';
+			var cameraTooltip = isProLocked ? ' title="' + (tsbifw_frontend_params.strings.camera_pro_tooltip || '') + '"' : '';
+			var proBadgeHtml = isProLocked ? '<span class="tsbifw-modal-pro-badge">PRO</span>' : '';
+
+			cameraSectionHtml =
+				'<div class="tsbifw-mobile-camera-section">' +
+					'<div class="tsbifw-camera-action-wrapper">' +
+						'<button type="button" class="' + cameraClass + '"' + cameraDisabledAttr + cameraTooltip + '>' +
+							'<svg class="tsbifw-btn-camera-icon" viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">' +
+								'<path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>' +
+								'<circle cx="12" cy="13" r="4"></circle>' +
+							'</svg>' +
+							'<span>' + (tsbifw_frontend_params.strings.take_photo || 'Take Photo') + '</span>' +
+							proBadgeHtml +
+						'</button>' +
+					'</div>' +
+					'<div class="tsbifw-modal-divider">' +
+						'<span>' + (tsbifw_frontend_params.strings.or_divider || 'or') + '</span>' +
+					'</div>' +
+				'</div>';
+		}
+
+		var scanEffect = tsbifw_frontend_params.scanning_effect || 'laser';
+		var scanColor = tsbifw_frontend_params.scanning_color || '#6366f1';
+
 		var modalHtml =
 			'<div class="tsbifw-modal-overlay">' +
 				'<div class="tsbifw-modal-container">' +
@@ -82,17 +123,21 @@ jQuery(document).ready(function($) {
 						'<button type="button" class="tsbifw-modal-close" aria-label="Close">&times;</button>' +
 					'</div>' +
 					'<div class="tsbifw-modal-body">' +
-						'<div class="tsbifw-drag-zone">' +
-							'<svg class="tsbifw-drag-icon" viewBox="0 0 24 24" width="48" height="48" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">' +
-								'<rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>' +
-								'<circle cx="8.5" cy="8.5" r="1.5"></circle>' +
-								'<polyline points="21 15 16 10 5 21"></polyline>' +
-							'</svg>' +
-							'<p>' + tsbifw_frontend_params.strings.drag_drop_text + '</p>' +
+						'<div class="tsbifw-modal-actions-area">' +
+							cameraSectionHtml +
+							'<div class="tsbifw-drag-zone">' +
+								'<svg class="tsbifw-drag-icon" viewBox="0 0 24 24" width="48" height="48" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">' +
+									'<rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>' +
+									'<circle cx="8.5" cy="8.5" r="1.5"></circle>' +
+									'<polyline points="21 15 16 10 5 21"></polyline>' +
+								'</svg>' +
+								'<p>' + tsbifw_frontend_params.strings.drag_drop_text + '</p>' +
+							'</div>' +
 						'</div>' +
 						'<input type="file" class="tsbifw-file-input" accept="image/jpeg,image/png,image/webp" style="display:none;" />' +
-						'<div class="tsbifw-preview-wrapper">' +
-							'<div class="tsbifw-cropper-container" style="max-height: 320px; overflow: hidden; border-radius: 8px; margin-bottom: 15px; border: 1px solid #cbd5e1;">' +
+						'<input type="file" class="tsbifw-camera-input" accept="image/*" capture="environment" style="display:none;" />' +
+						'<div class="tsbifw-preview-wrapper" data-effect="' + scanEffect + '" style="--tsbifw-scan-color: ' + scanColor + ';">' +
+							'<div class="tsbifw-cropper-container" style="max-height: 320px; overflow: hidden; border-radius: 8px; margin-bottom: 15px; border: 1px solid #cbd5e1; position: relative;">' +
 								'<cropper-canvas id="tsbifw-frontend-cropper-canvas" style="height: 280px; display: none;">' +
 									'<cropper-image class="tsbifw-cropper-image" src="" rotatable scalable translatable></cropper-image>' +
 									'<cropper-shade></cropper-shade>' +
@@ -106,9 +151,40 @@ jQuery(document).ready(function($) {
 										'<cropper-handle action="sw-resize" theme-color="#4f46e5"></cropper-handle>' +
 									'</cropper-selection>' +
 								'</cropper-canvas>' +
+								'<div class="tsbifw-scan-container" data-effect="' + scanEffect + '" style="display:none; --tsbifw-scan-color: ' + scanColor + ';">' +
+									'<div class="tsbifw-effect-layer tsbifw-effect-laser">' +
+										'<div class="tsbifw-scanner-bar"></div>' +
+										'<div class="tsbifw-scanning-overlay"></div>' +
+									'</div>' +
+									'<div class="tsbifw-effect-layer tsbifw-effect-reticle">' +
+										'<div class="tsbifw-reticle-bracket tsbifw-reticle-tl"></div>' +
+										'<div class="tsbifw-reticle-bracket tsbifw-reticle-tr"></div>' +
+										'<div class="tsbifw-reticle-bracket tsbifw-reticle-bl"></div>' +
+										'<div class="tsbifw-reticle-bracket tsbifw-reticle-br"></div>' +
+										'<div class="tsbifw-reticle-crosshair"></div>' +
+										'<div class="tsbifw-reticle-tag">AI_TARGET: 0x94F2</div>' +
+									'</div>' +
+									'<div class="tsbifw-effect-layer tsbifw-effect-radar">' +
+										'<div class="tsbifw-radar-ring tsbifw-radar-ring-1"></div>' +
+										'<div class="tsbifw-radar-ring tsbifw-radar-ring-2"></div>' +
+										'<div class="tsbifw-radar-sweep"></div>' +
+										'<div class="tsbifw-radar-grid"></div>' +
+									'</div>' +
+									'<div class="tsbifw-effect-layer tsbifw-effect-matrix">' +
+										'<div class="tsbifw-matrix-grid"></div>' +
+									'</div>' +
+									'<div class="tsbifw-effect-layer tsbifw-effect-ripple">' +
+										'<div class="tsbifw-ripple-wave tsbifw-ripple-1"></div>' +
+										'<div class="tsbifw-ripple-wave tsbifw-ripple-2"></div>' +
+										'<div class="tsbifw-ripple-wave tsbifw-ripple-3"></div>' +
+										'<div class="tsbifw-ripple-core"></div>' +
+									'</div>' +
+									'<div class="tsbifw-effect-layer tsbifw-effect-hologram">' +
+										'<div class="tsbifw-hologram-prism"></div>' +
+										'<div class="tsbifw-hologram-shimmer"></div>' +
+									'</div>' +
+								'</div>' +
 							'</div>' +
-							'<div class="tsbifw-scanner-bar"></div>' +
-							'<div class="tsbifw-scanning-overlay"></div>' +
 							'<div class="tsbifw-preview-actions" style="margin-top: 15px; display: flex; gap: 10px; justify-content: center; align-items: center;">' +
 								'<button type="button" class="tsbifw-btn tsbifw-btn-primary tsbifw-crop-search-btn" style="width: auto; padding: 10px 20px;">' + tsbifw_frontend_params.strings.search_btn_text + '</button>' +
 								'<button type="button" class="tsbifw-reselect-btn" style="margin: 0;">' + tsbifw_frontend_params.strings.select_another + '</button>' +
@@ -131,6 +207,25 @@ jQuery(document).ready(function($) {
 		$(document).on('keydown', function(e) {
 			if (e.key === 'Escape' && $('.tsbifw-modal-overlay').hasClass('active')) {
 				closeModal();
+			}
+		});
+
+		// Camera button and camera input handlers
+		var $cameraInput = $('.tsbifw-camera-input');
+		$('.tsbifw-take-photo-btn:not(.tsbifw-btn-pro-locked)').on('click', function(e) {
+			e.preventDefault();
+			if ($cameraInput.length) {
+				$cameraInput[0].click();
+			}
+		});
+
+		$cameraInput.on('click', function(e) {
+			e.stopPropagation();
+		});
+
+		$cameraInput.on('change', function(e) {
+			if (this.files && this.files[0]) {
+				handleFileSelection(this.files[0]);
 			}
 		});
 
@@ -186,8 +281,7 @@ jQuery(document).ready(function($) {
 			if (!selection) return;
 
 			// Start scanning animation
-			$('.tsbifw-scanner-bar').show();
-			$('.tsbifw-scanning-overlay').show();
+			startScanningAnimation();
 			startStatusRotation();
 
 			selection.$toCanvas({
@@ -197,8 +291,7 @@ jQuery(document).ready(function($) {
 				canvas.toBlob(function(blob) {
 					if (!blob) {
 						stopStatusRotation();
-						$('.tsbifw-scanner-bar').hide();
-						$('.tsbifw-scanning-overlay').hide();
+						stopScanningAnimation();
 						$('.tsbifw-search-status').hide().removeClass('pulse').text('');
 						alert('Failed to process cropped image.');
 						return;
@@ -208,8 +301,7 @@ jQuery(document).ready(function($) {
 				}, 'image/jpeg', 0.9);
 			}).catch(function() {
 				stopStatusRotation();
-				$('.tsbifw-scanner-bar').hide();
-				$('.tsbifw-scanning-overlay').hide();
+				stopScanningAnimation();
 				$('.tsbifw-search-status').hide().removeClass('pulse').text('');
 				alert('Failed to crop image.');
 			});
@@ -271,15 +363,16 @@ jQuery(document).ready(function($) {
 	function resetSearchUI() {
 		stopStatusRotation();
 		$('.tsbifw-file-input').val('');
+		$('.tsbifw-camera-input').val('');
 		var previewImg = $('.tsbifw-cropper-image')[0];
 		if (previewImg) {
 			previewImg.setAttribute('src', '');
 		}
 		$('#tsbifw-frontend-cropper-canvas').hide();
 		$('.tsbifw-preview-wrapper').hide();
+		$('.tsbifw-modal-actions-area').show();
 		$('.tsbifw-drag-zone').show();
-		$('.tsbifw-scanner-bar').hide();
-		$('.tsbifw-scanning-overlay').hide();
+		stopScanningAnimation();
 		$('.tsbifw-search-status').hide().removeClass('pulse').text('');
 	}
 
@@ -304,6 +397,7 @@ jQuery(document).ready(function($) {
 		// Show preview using FileReader
 		var reader = new FileReader();
 		reader.onload = function(e) {
+			$('.tsbifw-modal-actions-area').hide();
 			$('.tsbifw-drag-zone').hide();
 			$('.tsbifw-preview-wrapper').show();
 			$('#tsbifw-frontend-cropper-canvas').show();
@@ -348,9 +442,7 @@ jQuery(document).ready(function($) {
 		if (tsbifw_frontend_params.max_upload_size && file.size > tsbifw_frontend_params.max_upload_size) {
 			alert(tsbifw_frontend_params.strings.file_too_large);
 			stopStatusRotation();
-			// Stop scanning animation
-			$('.tsbifw-scanner-bar').hide();
-			$('.tsbifw-scanning-overlay').hide();
+			stopScanningAnimation();
 			$('.tsbifw-search-status').hide().removeClass('pulse').text('');
 			return;
 		}
@@ -367,8 +459,7 @@ jQuery(document).ready(function($) {
 			contentType: false,
 			success: function(response) {
 				stopStatusRotation();
-				$('.tsbifw-scanner-bar').hide();
-				$('.tsbifw-scanning-overlay').hide();
+				stopScanningAnimation();
 				$('.tsbifw-search-status').hide().removeClass('pulse');
 
 				if (response.redirect_url) {
@@ -381,8 +472,7 @@ jQuery(document).ready(function($) {
 			},
 			error: function(xhr) {
 				stopStatusRotation();
-				$('.tsbifw-scanner-bar').hide();
-				$('.tsbifw-scanning-overlay').hide();
+				stopScanningAnimation();
 
 				var errorMsg = tsbifw_frontend_params.strings.error;
 				if (xhr.responseJSON && xhr.responseJSON.message) {
@@ -400,4 +490,48 @@ jQuery(document).ready(function($) {
 			$('html, body').css('overflow', '');
 		}
 	});
+
+	// Visual search Click-Through Rate (CTR) tracking
+	if (tsbifw_frontend_params.current_vquery && tsbifw_frontend_params.track_endpoint) {
+		var vtoken = tsbifw_frontend_params.current_vquery;
+		var trackUrl = tsbifw_frontend_params.track_endpoint;
+		var trackedThisPage = false;
+
+		$(document).on('click', '.product a, a.woocommerce-LoopProduct-link, .add_to_cart_button', function() {
+			if (trackedThisPage) return;
+			var $target = $(this);
+			var $product = $target.closest('.product');
+			var productId = 0;
+
+			if ($target.data('product_id')) {
+				productId = parseInt($target.data('product_id'), 10);
+			} else if ($product.length) {
+				var classList = $product.attr('class') || '';
+				var match = classList.match(/post-(\d+)/);
+				if (match && match[1]) {
+					productId = parseInt(match[1], 10);
+				}
+			}
+
+			if (productId > 0) {
+				trackedThisPage = true;
+				var payload = JSON.stringify({
+					token: vtoken,
+					product_id: productId,
+					security: (tsbifw_frontend_params && tsbifw_frontend_params.nonce) || ''
+				});
+				if (navigator.sendBeacon) {
+					var blob = new Blob([payload], { type: 'application/json' });
+					navigator.sendBeacon(trackUrl, blob);
+				} else if (window.fetch) {
+					fetch(trackUrl, {
+						method: 'POST',
+						headers: { 'Content-Type': 'application/json' },
+						body: payload,
+						keepalive: true
+					});
+				}
+			}
+		});
+	}
 });

@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 350" width="500" height="350">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a" />
+      <stop offset="50%" stop-color="#1e293b" />
+      <stop offset="100%" stop-color="#0f172a" />
+    </linearGradient>
+    <linearGradient id="shoeGrad" x1="0%" y1="0%" x2="100%" y2="50%">
+      <stop offset="0%" stop-color="#f8fafc" />
+      <stop offset="50%" stop-color="#e2e8f0" />
+      <stop offset="100%" stop-color="#cbd5e1" />
+    </linearGradient>
+    <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#6366f1" />
+      <stop offset="100%" stop-color="#ec4899" />
+    </linearGradient>
+    <radialGradient id="shadowGrad" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="rgba(0,0,0,0.6)" />
+      <stop offset="100%" stop-color="rgba(0,0,0,0)" />
+    </radialGradient>
+  </defs>
+  <rect width="500" height="350" fill="url(#bgGrad)" />
+  <circle cx="250" cy="175" r="160" fill="#6366f1" opacity="0.08" filter="blur(30px)" />
+  <ellipse cx="250" cy="285" rx="160" ry="18" fill="url(#shadowGrad)" />
+  <g transform="translate(45, 40)">
+    <path d="M70,225 C110,225 150,230 200,228 C260,225 320,220 370,185 C375,180 378,190 370,200 C340,235 280,245 200,245 C140,245 80,243 55,235 C50,230 55,225 70,225 Z" fill="#ffffff" />
+    <path d="M75,222 C130,222 200,225 250,215 C300,205 340,195 365,185 C350,205 300,225 240,228 C180,230 110,228 75,222 Z" fill="url(#accentGrad)" />
+    <path d="M85,215 C95,190 120,175 140,170 C165,165 190,150 205,120 C212,105 225,95 240,105 C250,112 245,135 255,145 C275,160 330,170 360,185 C330,195 280,205 230,215 C170,220 110,220 85,215 Z" fill="url(#shoeGrad)" />
+    <path d="M140,185 C190,170 250,165 310,182 C270,195 210,198 155,198 Z" fill="url(#accentGrad)" opacity="0.9" />
+    <path d="M205,120 C220,135 235,145 255,145" stroke="#94a3b8" stroke-width="4" stroke-linecap="round" fill="none" />
+    <line x1="210" y1="130" x2="225" y2="125" stroke="#6366f1" stroke-width="3" stroke-linecap="round" />
+    <line x1="218" y1="142" x2="235" y2="137" stroke="#6366f1" stroke-width="3" stroke-linecap="round" />
+    <line x1="228" y1="154" x2="245" y2="149" stroke="#6366f1" stroke-width="3" stroke-linecap="round" />
+    <path d="M120,175 C115,160 118,145 125,140 C130,145 128,160 125,172 Z" fill="#6366f1" />
+  </g>
+  <rect x="25" y="25" width="96" height="22" rx="6" fill="rgba(255,255,255,0.08)" />
+  <text x="73" y="40" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif" font-size="10" font-weight="700" text-anchor="middle">SAMPLE ASSET</text>
+</svg>

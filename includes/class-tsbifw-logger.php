@@ -51,9 +51,6 @@ class TSBIFW_Logger {
 		}
 
 		update_option( 'tsbifw_logs', $logs, false );
-		if ( function_exists( 'wp_set_option_autoload' ) ) {
-			wp_set_option_autoload( 'tsbifw_logs', 'no' );
-		}
 	}
 
 	/**

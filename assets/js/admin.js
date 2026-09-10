@@ -10,6 +10,70 @@ jQuery(document).ready(function($) {
 	// Initialize WordPress color picker
 	if ($.isFunction($.fn.wpColorPicker)) {
 		$('#tsbifw_camera_bg_color').wpColorPicker();
+		$('#tsbifw_scanning_color').wpColorPicker({
+			change: function(event, ui) {
+				var newColor = ui.color.toString();
+				$('#tsbifw-preview-stage').css('--tsbifw-scan-color', newColor);
+				$('#tsbifw-admin-preview-wrapper .tsbifw-scan-container').css('--tsbifw-scan-color', newColor);
+			},
+			clear: function() {
+				$('#tsbifw-preview-stage').css('--tsbifw-scan-color', '#6366f1');
+				$('#tsbifw-admin-preview-wrapper .tsbifw-scan-container').css('--tsbifw-scan-color', '#6366f1');
+			}
+		});
+	}
+
+	// Styling tab: Scanning effect selector cards and live preview mockup
+	var $previewStage = $('#tsbifw-preview-stage');
+	if ($previewStage.length) {
+		var $effectCards = $('.tsbifw-effect-card');
+		var $proBanner = $('#tsbifw-preview-pro-banner');
+		var isProUser = Boolean(tsbifw_admin_params.is_pro);
+
+		$effectCards.on('click', function(e) {
+			var $card = $(this);
+			var effect = $card.data('effect');
+			var $radio = $card.find('input[type="radio"]');
+
+			// Update card active class
+			$effectCards.removeClass('active');
+			$card.addClass('active');
+
+			// Switch animation effect on preview stage and animation container
+			$previewStage.attr('data-effect', effect);
+			$('#tsbifw-preview-anim-container').attr('data-effect', effect);
+
+			// Show Pro upgrade banner if previewing a pro effect on free version
+			if (effect !== 'laser' && !isProUser) {
+				$proBanner.slideDown(180);
+				$('input[name="tsbifw_scanning_effect"][value="laser"]').prop('checked', true);
+			} else {
+				$proBanner.slideUp(180);
+				$radio.prop('checked', true);
+			}
+		});
+
+		// Listen to radio changes for keyboard/accessibility navigation
+		$('input[name="tsbifw_scanning_effect"]').on('change', function() {
+			var effect = $(this).val();
+			$effectCards.removeClass('active');
+			$('.tsbifw-effect-card[data-effect="' + effect + '"]').addClass('active');
+			$previewStage.attr('data-effect', effect);
+			$('#tsbifw-preview-anim-container').attr('data-effect', effect);
+		});
+
+		// Toggle play/pause for preview animation
+		$('#tsbifw-toggle-preview-anim').on('click', function(e) {
+			e.preventDefault();
+			var $btn = $(this);
+			if ($previewStage.hasClass('tsbifw-preview-paused')) {
+				$previewStage.removeClass('tsbifw-preview-paused');
+				$btn.text('Pause');
+			} else {
+				$previewStage.addClass('tsbifw-preview-paused');
+				$btn.text('Resume');
+			}
+		});
 	}
 
 	// Strategy selector visibility toggle
@@ -32,6 +96,67 @@ jQuery(document).ready(function($) {
 			}
 		} else {
 			$('#tsbifw-strategy-warning').remove();
+		}
+	});
+
+	// Gateway selector visibility toggle
+	function updateGatewayGuidance() {
+		var gw = $('#tsbifw_api_gateway').val();
+		var strategy = $('#tsbifw_strategy').val();
+
+		if ('openai' === gw && 'embeddings' === strategy) {
+			$('#tsbifw-openai-strategy-notice').slideDown(150);
+		} else {
+			$('#tsbifw-openai-strategy-notice').slideUp(150);
+		}
+
+		var gwName = 'OpenRouter';
+		if ('openai' === gw) gwName = 'OpenAI Direct';
+		if ('gemini' === gw) gwName = 'Google Gemini Direct';
+
+		$('#tsbifw-embeddings-model-desc').text('Select the embedding model ID for ' + gwName + '.');
+		$('#tsbifw-vision-model-desc').text('Select the vision model ID for ' + gwName + '.');
+	}
+
+	$('#tsbifw_api_gateway').on('change', function() {
+		var gw = $(this).val();
+		$('.tsbifw-gateway-field').hide();
+		$('.gateway-' + gw).show();
+		updateGatewayGuidance();
+		loadModelsForGateway(gw);
+	});
+
+	$('#tsbifw_strategy').on('change', function() {
+		updateGatewayGuidance();
+	});
+
+	$(document).on('click', '#tsbifw-switch-to-vision', function(e) {
+		e.preventDefault();
+		$('#tsbifw_strategy').val('vision').trigger('change');
+		$('.tsbifw-strategy-field').hide();
+		$('.vision-field').show();
+	});
+
+	// Deselect all excluded categories
+	$(document).on('click', '#tsbifw-deselect-all-categories', function(e) {
+		e.preventDefault();
+		$('#tsbifw_excluded_categories option').prop('selected', false);
+	});
+
+	updateGatewayGuidance();
+
+	// Password visibility toggle
+	$(document).on('click', '.tsbifw-toggle-pw, #tsbifw-toggle-api-key', function(e) {
+		e.preventDefault();
+		var targetId = $(this).data('target') || 'tsbifw_api_key';
+		var input = $('#' + targetId);
+		var icon = $(this).find('.dashicons');
+		if (input.attr('type') === 'password') {
+			input.attr('type', 'text');
+			icon.removeClass('dashicons-visibility').addClass('dashicons-hidden');
+		} else {
+			input.attr('type', 'password');
+			icon.removeClass('dashicons-hidden').addClass('dashicons-visibility');
 		}
 	});
 
@@ -232,38 +357,54 @@ jQuery(document).ready(function($) {
 		});
 	});
 
-	// Load models list dynamically on settings page load
-	if ($('#tsbifw-embeddings-model-skeleton').length) {
+	// Load models list dynamically based on active or selected gateway
+	function loadModelsForGateway(gateway) {
+		var $embSkeleton = $('#tsbifw-embeddings-model-skeleton');
+		var $visSkeleton = $('#tsbifw-vision-model-skeleton');
+		var $embeddingSelect = $('#tsbifw_embeddings_model');
+		var $visionSelect = $('#tsbifw_vision_model');
+
+		if (!$embSkeleton.length) return;
+
+		gateway = gateway || $('#tsbifw_api_gateway').val() || 'openrouter';
+
+		$embSkeleton.show().text('').css('animation', '');
+		$visSkeleton.show().text('').css('animation', '');
+		$embeddingSelect.hide().empty();
+		$visionSelect.hide().empty();
+
 		$.ajax({
 			url: tsbifw_admin_params.ajax_url,
 			type: 'POST',
 			data: {
 				action: 'tsbifw_fetch_openrouter_models',
+				gateway: gateway,
 				security: tsbifw_admin_params.nonce
 			},
 			success: function(response) {
 				if (response.success) {
-					var $embeddingSelect = $('#tsbifw_embeddings_model');
-					var $visionSelect = $('#tsbifw_vision_model');
-
 					var selectedEmbedding = $embeddingSelect.data('selected');
 					var selectedVision = $visionSelect.data('selected');
 
 					// Populate embeddings
-					response.data.embedding_models.forEach(function(model) {
-						var isSelected = (model.id == selectedEmbedding) ? 'selected' : '';
-						$embeddingSelect.append('<option value="' + model.id + '" ' + isSelected + '>' + (model.name || model.id) + '</option>');
-					});
+					if (response.data.embedding_models && response.data.embedding_models.length > 0) {
+						response.data.embedding_models.forEach(function(model) {
+							var isSelected = (model.id == selectedEmbedding) ? 'selected' : '';
+							$embeddingSelect.append('<option value="' + model.id + '" ' + isSelected + '>' + (model.name || model.id) + '</option>');
+						});
+					}
 
 					// Populate vision
-					response.data.vision_models.forEach(function(model) {
-						var isSelected = (model.id == selectedVision) ? 'selected' : '';
-						$visionSelect.append('<option value="' + model.id + '" ' + isSelected + '>' + (model.name || model.id) + '</option>');
-					});
+					if (response.data.vision_models && response.data.vision_models.length > 0) {
+						response.data.vision_models.forEach(function(model) {
+							var isSelected = (model.id == selectedVision) ? 'selected' : '';
+							$visionSelect.append('<option value="' + model.id + '" ' + isSelected + '>' + (model.name || model.id) + '</option>');
+						});
+					}
 
 					// Hide skeleton and show select dropdowns
-					$('#tsbifw-embeddings-model-skeleton').hide();
-					$('#tsbifw-vision-model-skeleton').hide();
+					$embSkeleton.hide();
+					$visSkeleton.hide();
 					$embeddingSelect.show();
 					$visionSelect.show();
 				} else {
@@ -274,6 +415,10 @@ jQuery(document).ready(function($) {
 				$('.tsbifw-skeleton-loader').text('Failed to load models.').css('animation', 'none');
 			}
 		});
+	}
+
+	if ($('#tsbifw-embeddings-model-skeleton').length) {
+		loadModelsForGateway();
 	}
 
 	function copyTextToClipboard(text, $btn, originalLabel) {
@@ -311,10 +456,38 @@ jQuery(document).ready(function($) {
 		copyTextToClipboard(logText, $(this), 'Copy Logs');
 	});
 
+	function startAdminScanningAnimation() {
+		var $wrap = $('#tsbifw-admin-preview-wrapper');
+		$wrap.find('.tsbifw-scan-container').show().addClass('tsbifw-scan-active');
+	}
+
+	function stopAdminScanningAnimation() {
+		var $wrap = $('#tsbifw-admin-preview-wrapper');
+		$wrap.find('.tsbifw-scan-container').hide().removeClass('tsbifw-scan-active');
+	}
+
 	// 3. Test Search Tab Functionality
 	if ($('#tsbifw-admin-drag-zone').length) {
 		var $adminDragZone = $('#tsbifw-admin-drag-zone');
 		var $adminFileInput = $('#tsbifw-admin-file-input');
+		var $adminCameraInput = $('#tsbifw-admin-camera-input');
+
+		$('#tsbifw-admin-camera-btn').on('click', function(e) {
+			e.preventDefault();
+			if ($adminCameraInput.length) {
+				$adminCameraInput[0].click();
+			}
+		});
+
+		$adminCameraInput.on('click', function(e) {
+			e.stopPropagation();
+		});
+
+		$adminCameraInput.on('change', function() {
+			if (this.files && this.files[0]) {
+				handleAdminFileSelection(this.files[0]);
+			}
+		});
 
 		$adminDragZone.on('click', function() {
 			if ($adminFileInput.length) {
@@ -357,8 +530,7 @@ jQuery(document).ready(function($) {
 			var selection = canvasEl.querySelector('cropper-selection');
 			if (!selection) return;
 
-			$('#tsbifw-admin-preview-wrapper').find('.tsbifw-scanner-bar').show();
-			$('#tsbifw-admin-preview-wrapper').find('.tsbifw-scanning-overlay').show();
+			startAdminScanningAnimation();
 			startAdminStatusRotation();
 			$('#tsbifw-admin-results-grid').hide().html('');
 
@@ -369,8 +541,7 @@ jQuery(document).ready(function($) {
 				canvas.toBlob(function(blob) {
 					if (!blob) {
 						stopAdminStatusRotation();
-						$('#tsbifw-admin-preview-wrapper').find('.tsbifw-scanner-bar').hide();
-						$('#tsbifw-admin-preview-wrapper').find('.tsbifw-scanning-overlay').hide();
+						stopAdminScanningAnimation();
 						$('#tsbifw-admin-search-status').hide().removeClass('pulse').text('');
 						alert('Failed to process cropped image.');
 						return;
@@ -380,8 +551,7 @@ jQuery(document).ready(function($) {
 				}, 'image/jpeg', 0.9);
 			}).catch(function() {
 				stopAdminStatusRotation();
-				$('#tsbifw-admin-preview-wrapper').find('.tsbifw-scanner-bar').hide();
-				$('#tsbifw-admin-preview-wrapper').find('.tsbifw-scanning-overlay').hide();
+				stopAdminScanningAnimation();
 				$('#tsbifw-admin-search-status').hide().removeClass('pulse').text('');
 				alert('Failed to crop image.');
 			});
@@ -428,6 +598,7 @@ jQuery(document).ready(function($) {
 	function resetAdminSearchUI() {
 		stopAdminStatusRotation();
 		$('#tsbifw-admin-file-input').val('');
+		$('#tsbifw-admin-camera-input').val('');
 		var previewImg = document.getElementById('tsbifw-admin-preview-image');
 		if (previewImg) {
 			previewImg.setAttribute('src', '');
@@ -435,9 +606,9 @@ jQuery(document).ready(function($) {
 		$('#tsbifw-admin-cropper-canvas').hide();
 		$('#tsbifw-admin-preview-wrapper').hide();
 		$('#tsbifw-admin-drag-zone').show();
-		$('#tsbifw-admin-preview-wrapper').find('.tsbifw-scanner-bar').hide();
-		$('#tsbifw-admin-preview-wrapper').find('.tsbifw-scanning-overlay').hide();
+		stopAdminScanningAnimation();
 		$('#tsbifw-admin-search-status').hide().removeClass('pulse').text('');
+		$('#tsbifw-admin-results-toolbar').hide();
 		$('#tsbifw-admin-results-grid').hide().html('');
 	}
 
@@ -488,6 +659,7 @@ jQuery(document).ready(function($) {
 				}
 			}
 
+			$('#tsbifw-admin-results-toolbar').hide();
 			$('#tsbifw-admin-results-grid').hide().html('');
 			$('#tsbifw-admin-search-status').hide().text('');
 		};
@@ -498,9 +670,7 @@ jQuery(document).ready(function($) {
 		if (tsbifw_admin_params.max_upload_size && file.size > tsbifw_admin_params.max_upload_size) {
 			alert(tsbifw_admin_params.strings.file_too_large);
 			stopAdminStatusRotation();
-			// Stop scanning animation
-			$('#tsbifw-admin-preview-wrapper').find('.tsbifw-scanner-bar').hide();
-			$('#tsbifw-admin-preview-wrapper').find('.tsbifw-scanning-overlay').hide();
+			stopAdminScanningAnimation();
 			$('#tsbifw-admin-search-status').hide().removeClass('pulse').text('');
 			return;
 		}
@@ -508,6 +678,9 @@ jQuery(document).ready(function($) {
 		var formData = new FormData();
 		formData.append('image', file);
 		formData.append('sandbox', '1');
+		if ($('#tsbifw-admin-include-hidden').is(':checked')) {
+			formData.append('include_hidden', '1');
+		}
 		formData.append('security', tsbifw_admin_params.nonce);
 
 		$.ajax({
@@ -521,38 +694,54 @@ jQuery(document).ready(function($) {
 			},
 			success: function(response) {
 				stopAdminStatusRotation();
-				// Stop scanning animation
-				$('#tsbifw-admin-preview-wrapper').find('.tsbifw-scanner-bar').hide();
-				$('#tsbifw-admin-preview-wrapper').find('.tsbifw-scanning-overlay').hide();
+				stopAdminScanningAnimation();
 				$('#tsbifw-admin-search-status').hide().removeClass('pulse');
 
+				var products = Array.isArray(response) ? response : (response && response.products ? response.products : []);
+				var token = response && response.token ? response.token : '';
+				var redirectUrl = response && response.redirect_url ? response.redirect_url : '';
+
 				var $grid = $('#tsbifw-admin-results-grid');
+				var $toolbar = $('#tsbifw-admin-results-toolbar');
 				$grid.html('').show();
 
-				if (!response || response.length === 0) {
+				if (!products || products.length === 0) {
+					$toolbar.hide();
 					$grid.append('<div class="tsbifw-empty-msg">' + tsbifw_admin_params.strings.no_results + '</div>');
 					return;
 				}
 
-				response.forEach(function(product) {
+				if (redirectUrl) {
+					$('#tsbifw-admin-view-in-store').attr('href', redirectUrl);
+					$('#tsbifw-admin-results-count').text(
+						products.length === 1 ? '1 product matched' : products.length + ' products matched'
+					);
+					$toolbar.css('display', 'flex');
+				} else {
+					$toolbar.hide();
+				}
+
+				products.forEach(function(product) {
 					var badgeHtml = product.score ? '<span class="tsbifw-similarity-badge">' + tsbifw_admin_params.strings.similarity_label + ' ' + product.score + '</span>' : '';
-					var cartBtnHtml = product.is_in_stock ? '<a href="' + product.add_to_cart_url + '" target="_blank" class="tsbifw-btn tsbifw-btn-primary">' + tsbifw_admin_params.strings.add_to_cart + '</a>' : '';
+					var hiddenBadgeHtml = product.is_catalog_visible === false ? '<span class="tsbifw-hidden-badge">' + (tsbifw_admin_params.strings.hidden_from_catalog || 'Hidden from Catalog') + '</span>' : '';
+					var cartBtnHtml = product.is_in_stock ? '<a href="' + product.add_to_cart_url + '" target="_blank" class="tsbifw-btn tsbifw-btn-primary tsbifw-trackable-link">' + tsbifw_admin_params.strings.add_to_cart + '</a>' : '';
 
 					var cardHtml =
-						'<div class="tsbifw-product-card">' +
+						'<div class="tsbifw-product-card" data-product-id="' + product.id + '">' +
 							badgeHtml +
+							hiddenBadgeHtml +
 							'<div class="tsbifw-card-image-wrapper">' +
-								'<a href="' + product.permalink + '" target="_blank">' +
+								'<a href="' + product.permalink + '" target="_blank" class="tsbifw-trackable-link">' +
 									'<img class="tsbifw-card-image" src="' + product.image + '" alt="' + product.title + '" />' +
 								'</a>' +
 							'</div>' +
 							'<div class="tsbifw-card-body">' +
 								'<h4 class="tsbifw-card-title">' +
-									'<a href="' + product.permalink + '" target="_blank">' + product.title + '</a>' +
+									'<a href="' + product.permalink + '" target="_blank" class="tsbifw-trackable-link">' + product.title + '</a>' +
 								'</h4>' +
 								'<div class="tsbifw-card-price">' + product.price_html + '</div>' +
 								'<div class="tsbifw-card-actions">' +
-									'<a href="' + product.permalink + '" target="_blank" class="tsbifw-btn tsbifw-btn-secondary">' + tsbifw_admin_params.strings.view_product + '</a>' +
+									'<a href="' + product.permalink + '" target="_blank" class="tsbifw-btn tsbifw-btn-secondary tsbifw-trackable-link">' + tsbifw_admin_params.strings.view_product + '</a>' +
 									cartBtnHtml +
 								'</div>' +
 							'</div>' +
@@ -560,11 +749,36 @@ jQuery(document).ready(function($) {
 
 					$grid.append(cardHtml);
 				});
+
+				// Track clicks on sandbox product cards for CTR parity and testing
+				if (token && tsbifw_admin_params.track_endpoint) {
+					$grid.find('.tsbifw-trackable-link').on('click', function() {
+						var $card = $(this).closest('.tsbifw-product-card');
+						var productId = parseInt($card.data('product-id'), 10);
+						if (productId > 0) {
+							var payload = JSON.stringify({
+								token: token,
+								product_id: productId,
+								security: (tsbifw_admin_params && tsbifw_admin_params.nonce) || ''
+							});
+							if (navigator.sendBeacon) {
+								var blob = new Blob([payload], { type: 'application/json' });
+								navigator.sendBeacon(tsbifw_admin_params.track_endpoint, blob);
+							} else if (window.fetch) {
+								fetch(tsbifw_admin_params.track_endpoint, {
+									method: 'POST',
+									headers: { 'Content-Type': 'application/json' },
+									body: payload,
+									keepalive: true
+								});
+							}
+						}
+					});
+				}
 			},
 			error: function(xhr) {
 				stopAdminStatusRotation();
-				$('#tsbifw-admin-preview-wrapper').find('.tsbifw-scanner-bar').hide();
-				$('#tsbifw-admin-preview-wrapper').find('.tsbifw-scanning-overlay').hide();
+				stopAdminScanningAnimation();
 
 				var errorMsg = tsbifw_admin_params.strings.error;
 				if (xhr.responseJSON && xhr.responseJSON.message) {
@@ -622,17 +836,165 @@ jQuery(document).ready(function($) {
 		});
 	});
 
-	// Toggle API Key visibility
-	$('#tsbifw-toggle-api-key').on('click', function(e) {
-		e.preventDefault();
-		var $input = $('#tsbifw_api_key');
-		var $icon = $(this).find('.dashicons');
-		if ($input.attr('type') === 'password') {
-			$input.attr('type', 'text');
-			$icon.removeClass('dashicons-visibility').addClass('dashicons-hidden');
-		} else {
-			$input.attr('type', 'password');
-			$icon.removeClass('dashicons-hidden').addClass('dashicons-visibility');
+	// Clear all analytics data
+	$('#tsbifw-clear-analytics').on('click', function() {
+		if (!confirm('Are you sure you want to permanently delete all visual search analytics records and saved thumbnails? This cannot be undone.')) {
+			return;
 		}
+
+		var $btn = $(this);
+		var originalText = $btn.text();
+		$btn.prop('disabled', true).text('Clearing...');
+
+		$.ajax({
+			url: tsbifw_admin_params.ajax_url,
+			type: 'POST',
+			data: {
+				action: 'tsbifw_clear_analytics',
+				security: tsbifw_admin_params.nonce
+			},
+			success: function(response) {
+				if (response.success) {
+					alert(response.data.message || 'Analytics data cleared.');
+					window.location.reload();
+				} else {
+					alert(response.data ? response.data : 'Failed to clear analytics.');
+					$btn.text(originalText).prop('disabled', false);
+				}
+			},
+			error: function() {
+				alert('Network error occurred while clearing analytics.');
+				$btn.text(originalText).prop('disabled', false);
+			}
+		});
 	});
+
+	// Prune expired analytics records
+	$('#tsbifw-prune-analytics').on('click', function() {
+		if (!confirm('Prune expired visual search analytics records and thumbnails based on the retention setting?')) {
+			return;
+		}
+
+		var $btn = $(this);
+		var originalText = $btn.text();
+		$btn.prop('disabled', true).text('Pruning...');
+
+		$.ajax({
+			url: tsbifw_admin_params.ajax_url,
+			type: 'POST',
+			data: {
+				action: 'tsbifw_prune_analytics',
+				security: tsbifw_admin_params.nonce
+			},
+			success: function(response) {
+				if (response.success) {
+					alert(response.data.message || 'Pruning complete.');
+					window.location.reload();
+				} else {
+					alert(response.data ? response.data : 'Failed to prune analytics.');
+					$btn.text(originalText).prop('disabled', false);
+				}
+			},
+			error: function() {
+				alert('Network error occurred while pruning analytics.');
+				$btn.text(originalText).prop('disabled', false);
+			}
+		});
+	});
+
+	// Analytics AJAX pagination, filter, and reload handling
+	var $analyticsDashboard = $('.tsbifw-analytics-dashboard');
+	if ($analyticsDashboard.length) {
+		var currentAnalyticsPage = parseInt($analyticsDashboard.data('current-page'), 10) || 1;
+		var currentAnalyticsFilter = $analyticsDashboard.data('current-filter') || 'all';
+
+		function fetchAnalyticsPage(page, filter, isReload) {
+			page = page || currentAnalyticsPage;
+			filter = filter || currentAnalyticsFilter;
+
+			var $tableWrap = $('#tsbifw-analytics-table-wrap');
+			var $reloadBtn = $('#tsbifw-reload-analytics');
+			var $reloadIcon = $reloadBtn.find('.dashicons');
+
+			if (isReload) {
+				$reloadBtn.prop('disabled', true);
+				$reloadIcon.addClass('tsbifw-spin');
+			}
+			$tableWrap.css('opacity', '0.5');
+
+			$.ajax({
+				url: tsbifw_admin_params.ajax_url,
+				type: 'POST',
+				data: {
+					action: 'tsbifw_get_analytics_page',
+					security: tsbifw_admin_params.nonce,
+					page: page,
+					filter: filter
+				},
+				success: function(response) {
+					if (response.success && response.data) {
+						currentAnalyticsPage = response.data.current_page;
+						currentAnalyticsFilter = filter;
+						$analyticsDashboard.data('current-page', currentAnalyticsPage);
+						$analyticsDashboard.data('current-filter', currentAnalyticsFilter);
+
+						$('#tsbifw-analytics-tbody').html(response.data.rows_html);
+						$('#tsbifw-analytics-pagination').html(response.data.pagination_html);
+
+						if (response.data.metrics) {
+							$('#tsbifw-metric-total-searches').text(response.data.metrics.total_searches);
+							$('#tsbifw-metric-ctr').text(response.data.metrics.ctr + '%');
+							$('#tsbifw-metric-matched').text(response.data.metrics.matched_searches);
+							$('#tsbifw-metric-zero').text(response.data.metrics.zero_result_searches);
+
+							var zeroCount = parseInt(response.data.metrics.zero_result_searches, 10) || 0;
+							var $zeroBadge = $('#tsbifw-filter-zero-count');
+							if (zeroCount > 0) {
+								$zeroBadge.text(zeroCount).show();
+							} else {
+								$zeroBadge.hide();
+							}
+						}
+					} else {
+						alert(response.data ? response.data : 'Failed to load analytics page.');
+					}
+				},
+				error: function() {
+					alert('Network error occurred while fetching analytics page.');
+				},
+				complete: function() {
+					$tableWrap.css('opacity', '1');
+					if (isReload) {
+						$reloadBtn.prop('disabled', false);
+						$reloadIcon.removeClass('tsbifw-spin');
+					}
+				}
+			});
+		}
+
+		// Handle pagination button click
+		$(document).on('click', '.tsbifw-analytics-page-btn', function(e) {
+			e.preventDefault();
+			var targetPage = parseInt($(this).data('page'), 10);
+			if (targetPage && !$(this).is(':disabled')) {
+				fetchAnalyticsPage(targetPage, currentAnalyticsFilter, false);
+			}
+		});
+
+		// Handle filter button click
+		$(document).on('click', '.tsbifw-analytics-filter-btn', function(e) {
+			e.preventDefault();
+			var selectedFilter = $(this).data('filter') || 'all';
+			$('.tsbifw-analytics-filter-btn').removeClass('button-primary').addClass('button-secondary');
+			$(this).removeClass('button-secondary').addClass('button-primary');
+			fetchAnalyticsPage(1, selectedFilter, false);
+		});
+
+		// Handle reload button click
+		$('#tsbifw-reload-analytics').on('click', function(e) {
+			e.preventDefault();
+			fetchAnalyticsPage(currentAnalyticsPage, currentAnalyticsFilter, true);
+		});
+	}
 });
+

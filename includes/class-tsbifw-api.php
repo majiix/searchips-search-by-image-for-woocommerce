@@ -36,11 +36,36 @@ class TSBIFW_API {
 	private function __construct() {}
 
 	/**
-	 * Retrieve OpenRouter API Key from settings.
+	 * Get the currently active AI gateway.
 	 *
+	 * @return string Gateway identifier ('openrouter', 'openai', 'gemini', etc.).
+	 */
+	public function get_active_gateway() {
+
+		$allowed_gateways = apply_filters( 'tsbifw_allowed_gateways', array( 'openrouter' ) );
+		$gateway          = get_option( 'tsbifw_api_gateway', 'openrouter' );
+		if ( ! in_array( $gateway, $allowed_gateways, true ) ) {
+			$gateway = 'openrouter';
+		}
+		return $gateway;
+	}
+
+	/**
+	 * Retrieve API Key for the active gateway from settings.
+	 *
+	 * @param string|null $gateway Optional specific gateway identifier.
 	 * @return string
 	 */
-	public function get_api_key() {
+	public function get_api_key( $gateway = null ) {
+		if ( null === $gateway ) {
+			$gateway = $this->get_active_gateway();
+		}
+		if ( 'openai' === $gateway ) {
+			return get_option( 'tsbifw_api_key_openai', '' );
+		}
+		if ( 'gemini' === $gateway ) {
+			return get_option( 'tsbifw_api_key_gemini', '' );
+		}
 		return get_option( 'tsbifw_api_key', '' );
 	}
 
@@ -173,21 +198,24 @@ class TSBIFW_API {
 	}
 
 	/**
-	 * Fetch vector embeddings from OpenRouter.
+	 * Fetch vector embeddings from the active AI Gateway.
 	 *
 	 * @param string $base64_image Base64 encoded image data URL.
 	 * @return array|WP_Error Array of floats representing the embedding vector, or WP_Error.
 	 */
 	public function get_embeddings( $base64_image ) {
-		$api_key = $this->get_api_key();
+		$gateway = $this->get_active_gateway();
+		$api_key = $this->get_api_key( $gateway );
 		if ( empty( $api_key ) ) {
-			return new WP_Error( 'tsbifw_missing_api_key', esc_html__( 'OpenRouter API Key is missing. Please configure it in WooCommerce settings.', 'searchips-search-by-image-for-woocommerce' ) );
+			// translators: %s: Gateway name
+			return new WP_Error( 'tsbifw_missing_api_key', sprintf( esc_html__( '%s API Key is missing. Please configure it in WooCommerce settings.', 'searchips-search-by-image-for-woocommerce' ), ucfirst( $gateway ) ) );
 		}
 
 		$model = get_option( 'tsbifw_embeddings_model', 'google/gemini-embedding-2' );
 		if ( empty( $model ) ) {
 			$model = 'google/gemini-embedding-2';
 		}
+		$model = apply_filters( 'tsbifw_api_model', $model, $gateway, 'embeddings' );
 
 		$body = array(
 			'model' => $model,
@@ -204,6 +232,7 @@ class TSBIFW_API {
 				),
 			),
 		);
+		$body = apply_filters( 'tsbifw_embeddings_request_body', $body, $gateway, $model, $base64_image );
 
 		$headers = array(
 			'Authorization' => 'Bearer ' . $api_key,
@@ -211,46 +240,55 @@ class TSBIFW_API {
 			'HTTP-Referer'  => get_home_url(),
 			'X-Title'       => 'Searchips WP',
 		);
+		$headers = apply_filters( 'tsbifw_api_headers', $headers, $gateway, 'embeddings' );
+
+		$api_url = apply_filters( 'tsbifw_api_url', 'https://openrouter.ai/api/v1/embeddings', $gateway, 'embeddings' );
 
 		TSBIFW_Logger::log(
-			sprintf( 'Sending vector embeddings request to OpenRouter for model: %s', $model ),
+			sprintf( 'Sending vector embeddings request to %s for model: %s', ucfirst( $gateway ), $model ),
 			array(
+				'gateway'     => $gateway,
 				'model'       => $model,
 				'image_bytes' => strlen( $base64_image ),
 			)
 		);
 
 		$response = wp_remote_post(
-			'https://openrouter.ai/api/v1/embeddings',
+			$api_url,
 			array(
 				'method'      => 'POST',
 				'headers'     => $headers,
-				'body'        => wp_json_encode( $body ),
+				'body'        => is_array( $body ) ? wp_json_encode( $body ) : $body,
 				'data_format' => 'body',
 				'timeout'     => 45,
 			)
 		);
 
 		if ( is_wp_error( $response ) ) {
-			TSBIFW_Logger::log( 'OpenRouter Embeddings request failed (WP_Error).', array( 'error' => $response->get_error_message() ) );
+			TSBIFW_Logger::log( sprintf( '%s Embeddings request failed (WP_Error).', ucfirst( $gateway ) ), array( 'error' => $response->get_error_message() ) );
 			return $response;
 		}
 
 		$response_code = wp_remote_retrieve_response_code( $response );
 		$response_body = wp_remote_retrieve_body( $response );
 
+		$parsed_custom = apply_filters( 'tsbifw_parse_embeddings_response', null, $response_body, $gateway, $response_code );
+		if ( null !== $parsed_custom ) {
+			return $parsed_custom;
+		}
+
 		if ( 200 !== $response_code ) {
-			$error_data = json_decode( $response_body, true );
+			$error_data   = json_decode( $response_body, true );
 			$api_err_code = isset( $error_data['error']['code'] ) ? $error_data['error']['code'] : $response_code;
-			$err_msg    = isset( $error_data['error']['message'] ) ? $error_data['error']['message'] : esc_html__( 'Unknown API error.', 'searchips-search-by-image-for-woocommerce' );
-			// translators: 1: HTTP Response Code, 2: API Error Code
-			$log_msg = sprintf( 'OpenRouter Embeddings HTTP Error: %1$d (API Code: %2$s)', $response_code, $api_err_code );
+			$err_msg      = isset( $error_data['error']['message'] ) ? $error_data['error']['message'] : esc_html__( 'Unknown API error.', 'searchips-search-by-image-for-woocommerce' );
+			$log_msg      = sprintf( '%1$s Embeddings HTTP Error: %2$d (API Code: %3$s)', ucfirst( $gateway ), $response_code, $api_err_code );
 			TSBIFW_Logger::log( $log_msg, array( 'response' => $error_data ) );
 			return new WP_Error(
 				'tsbifw_api_error',
 				sprintf(
-					// translators: 1: API Error Code, 2: Error message
-					esc_html__( 'OpenRouter API Error [Code %1$s]: %2$s', 'searchips-search-by-image-for-woocommerce' ),
+					// translators: 1: Gateway, 2: API Error Code, 3: Error message
+					esc_html__( '%1$s API Error [Code %2$s]: %3$s', 'searchips-search-by-image-for-woocommerce' ),
+					ucfirst( $gateway ),
 					$api_err_code,
 					$err_msg
 				)
@@ -259,7 +297,7 @@ class TSBIFW_API {
 
 		$data = json_decode( $response_body, true );
 		if ( ! isset( $data['data'][0]['embedding'] ) || ! is_array( $data['data'][0]['embedding'] ) ) {
-			TSBIFW_Logger::log( 'Embeddings formatting mismatch in OpenRouter response.', array( 'response' => $data ) );
+			TSBIFW_Logger::log( 'Embeddings formatting mismatch in API response.', array( 'response' => $data ) );
 			return new WP_Error( 'tsbifw_api_format_error', esc_html__( 'Failed to extract embedding vector from API response.', 'searchips-search-by-image-for-woocommerce' ) );
 		}
 
@@ -269,21 +307,24 @@ class TSBIFW_API {
 	}
 
 	/**
-	 * Fetch image text description from OpenRouter.
+	 * Fetch image text description from the active AI Gateway.
 	 *
 	 * @param string $base64_image Base64 encoded image data URL.
 	 * @return string|WP_Error Descriptive search phrase, or WP_Error.
 	 */
 	public function get_description( $base64_image ) {
-		$api_key = $this->get_api_key();
+		$gateway = $this->get_active_gateway();
+		$api_key = $this->get_api_key( $gateway );
 		if ( empty( $api_key ) ) {
-			return new WP_Error( 'tsbifw_missing_api_key', esc_html__( 'OpenRouter API Key is missing. Please configure it in WooCommerce settings.', 'searchips-search-by-image-for-woocommerce' ) );
+			// translators: %s: Gateway name
+			return new WP_Error( 'tsbifw_missing_api_key', sprintf( esc_html__( '%s API Key is missing. Please configure it in WooCommerce settings.', 'searchips-search-by-image-for-woocommerce' ), ucfirst( $gateway ) ) );
 		}
 
 		$model = get_option( 'tsbifw_vision_model', 'google/gemini-2.5-flash' );
 		if ( empty( $model ) ) {
 			$model = 'google/gemini-2.5-flash';
 		}
+		$model = apply_filters( 'tsbifw_api_model', $model, $gateway, 'chat' );
 
 		$body = array(
 			'model'    => $model,
@@ -305,6 +346,7 @@ class TSBIFW_API {
 				),
 			),
 		);
+		$body = apply_filters( 'tsbifw_chat_request_body', $body, $gateway, $model, $base64_image );
 
 		$headers = array(
 			'Authorization' => 'Bearer ' . $api_key,
@@ -312,46 +354,55 @@ class TSBIFW_API {
 			'HTTP-Referer'  => get_home_url(),
 			'X-Title'       => 'Searchips WP',
 		);
+		$headers = apply_filters( 'tsbifw_api_headers', $headers, $gateway, 'chat' );
+
+		$api_url = apply_filters( 'tsbifw_api_url', 'https://openrouter.ai/api/v1/chat/completions', $gateway, 'chat' );
 
 		TSBIFW_Logger::log(
-			sprintf( 'Sending vision description request to OpenRouter for model: %s', $model ),
+			sprintf( 'Sending vision description request to %s for model: %s', ucfirst( $gateway ), $model ),
 			array(
+				'gateway'     => $gateway,
 				'model'       => $model,
 				'image_bytes' => strlen( $base64_image ),
 			)
 		);
 
 		$response = wp_remote_post(
-			'https://openrouter.ai/api/v1/chat/completions',
+			$api_url,
 			array(
 				'method'      => 'POST',
 				'headers'     => $headers,
-				'body'        => wp_json_encode( $body ),
+				'body'        => is_array( $body ) ? wp_json_encode( $body ) : $body,
 				'data_format' => 'body',
 				'timeout'     => 45,
 			)
 		);
 
 		if ( is_wp_error( $response ) ) {
-			TSBIFW_Logger::log( 'OpenRouter Vision request failed (WP_Error).', array( 'error' => $response->get_error_message() ) );
+			TSBIFW_Logger::log( sprintf( '%s Vision request failed (WP_Error).', ucfirst( $gateway ) ), array( 'error' => $response->get_error_message() ) );
 			return $response;
 		}
 
 		$response_code = wp_remote_retrieve_response_code( $response );
 		$response_body = wp_remote_retrieve_body( $response );
 
+		$parsed_custom = apply_filters( 'tsbifw_parse_chat_response', null, $response_body, $gateway, $response_code );
+		if ( null !== $parsed_custom ) {
+			return $parsed_custom;
+		}
+
 		if ( 200 !== $response_code ) {
-			$error_data = json_decode( $response_body, true );
+			$error_data   = json_decode( $response_body, true );
 			$api_err_code = isset( $error_data['error']['code'] ) ? $error_data['error']['code'] : $response_code;
-			$err_msg    = isset( $error_data['error']['message'] ) ? $error_data['error']['message'] : esc_html__( 'Unknown API error.', 'searchips-search-by-image-for-woocommerce' );
-			// translators: 1: HTTP Response Code, 2: API Error Code
-			$log_msg = sprintf( 'OpenRouter Vision HTTP Error: %1$d (API Code: %2$s)', $response_code, $api_err_code );
+			$err_msg      = isset( $error_data['error']['message'] ) ? $error_data['error']['message'] : esc_html__( 'Unknown API error.', 'searchips-search-by-image-for-woocommerce' );
+			$log_msg      = sprintf( '%1$s Vision HTTP Error: %2$d (API Code: %3$s)', ucfirst( $gateway ), $response_code, $api_err_code );
 			TSBIFW_Logger::log( $log_msg, array( 'response' => $error_data ) );
 			return new WP_Error(
 				'tsbifw_api_error',
 				sprintf(
-					// translators: 1: API Error Code, 2: Error message
-					esc_html__( 'OpenRouter API Error [Code %1$s]: %2$s', 'searchips-search-by-image-for-woocommerce' ),
+					// translators: 1: Gateway, 2: API Error Code, 3: Error message
+					esc_html__( '%1$s API Error [Code %2$s]: %3$s', 'searchips-search-by-image-for-woocommerce' ),
+					ucfirst( $gateway ),
 					$api_err_code,
 					$err_msg
 				)
@@ -360,7 +411,7 @@ class TSBIFW_API {
 
 		$data = json_decode( $response_body, true );
 		if ( ! isset( $data['choices'][0]['message']['content'] ) ) {
-			TSBIFW_Logger::log( 'Vision formatting mismatch in OpenRouter response.', array( 'response' => $data ) );
+			TSBIFW_Logger::log( 'Vision formatting mismatch in API response.', array( 'response' => $data ) );
 			return new WP_Error( 'tsbifw_api_format_error', esc_html__( 'Failed to extract text description from API response.', 'searchips-search-by-image-for-woocommerce' ) );
 		}
 
@@ -370,8 +421,16 @@ class TSBIFW_API {
 		return $description;
 	}
 
-	public function get_models( $modality = '' ) {
-		$transient_key = 'tsbifw_models_' . md5( $modality );
+	public function get_models( $modality = '', $gateway = null ) {
+		if ( empty( $gateway ) ) {
+			$gateway = $this->get_active_gateway();
+		}
+		$custom_models = apply_filters( 'tsbifw_get_models', null, $modality, $gateway );
+		if ( null !== $custom_models ) {
+			return $custom_models;
+		}
+
+		$transient_key = 'tsbifw_models_' . md5( $modality . '_' . $gateway );
 		$cached        = get_transient( $transient_key );
 
 		if ( false !== $cached ) {
