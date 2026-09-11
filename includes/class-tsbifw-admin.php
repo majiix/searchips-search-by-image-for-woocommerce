@@ -52,10 +52,12 @@ class TSBIFW_Admin {
 		add_action( 'added_option', array( $this, 'log_option_added' ), 10, 2 );
 
 		// Media Library column and filter hooks.
-		add_filter( 'manage_media_columns', array( $this, 'add_media_columns' ) );
-		add_action( 'manage_media_custom_column', array( $this, 'render_media_column' ), 10, 2 );
-		add_action( 'restrict_manage_posts', array( $this, 'add_media_filter_dropdown' ) );
-		add_action( 'pre_get_posts', array( $this, 'filter_media_by_indexed_status' ) );
+		if ( 'yes' === get_option( 'tsbifw_enable_media_column', 'yes' ) ) {
+			add_filter( 'manage_media_columns', array( $this, 'add_media_columns' ) );
+			add_action( 'manage_media_custom_column', array( $this, 'render_media_column' ), 10, 2 );
+			add_action( 'restrict_manage_posts', array( $this, 'add_media_filter_dropdown' ) );
+			add_action( 'pre_get_posts', array( $this, 'filter_media_by_indexed_status' ) );
+		}
 
 		// Hook when search strategy changes.
 		add_action( 'update_option_tsbifw_strategy', array( $this, 'on_strategy_change' ), 10, 2 );
@@ -227,6 +229,9 @@ class TSBIFW_Admin {
 		) );
 		register_setting( 'tsbifw_settings_group', 'tsbifw_auto_index_on_save', array(
 			'sanitize_callback' => array( $this, 'sanitize_yes_no' ),
+		) );
+		register_setting( 'tsbifw_settings_group', 'tsbifw_enable_media_column', array(
+			'sanitize_callback' => array( $this, 'sanitize_yes_no_default_yes' ),
 		) );
 		register_setting( 'tsbifw_settings_group', 'tsbifw_skip_unchanged_images_hash', array(
 			'sanitize_callback' => array( $this, 'sanitize_pro_yes_no' ),
@@ -404,6 +409,7 @@ class TSBIFW_Admin {
 								$openai_key                 = get_option( 'tsbifw_api_key_openai', '' );
 								$gemini_key                 = get_option( 'tsbifw_api_key_gemini', '' );
 								$auto_index_on_save         = get_option( 'tsbifw_auto_index_on_save', 'no' );
+								$enable_media_column        = get_option( 'tsbifw_enable_media_column', 'yes' );
 								$skip_unchanged_images_hash = get_option( 'tsbifw_skip_unchanged_images_hash', 'no' );
 								$default_strategies         = array(
 									'embeddings' => esc_html__( 'Strategy 1: Multimodal Vector Embeddings (Recommended)', 'searchips-search-by-image-for-woocommerce' ),
@@ -569,6 +575,17 @@ class TSBIFW_Admin {
 												'pro-feature-hashing'
 											);
 											?>
+										</td>
+									</tr>
+
+									<tr>
+										<th scope="row"><?php esc_html_e( 'Media Library Integration', 'searchips-search-by-image-for-woocommerce' ); ?></th>
+										<td>
+											<label for="tsbifw_enable_media_column">
+												<input type="checkbox" name="tsbifw_enable_media_column" id="tsbifw_enable_media_column" value="yes" <?php checked( $enable_media_column, 'yes' ); ?> />
+												<?php esc_html_e( 'Display Indexed Status column and filters in Media Library', 'searchips-search-by-image-for-woocommerce' ); ?>
+											</label>
+											<p class="description"><?php esc_html_e( 'Shows an "Indexed Status" badge and filter dropdown in the WordPress Media Library list view. Disable to reduce database queries on stores with massive media collections.', 'searchips-search-by-image-for-woocommerce' ); ?></p>
 										</td>
 									</tr>
 
@@ -1838,15 +1855,24 @@ class TSBIFW_Admin {
 			$indexer     = TSBIFW_Indexer::instance();
 			$indexed_ids = $indexer->get_indexed_image_ids();
 
+			$max_filter_ids = (int) apply_filters( 'tsbifw_max_media_filter_ids', 5000 );
+			if ( $max_filter_ids > 0 && count( $indexed_ids ) > $max_filter_ids ) {
+				$indexed_ids = array_slice( $indexed_ids, 0, $max_filter_ids );
+			}
+
 			if ( 'indexed' === $filter ) {
 				if ( ! empty( $indexed_ids ) ) {
-					$query->set( 'post__in', $indexed_ids );
+					$existing_in = (array) $query->get( 'post__in', array() );
+					$merged_in   = ! empty( $existing_in ) ? array_values( array_intersect( $existing_in, $indexed_ids ) ) : $indexed_ids;
+					$query->set( 'post__in', ! empty( $merged_in ) ? $merged_in : array( 0 ) );
 				} else {
 					$query->set( 'post__in', array( 0 ) ); // Force zero results
 				}
 			} elseif ( 'not_indexed' === $filter ) {
 				if ( ! empty( $indexed_ids ) ) {
-					$query->set( 'post__not_in', $indexed_ids );
+					$existing_not_in = (array) $query->get( 'post__not_in', array() );
+					$merged_not_in   = ! empty( $existing_not_in ) ? array_values( array_unique( array_merge( $existing_not_in, $indexed_ids ) ) ) : $indexed_ids;
+					$query->set( 'post__not_in', $merged_not_in );
 				}
 			}
 		}

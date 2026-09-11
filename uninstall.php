@@ -39,6 +39,7 @@ if ( 'yes' === get_option( 'tsbifw_delete_data_on_uninstall', 'no' ) ) {
 		'tsbifw_index_gallery',
 		'tsbifw_index_variations',
 		'tsbifw_auto_index_on_save',
+		'tsbifw_enable_media_column',
 		'tsbifw_skip_unchanged_images_hash',
 		'tsbifw_excluded_categories',
 		'tsbifw_enable_mobile_camera',

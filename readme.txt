@@ -6,7 +6,7 @@ Tested up to: 7.1
 Requires PHP: 7.4
 WC requires at least: 5.0
 WC tested up to: 11.1
-Stable tag: 1.2.4
+Stable tag: 1.2.5
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -211,6 +211,10 @@ No, the indexer automatically detects and skips empty, missing, or corrupt image
 Search results inherit your site's WordPress Reading Settings ("Blog pages show at most X posts" under Settings -> Reading), ensuring consistent archive page pagination.
 
 == Changelog ==
+
+= 1.2.5 =
+* Media Library Performance: Added a configurable setting ("Media Library Integration") in the Indexer settings tab allowing store owners to toggle the Media Library list view status column and filter dropdown.
+* Media Filter Query Safeguards: Hardened Media Library status filtering to safely merge post inclusion and exclusion query parameters with third-party filters, preventing query clashes and adding a defensive limit cap for high-volume catalogs.
 
 = 1.2.4 =
 * Documentation: Converted the feature comparison table into structured subheadings and bulleted lists to ensure clean, native typography on the WordPress.org Plugin Directory.
