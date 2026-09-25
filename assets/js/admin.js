@@ -27,8 +27,6 @@ jQuery(document).ready(function($) {
 	var $previewStage = $('#tsbifw-preview-stage');
 	if ($previewStage.length) {
 		var $effectCards = $('.tsbifw-effect-card');
-		var $proBanner = $('#tsbifw-preview-pro-banner');
-		var isProUser = Boolean(tsbifw_admin_params.is_pro);
 
 		$effectCards.on('click', function(e) {
 			var $card = $(this);
@@ -42,15 +40,7 @@ jQuery(document).ready(function($) {
 			// Switch animation effect on preview stage and animation container
 			$previewStage.attr('data-effect', effect);
 			$('#tsbifw-preview-anim-container').attr('data-effect', effect);
-
-			// Show Pro upgrade banner if previewing a pro effect on free version
-			if (effect !== 'laser' && !isProUser) {
-				$proBanner.slideDown(180);
-				$('input[name="tsbifw_scanning_effect"][value="laser"]').prop('checked', true);
-			} else {
-				$proBanner.slideUp(180);
-				$radio.prop('checked', true);
-			}
+			$radio.prop('checked', true);
 		});
 
 		// Listen to radio changes for keyboard/accessibility navigation
@@ -81,11 +71,11 @@ jQuery(document).ready(function($) {
 	$('#tsbifw_strategy').on('change', function() {
 		var selected = $(this).val();
 		$('.tsbifw-strategy-field').hide();
+		$('.tsbifw-strategy-field-' + selected).show();
 		if (selected === 'embeddings') {
 			$('.embeddings-field').show();
-		} else if (selected === 'vision') {
-			$('.vision-field').show();
 		}
+		$(document).trigger('tsbifw_strategy_toggled', [selected]);
 
 		// Warn the user to clear index and re-index.
 		if (selected !== initialStrategy) {
@@ -104,18 +94,12 @@ jQuery(document).ready(function($) {
 		var gw = $('#tsbifw_api_gateway').val();
 		var strategy = $('#tsbifw_strategy').val();
 
-		if ('openai' === gw && 'embeddings' === strategy) {
-			$('#tsbifw-openai-strategy-notice').slideDown(150);
-		} else {
-			$('#tsbifw-openai-strategy-notice').slideUp(150);
-		}
-
 		var gwName = 'OpenRouter';
 		if ('openai' === gw) gwName = 'OpenAI Direct';
 		if ('gemini' === gw) gwName = 'Google Gemini Direct';
 
 		$('#tsbifw-embeddings-model-desc').text('Select the embedding model ID for ' + gwName + '.');
-		$('#tsbifw-vision-model-desc').text('Select the vision model ID for ' + gwName + '.');
+		$(document).trigger('tsbifw_gateway_guidance_updated', [gw, strategy, gwName]);
 	}
 
 	$('#tsbifw_api_gateway').on('change', function() {
@@ -128,19 +112,6 @@ jQuery(document).ready(function($) {
 
 	$('#tsbifw_strategy').on('change', function() {
 		updateGatewayGuidance();
-	});
-
-	$(document).on('click', '#tsbifw-switch-to-vision', function(e) {
-		e.preventDefault();
-		$('#tsbifw_strategy').val('vision').trigger('change');
-		$('.tsbifw-strategy-field').hide();
-		$('.vision-field').show();
-	});
-
-	// Deselect all excluded categories
-	$(document).on('click', '#tsbifw-deselect-all-categories', function(e) {
-		e.preventDefault();
-		$('#tsbifw_excluded_categories option').prop('selected', false);
 	});
 
 	updateGatewayGuidance();
@@ -360,18 +331,15 @@ jQuery(document).ready(function($) {
 	// Load models list dynamically based on active or selected gateway
 	function loadModelsForGateway(gateway) {
 		var $embSkeleton = $('#tsbifw-embeddings-model-skeleton');
-		var $visSkeleton = $('#tsbifw-vision-model-skeleton');
 		var $embeddingSelect = $('#tsbifw_embeddings_model');
-		var $visionSelect = $('#tsbifw_vision_model');
 
 		if (!$embSkeleton.length) return;
 
 		gateway = gateway || $('#tsbifw_api_gateway').val() || 'openrouter';
 
 		$embSkeleton.show().text('').css('animation', '');
-		$visSkeleton.show().text('').css('animation', '');
 		$embeddingSelect.hide().empty();
-		$visionSelect.hide().empty();
+		$(document).trigger('tsbifw_before_load_models', [gateway]);
 
 		$.ajax({
 			url: tsbifw_admin_params.ajax_url,
@@ -384,7 +352,6 @@ jQuery(document).ready(function($) {
 			success: function(response) {
 				if (response.success) {
 					var selectedEmbedding = $embeddingSelect.data('selected');
-					var selectedVision = $visionSelect.data('selected');
 
 					// Populate embeddings
 					if (response.data.embedding_models && response.data.embedding_models.length > 0) {
@@ -394,19 +361,11 @@ jQuery(document).ready(function($) {
 						});
 					}
 
-					// Populate vision
-					if (response.data.vision_models && response.data.vision_models.length > 0) {
-						response.data.vision_models.forEach(function(model) {
-							var isSelected = (model.id == selectedVision) ? 'selected' : '';
-							$visionSelect.append('<option value="' + model.id + '" ' + isSelected + '>' + (model.name || model.id) + '</option>');
-						});
-					}
-
-					// Hide skeleton and show select dropdowns
+					// Hide skeleton and show select dropdown
 					$embSkeleton.hide();
-					$visSkeleton.hide();
 					$embeddingSelect.show();
-					$visionSelect.show();
+
+					$(document).trigger('tsbifw_models_loaded', [response.data, gateway]);
 				} else {
 					$('.tsbifw-skeleton-loader').text('Failed to load models.').css('animation', 'none');
 				}
@@ -835,166 +794,5 @@ jQuery(document).ready(function($) {
 			}
 		});
 	});
-
-	// Clear all analytics data
-	$('#tsbifw-clear-analytics').on('click', function() {
-		if (!confirm('Are you sure you want to permanently delete all visual search analytics records and saved thumbnails? This cannot be undone.')) {
-			return;
-		}
-
-		var $btn = $(this);
-		var originalText = $btn.text();
-		$btn.prop('disabled', true).text('Clearing...');
-
-		$.ajax({
-			url: tsbifw_admin_params.ajax_url,
-			type: 'POST',
-			data: {
-				action: 'tsbifw_clear_analytics',
-				security: tsbifw_admin_params.nonce
-			},
-			success: function(response) {
-				if (response.success) {
-					alert(response.data.message || 'Analytics data cleared.');
-					window.location.reload();
-				} else {
-					alert(response.data ? response.data : 'Failed to clear analytics.');
-					$btn.text(originalText).prop('disabled', false);
-				}
-			},
-			error: function() {
-				alert('Network error occurred while clearing analytics.');
-				$btn.text(originalText).prop('disabled', false);
-			}
-		});
-	});
-
-	// Prune expired analytics records
-	$('#tsbifw-prune-analytics').on('click', function() {
-		if (!confirm('Prune expired visual search analytics records and thumbnails based on the retention setting?')) {
-			return;
-		}
-
-		var $btn = $(this);
-		var originalText = $btn.text();
-		$btn.prop('disabled', true).text('Pruning...');
-
-		$.ajax({
-			url: tsbifw_admin_params.ajax_url,
-			type: 'POST',
-			data: {
-				action: 'tsbifw_prune_analytics',
-				security: tsbifw_admin_params.nonce
-			},
-			success: function(response) {
-				if (response.success) {
-					alert(response.data.message || 'Pruning complete.');
-					window.location.reload();
-				} else {
-					alert(response.data ? response.data : 'Failed to prune analytics.');
-					$btn.text(originalText).prop('disabled', false);
-				}
-			},
-			error: function() {
-				alert('Network error occurred while pruning analytics.');
-				$btn.text(originalText).prop('disabled', false);
-			}
-		});
-	});
-
-	// Analytics AJAX pagination, filter, and reload handling
-	var $analyticsDashboard = $('.tsbifw-analytics-dashboard');
-	if ($analyticsDashboard.length) {
-		var currentAnalyticsPage = parseInt($analyticsDashboard.data('current-page'), 10) || 1;
-		var currentAnalyticsFilter = $analyticsDashboard.data('current-filter') || 'all';
-
-		function fetchAnalyticsPage(page, filter, isReload) {
-			page = page || currentAnalyticsPage;
-			filter = filter || currentAnalyticsFilter;
-
-			var $tableWrap = $('#tsbifw-analytics-table-wrap');
-			var $reloadBtn = $('#tsbifw-reload-analytics');
-			var $reloadIcon = $reloadBtn.find('.dashicons');
-
-			if (isReload) {
-				$reloadBtn.prop('disabled', true);
-				$reloadIcon.addClass('tsbifw-spin');
-			}
-			$tableWrap.css('opacity', '0.5');
-
-			$.ajax({
-				url: tsbifw_admin_params.ajax_url,
-				type: 'POST',
-				data: {
-					action: 'tsbifw_get_analytics_page',
-					security: tsbifw_admin_params.nonce,
-					page: page,
-					filter: filter
-				},
-				success: function(response) {
-					if (response.success && response.data) {
-						currentAnalyticsPage = response.data.current_page;
-						currentAnalyticsFilter = filter;
-						$analyticsDashboard.data('current-page', currentAnalyticsPage);
-						$analyticsDashboard.data('current-filter', currentAnalyticsFilter);
-
-						$('#tsbifw-analytics-tbody').html(response.data.rows_html);
-						$('#tsbifw-analytics-pagination').html(response.data.pagination_html);
-
-						if (response.data.metrics) {
-							$('#tsbifw-metric-total-searches').text(response.data.metrics.total_searches);
-							$('#tsbifw-metric-ctr').text(response.data.metrics.ctr + '%');
-							$('#tsbifw-metric-matched').text(response.data.metrics.matched_searches);
-							$('#tsbifw-metric-zero').text(response.data.metrics.zero_result_searches);
-
-							var zeroCount = parseInt(response.data.metrics.zero_result_searches, 10) || 0;
-							var $zeroBadge = $('#tsbifw-filter-zero-count');
-							if (zeroCount > 0) {
-								$zeroBadge.text(zeroCount).show();
-							} else {
-								$zeroBadge.hide();
-							}
-						}
-					} else {
-						alert(response.data ? response.data : 'Failed to load analytics page.');
-					}
-				},
-				error: function() {
-					alert('Network error occurred while fetching analytics page.');
-				},
-				complete: function() {
-					$tableWrap.css('opacity', '1');
-					if (isReload) {
-						$reloadBtn.prop('disabled', false);
-						$reloadIcon.removeClass('tsbifw-spin');
-					}
-				}
-			});
-		}
-
-		// Handle pagination button click
-		$(document).on('click', '.tsbifw-analytics-page-btn', function(e) {
-			e.preventDefault();
-			var targetPage = parseInt($(this).data('page'), 10);
-			if (targetPage && !$(this).is(':disabled')) {
-				fetchAnalyticsPage(targetPage, currentAnalyticsFilter, false);
-			}
-		});
-
-		// Handle filter button click
-		$(document).on('click', '.tsbifw-analytics-filter-btn', function(e) {
-			e.preventDefault();
-			var selectedFilter = $(this).data('filter') || 'all';
-			$('.tsbifw-analytics-filter-btn').removeClass('button-primary').addClass('button-secondary');
-			$(this).removeClass('button-secondary').addClass('button-primary');
-			fetchAnalyticsPage(1, selectedFilter, false);
-		});
-
-		// Handle reload button click
-		$('#tsbifw-reload-analytics').on('click', function(e) {
-			e.preventDefault();
-			fetchAnalyticsPage(currentAnalyticsPage, currentAnalyticsFilter, true);
-		});
-	}
 });
 

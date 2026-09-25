@@ -138,7 +138,8 @@ class TSBIFW_Indexer {
 			update_post_meta( $product_id, '_tsbifw_indexed_status', 'skipped' );
 			delete_post_meta( $product_id, '_tsbifw_vectors' );
 			delete_post_meta( $product_id, '_tsbifw_descriptions' );
-			delete_post_meta( $product_id, '_tsbifw_images_hash' );
+			delete_post_meta( $product_id, '_tsbifw_index_error' );
+			do_action( 'tsbifw_clear_product_indexed_meta', $product_id );
 			if ( ! $skip_cache_clear ) {
 				$this->clear_cache();
 			}
@@ -158,135 +159,82 @@ class TSBIFW_Indexer {
 		if ( ! isset( $strategies[ $strategy ] ) ) {
 			$strategy = 'embeddings';
 		}
+
+		// If a custom search strategy is active (e.g. Pro Addon Strategy 2), delegate to add-on handler.
+		if ( 'embeddings' !== $strategy ) {
+			/**
+			 * Allow add-ons to index products using custom search strategies.
+			 *
+			 * @param null|bool|WP_Error $result           Result from custom strategy indexer.
+			 * @param int                $product_id       Product ID.
+			 * @param array              $target_images    List of image attachments to index.
+			 * @param string             $strategy         Active strategy identifier.
+			 * @param bool               $skip_cache_clear Whether to skip transient cache clearing.
+			 */
+			$custom_result = apply_filters( 'tsbifw_index_product_custom_strategy', null, $product_id, $target_images, $strategy, $skip_cache_clear );
+			if ( null !== $custom_result ) {
+				return $custom_result;
+			}
+			return false;
+		}
+
 		$api = TSBIFW_API::instance();
 
-		$vectors             = array();
-		$descriptions        = array();
-		$all_keywords        = array();
-		$cached_vectors      = array();
-		$cached_descriptions = array();
+		$vectors        = array();
+		$cached_vectors = array();
 
 		foreach ( $target_images as $image ) {
 			$img_id = (int) $image['id'];
 			$var_id = isset( $image['variation_id'] ) ? (int) $image['variation_id'] : 0;
 
-			if ( 'embeddings' === $strategy ) {
-				if ( isset( $cached_vectors[ $img_id ] ) ) {
-					$vector = $cached_vectors[ $img_id ];
-				} else {
-					$base64 = $api->prepare_image( $img_id );
-					if ( is_wp_error( $base64 ) ) {
-						if ( 'tsbifw_empty_image' === $base64->get_error_code() || 'tsbifw_file_not_found' === $base64->get_error_code() ) {
-							TSBIFW_Logger::log( sprintf( 'Skipped image ID %d for product ID %d. Reason: %s', $img_id, $product_id, $base64->get_error_message() ) );
-							continue;
-						}
-						update_post_meta( $product_id, '_tsbifw_indexed_status', 'error' );
-						update_post_meta( $product_id, '_tsbifw_index_error', $base64->get_error_message() );
-						delete_post_meta( $product_id, '_tsbifw_images_hash' );
-						return $base64;
-					}
-					$vector = $api->get_embeddings( $base64 );
-					if ( is_wp_error( $vector ) ) {
-						update_post_meta( $product_id, '_tsbifw_indexed_status', 'error' );
-						update_post_meta( $product_id, '_tsbifw_index_error', $vector->get_error_message() );
-						delete_post_meta( $product_id, '_tsbifw_images_hash' );
-						return $vector;
-					}
-					$cached_vectors[ $img_id ] = $vector;
-				}
-
-				$vectors[] = array(
-					'id'           => $img_id,
-					'type'         => $image['type'],
-					'variation_id' => $var_id,
-					'vector'       => $vector,
-				);
+			if ( isset( $cached_vectors[ $img_id ] ) ) {
+				$vector = $cached_vectors[ $img_id ];
 			} else {
-				if ( isset( $cached_descriptions[ $img_id ] ) ) {
-					$description = $cached_descriptions[ $img_id ];
-				} else {
-					$base64 = $api->prepare_image( $img_id );
-					if ( is_wp_error( $base64 ) ) {
-						if ( 'tsbifw_empty_image' === $base64->get_error_code() || 'tsbifw_file_not_found' === $base64->get_error_code() ) {
-							TSBIFW_Logger::log( sprintf( 'Skipped image ID %d for product ID %d. Reason: %s', $img_id, $product_id, $base64->get_error_message() ) );
-							continue;
-						}
-						update_post_meta( $product_id, '_tsbifw_indexed_status', 'error' );
-						update_post_meta( $product_id, '_tsbifw_index_error', $base64->get_error_message() );
-						delete_post_meta( $product_id, '_tsbifw_images_hash' );
-						return $base64;
+				$base64 = $api->prepare_image( $img_id );
+				if ( is_wp_error( $base64 ) ) {
+					if ( 'tsbifw_empty_image' === $base64->get_error_code() || 'tsbifw_file_not_found' === $base64->get_error_code() ) {
+						TSBIFW_Logger::log( sprintf( 'Skipped image ID %d for product ID %d. Reason: %s', $img_id, $product_id, $base64->get_error_message() ) );
+						continue;
 					}
-					$description = $api->get_description( $base64 );
-					if ( is_wp_error( $description ) ) {
-						update_post_meta( $product_id, '_tsbifw_indexed_status', 'error' );
-						update_post_meta( $product_id, '_tsbifw_index_error', $description->get_error_message() );
-						delete_post_meta( $product_id, '_tsbifw_images_hash' );
-						return $description;
-					}
-					$cached_descriptions[ $img_id ] = $description;
-					$all_keywords[]                 = $description;
+					update_post_meta( $product_id, '_tsbifw_indexed_status', 'error' );
+					update_post_meta( $product_id, '_tsbifw_index_error', $base64->get_error_message() );
+					do_action( 'tsbifw_clear_product_indexed_meta', $product_id );
+					return $base64;
 				}
-
-				$descriptions[] = array(
-					'id'           => $img_id,
-					'type'         => $image['type'],
-					'variation_id' => $var_id,
-					'description'  => $description,
-				);
+				$vector = $api->get_embeddings( $base64 );
+				if ( is_wp_error( $vector ) ) {
+					update_post_meta( $product_id, '_tsbifw_indexed_status', 'error' );
+					update_post_meta( $product_id, '_tsbifw_index_error', $vector->get_error_message() );
+					do_action( 'tsbifw_clear_product_indexed_meta', $product_id );
+					return $vector;
+				}
+				$cached_vectors[ $img_id ] = $vector;
 			}
+
+			$vectors[] = array(
+				'id'           => $img_id,
+				'type'         => $image['type'],
+				'variation_id' => $var_id,
+				'vector'       => $vector,
+			);
 		}
 
-		if ( 'embeddings' === $strategy ) {
-			if ( empty( $vectors ) ) {
-				update_post_meta( $product_id, '_tsbifw_indexed_status', 'skipped' );
-				delete_post_meta( $product_id, '_tsbifw_vectors' );
-				delete_post_meta( $product_id, '_tsbifw_descriptions' );
-				delete_post_meta( $product_id, '_tsbifw_images_hash' );
-				delete_post_meta( $product_id, '_tsbifw_index_error' );
-				if ( ! $skip_cache_clear ) {
-					$this->clear_cache();
-				}
-				return true;
-			}
-			update_post_meta( $product_id, '_tsbifw_vectors', $vectors );
-			delete_post_meta( $product_id, '_tsbifw_descriptions' );
-			update_post_meta( $product_id, '_tsbifw_indexed_status', 'indexed' );
-			delete_post_meta( $product_id, '_tsbifw_index_error' );
-			if ( ! $skip_cache_clear ) {
-				$this->clear_cache();
-			}
-		} else {
-			if ( empty( $descriptions ) ) {
-				update_post_meta( $product_id, '_tsbifw_indexed_status', 'skipped' );
-				delete_post_meta( $product_id, '_tsbifw_descriptions' );
-				delete_post_meta( $product_id, '_tsbifw_vectors' );
-				delete_post_meta( $product_id, '_tsbifw_images_hash' );
-				delete_post_meta( $product_id, '_tsbifw_index_error' );
-				if ( ! $skip_cache_clear ) {
-					$this->clear_cache();
-				}
-				return true;
-			}
-			update_post_meta( $product_id, '_tsbifw_descriptions', $descriptions );
+		if ( empty( $vectors ) ) {
+			update_post_meta( $product_id, '_tsbifw_indexed_status', 'skipped' );
 			delete_post_meta( $product_id, '_tsbifw_vectors' );
-			update_post_meta( $product_id, '_tsbifw_indexed_status', 'indexed' );
 			delete_post_meta( $product_id, '_tsbifw_index_error' );
+			do_action( 'tsbifw_clear_product_indexed_meta', $product_id );
 			if ( ! $skip_cache_clear ) {
 				$this->clear_cache();
 			}
+			return true;
+		}
 
-			$sync_tags = get_option( 'tsbifw_sync_to_tags', 'no' );
-			if ( 'yes' === $sync_tags && ! empty( $all_keywords ) ) {
-				$merged_tags = array();
-				foreach ( $all_keywords as $keywords_str ) {
-					$tags = array_map( 'trim', explode( ',', $keywords_str ) );
-					$merged_tags = array_merge( $merged_tags, $tags );
-				}
-				$merged_tags = array_filter( array_unique( $merged_tags ) );
-				if ( ! empty( $merged_tags ) ) {
-					wp_set_object_terms( $product_id, $merged_tags, 'product_tag', true );
-				}
-			}
+		update_post_meta( $product_id, '_tsbifw_vectors', $vectors );
+		update_post_meta( $product_id, '_tsbifw_indexed_status', 'indexed' );
+		delete_post_meta( $product_id, '_tsbifw_index_error' );
+		if ( ! $skip_cache_clear ) {
+			$this->clear_cache();
 		}
 
 		do_action( 'tsbifw_after_product_indexed', $product_id, $target_images, $strategy );
@@ -341,8 +289,8 @@ class TSBIFW_Indexer {
 			delete_post_meta( $target_product_id, '_tsbifw_indexed_status' );
 			delete_post_meta( $target_product_id, '_tsbifw_vectors' );
 			delete_post_meta( $target_product_id, '_tsbifw_descriptions' );
-			delete_post_meta( $target_product_id, '_tsbifw_images_hash' );
 			delete_post_meta( $target_product_id, '_tsbifw_index_error' );
+			do_action( 'tsbifw_clear_product_indexed_meta', $target_product_id );
 			$this->clear_cache();
 
 			$allow_instant = ( 'yes' === get_option( 'tsbifw_auto_index_on_save', 'no' ) );
@@ -399,8 +347,8 @@ class TSBIFW_Indexer {
 			delete_post_meta( $target_product_id, '_tsbifw_indexed_status' );
 			delete_post_meta( $target_product_id, '_tsbifw_vectors' );
 			delete_post_meta( $target_product_id, '_tsbifw_descriptions' );
-			delete_post_meta( $target_product_id, '_tsbifw_images_hash' );
 			delete_post_meta( $target_product_id, '_tsbifw_index_error' );
+			do_action( 'tsbifw_clear_product_indexed_meta', $target_product_id );
 			$this->clear_cache();
 		}
 	}
@@ -541,8 +489,8 @@ class TSBIFW_Indexer {
 			delete_post_meta( $post_id, '_tsbifw_vectors' );
 			delete_post_meta( $post_id, '_tsbifw_descriptions' );
 			delete_post_meta( $post_id, '_tsbifw_indexed_status' );
-			delete_post_meta( $post_id, '_tsbifw_images_hash' );
 			delete_post_meta( $post_id, '_tsbifw_index_error' );
+			do_action( 'tsbifw_clear_product_indexed_meta', $post_id );
 			$this->clear_cache();
 		}
 	}
@@ -556,8 +504,9 @@ class TSBIFW_Indexer {
 		delete_metadata( 'post', 0, '_tsbifw_vectors', '', true );
 		delete_metadata( 'post', 0, '_tsbifw_descriptions', '', true );
 		delete_metadata( 'post', 0, '_tsbifw_indexed_status', '', true );
-		delete_metadata( 'post', 0, '_tsbifw_images_hash', '', true );
 		delete_metadata( 'post', 0, '_tsbifw_index_error', '', true );
+
+		do_action( 'tsbifw_clear_all_indexed_data' );
 
 		$this->clear_cache();
 

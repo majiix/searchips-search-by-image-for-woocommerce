@@ -1,12 +1,12 @@
 === Searchips Search By Image for WooCommerce ===
-Contributors: micromax2
+Contributors: micromax
 Tags: woocommerce, search, image search, search by image, vector search
 Requires at least: 5.6
 Tested up to: 7.1
 Requires PHP: 7.4
 WC requires at least: 5.0
 WC tested up to: 11.1
-Stable tag: 1.2.5
+Stable tag: 1.5.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -14,97 +14,23 @@ Enable customers to search WooCommerce products using images powered by machine 
 
 == Description ==
 
-Searchips Search By Image for WooCommerce brings visual search to your online store. Shoppers can upload an image or snap a photo with their mobile camera to find matching and visually similar products in seconds.
+Searchips Search By Image for WooCommerce brings visual search to your online store. Shoppers can upload an image from desktop or mobile devices to find matching and visually similar products in seconds.
 
 The free version provides full, unrestricted visual search functionality: unlimited catalog indexing, high-accuracy multimodal vector search via OpenRouter, interactive client-side image cropping, real-time auto-indexing on save, customizable camera triggers, scanner glow accent colors, and an interactive live preview stage.
 
 The settings forms in the free version are 100% clean and fully functional, adhering strictly to WordPress.org guidelines with zero disabled form fields, locked checkboxes, or trialware nag traps.
 
-Looking for deeper store insights and higher conversions? The Searchips Pro Addon unlocks enterprise-grade visual search features including Visual Search Analytics with zero-result demand tracking, WooCommerce product variation images indexing, MD5 smart image hashing to slash API costs, direct OpenAI and Google Gemini connections, instant mobile camera capture, and sales priority boost. Free users can explore an interactive preview of all Pro features directly inside the dedicated "Pro" admin settings tab.
+The plugin powers visual search using Multimodal Vector Embeddings: matches visual features using advanced machine learning models (Strategy 1).
 
-[Get Searchips Pro Addon](https://violo.ir/?p=707)
-
-The plugin offers two search strategies:
-1. Multimodal Vector Embeddings: Matches visual features using advanced machine learning models (Strategy 1, available across Free and Pro).
-2. Vision-to-Text Description Search: Analyzes images to generate descriptive keyword search queries using a vision language model (Strategy 2, unlocked with Pro Addon).
-
-== Free vs Pro Feature Comparison ==
-
-= Free Version (100% Free Forever) =
-* Multimodal Vector Similarity Search: Fast AI vector search powered by OpenRouter (Strategy 1).
-* Unlimited Product Catalog Indexing: Process stores of any size with pause, resume, and stop controls.
-* Instant Auto-Indexing: Automatically re-indexes products upon publishing or updating catalog images.
-* Client-Side Image Cropper: Shoppers can crop and frame search images with Cropper.js before submitting.
-* OpenRouter AI Gateway: Full access to multimodal embeddings via OpenRouter with custom model choices.
-* Flexible Camera Trigger: Place anywhere in search inputs or via shortcode with custom colors and sizes.
-* Scanner Glow Accent Color: Custom color picker for scanner animation accents.
-* Live Scanner Animation Preview Stage: Test animations in real time directly inside the admin settings.
-* Dedicated Pro Interactive Preview Tab: Explore Pro capabilities with interactive mockups (100% clean, zero nag locks).
-* Admin Test Search Sandbox: Test visual search with similarity score readouts and telemetry diagnostics.
-* System Event Logs: Built-in event logger with copy, clear, and configurable retention controls.
-* Classic Laser Line Animation: Neon vertical scanning sweep effect.
-* WP-CLI and Cron Automation: Built-in WP-CLI command and automated background indexing cron jobs.
-
-= Pro Addon (Enterprise Capabilities) =
-* Visual Search Analytics Dashboard: Review shopper photo queries with high-resolution 150x150 thumbnails.
-* Unfulfilled Demand Tracking: Filter zero-result queries to discover products shoppers want that you do not yet sell.
-* Click-Through Rate (CTR) Measurement: Non-blocking tracking beacons record customer conversions.
-* Product Variation Images Indexing: Match specific variation colors/styles and automatically deep-link to them.
-* Smart Image Hashing (MD5 Cost Saver): Skips remote AI API calls when saving products if image files are unchanged.
-* Direct AI Gateways: Connect directly to your own OpenAI and Google Gemini API keys without third-party fees.
-* Native Mobile Camera Photo Capture: Shoppers can tap "Take Photo" to launch their smartphone camera directly.
-* Priority Similarity Boost: Apply a configurable similarity bonus (+1% to +30%) to on-sale and featured products.
-* Category Exclusion Filters: Exclude non-physical, virtual, or gift card categories from vector indexing.
-* Vision-to-Text Description Search: Strategy 2 descriptive AI keyword queries for broader catalog matches.
-* 6 Futuristic Scanning FX: Access Reticle, Radar, Matrix, Ripple, Hologram, and Laser scanner effects.
-* High-Throughput Indexing: Action Scheduler integration for fast, reliable background processing.
-
-== Why Upgrade to Searchips Pro? ==
-
-* **Visual Search Analytics and Unfulfilled Demand**:
-  Store owners get actionable intelligence. Review exact photos uploaded by your shoppers with high-resolution thumbnails. Monitor overall Click-Through Rate (CTR) via non-blocking beacons. Filter zero-result searches to discover unfulfilled customer demand: know exactly what products your shoppers are looking for that you do not yet carry.
-
-* **Product Variation Images Matching**:
-  In standard stores, customers searching for a specific color or style variant only see the parent product. With Pro, every variation image is indexed. When a customer uploads a photo, Searchips highlights the specific variation image and sends them directly to that exact variation on the product page.
-
-* **Smart Image Hashing (Slash API Costs)**:
-  Pro computes MD5 hashes for all indexed attachments. When you edit product descriptions, update prices, or run automated inventory syncs, Searchips detects that image pixels have not changed and skips remote AI calls completely. Save money on API tokens and keep servers running fast.
-
-* **Direct OpenAI and Google Gemini Gateways**:
-  Connect your store directly to OpenAI (text-embedding-3-small, CLIP, GPT-4o-mini) and Google Gemini (gemini-embedding, Gemini Flash) without extra middleware fees or third-party hops.
-
-* **Native Mobile Camera Photo Capture**:
-  Mobile shoppers simply tap the camera icon and select "Take Photo" to launch their smartphone camera immediately via HTML5 environment capture. Seamless visual search while shopping in physical stores or on the go.
-
-* **Algorithmic Similarity Score Boost**:
-  Drive higher margins and move promotional inventory. Pro allows you to give an algorithmic similarity boost (+1% to +30%) to featured products and on-sale items, surfacing high-margin inventory higher in visual search results while preserving relevance.
-
-* **Category Exclusions**:
-  Exclude non-physical or service categories (such as downloadable files, gift cards, or warranties) from visual indexing, ensuring only relevant products enter your vector database.
-
-[Upgrade to Searchips Pro Today](https://violo.ir/?p=707)
-
-== External services ==
+== External Services ==
 
 This plugin connects to external AI services to perform image-based searches and catalog indexing using artificial intelligence models:
 
 1. OpenRouter (https://openrouter.ai):
-- What the service is and what it is used for: OpenRouter is an API gateway used to generate multimodal vector embeddings and vision descriptions from product and query images.
+- What the service is and what it is used for: OpenRouter is an API gateway used to generate multimodal vector embeddings from product and query images.
 - What data is sent and when: Base64-encoded image data and model configuration parameters are sent to OpenRouter when products are indexed or when customers submit a visual search query.
 - Terms of Service: https://openrouter.ai/terms
 - Privacy Policy: https://openrouter.ai/privacy
-
-2. OpenAI (https://openai.com):
-- What the service is and what it is used for: Optional direct gateway for vector embeddings and vision completions.
-- What data is sent and when: Base64-encoded image data and request parameters are sent to OpenAI API endpoints when the direct OpenAI gateway is configured.
-- Terms of Service: https://openai.com/policies/terms-of-use/
-- Privacy Policy: https://openai.com/policies/privacy-policy/
-
-3. Google Gemini (https://ai.google.dev):
-- What the service is and what it is used for: Optional direct gateway for vector embeddings and vision completions.
-- What data is sent and when: Base64-encoded image data and request parameters are sent to Google Gemini endpoints when the direct Gemini gateway is configured.
-- Terms of Service: https://ai.google.dev/terms
-- Privacy Policy: https://policies.google.com/privacy
 
 == Copyright and Third-Party Assets ==
 
@@ -129,26 +55,35 @@ This plugin bundles and relies on the following third-party software:
 * **Unlimited Product Indexing**: Asynchronous AJAX indexer processes catalogs of any size with pause and stop controls.
 * **Instant Auto-Indexing**: Automatically indexes or re-indexes products immediately upon publishing or updating images.
 * **Interactive Image Cropping**: Integrated Cropper.js allows shoppers to crop and focus on specific image details.
-* **Visual Scanning Animations & Live Preview**: Eye-catching scanner effects (Laser Line, Radar Sweep, Grid Pulse, Corner Bracket) with a live preview stage in settings.
-* **Dedicated Pro Interactive Preview Tab**: Isolated preview tab showcasing Pro capabilities and interactive mockups without locked form controls, in strict adherence to WordPress.org Guideline 5.
-* **Multi-Provider AI Gateway**: Seamless connectivity to OpenRouter, with direct OpenAI and Google Gemini gateways supported.
+* **Visual Scanning Animation & Live Preview**: Classic Laser Line neon scanning effect with customizable accent glow color and real-time live preview stage in settings.
+* **OpenRouter AI Gateway**: Seamless connectivity to OpenRouter for multimodal image embeddings.
 * **Frontend Camera Trigger**: Automatically placed inside search forms or displayed with the `[tsbifw_search_bar]` shortcode.
 * **Full Styling Customization**: Live color picker, custom icon dimensions, and left/right offsets.
 * **WordPress Reading Settings Integration**: Frontend search result count automatically adheres to WordPress archive post limits (`posts_per_page`).
 * **Dedicated System Logs Tab**: View recorded events, copy logs, clear history, and configure retention and logging preferences.
 * **High-Performance Architecture**: Bulk pre-primed post caches (`_prime_post_caches`), cursor-based streaming, and transient query caching.
-* **Visual Search Analytics Dashboard (Pro Addon)**: Track customer-uploaded query images, Click-Through Rates (CTR), and unfulfilled demand with zero-result search filtering.
-* **Product Variation Images (Pro Addon)**: Automatically index WooCommerce product variation images so customers match specific variation colors or styles directly.
-* **Smart Image Hashing (Pro Addon)**: Calculates MD5 attachment hashes to skip expensive remote AI calls on product save or cron when image files are unchanged.
-* **Mobile Camera Photo Capture (Pro Addon)**: Mobile shoppers can tap "Take Photo" to launch their smartphone camera directly and search by captured photo.
-* **Similarity Score Boost (Pro Addon)**: Grant an algorithmic similarity boost (+1% to +30%) to featured products and on-sale inventory to prioritize them in visual search.
-* **Category Exclusion Filters (Pro Addon)**: Blacklist specific product categories from visual indexing to skip digital, virtual, or service products.
-* **Vision-to-Text Description Search (Pro Addon)**: Analyzes images to generate descriptive search terms.
+
+== Upgrade ==
+
+For stores requiring advanced capabilities, Searchips Pro Addon is available:
+
+* **Visual Search Analytics Dashboard**: Review shopper photo queries with high-resolution 150x150 thumbnails and track unfulfilled demand with zero-result filtering.
+* **Click-Through Rate (CTR) Tracking**: Non-blocking telemetry beacons record customer conversions.
+* **Product Variation Images Matching**: Index variation images and deep-link shoppers directly to matching color or style variations.
+* **Smart Image Hashing (MD5)**: Skips remote AI API calls when saving products if image files have not changed, saving API costs.
+* **Direct AI Gateways**: Connect directly to your own OpenAI and Google Gemini API keys.
+* **Native Mobile Camera Photo Capture**: Mobile shoppers can snap photos directly from their smartphone camera.
+* **Priority Similarity Boost**: Apply a configurable similarity bonus (+1% to +30%) to on-sale and featured products.
+* **Category Exclusion Filters**: Exclude non-physical, virtual, or gift card categories from vector indexing.
+* **Vision-to-Text Description Search**: Strategy 2 descriptive AI keyword queries for broader catalog matches.
+* **5 Additional Futuristic Scanning Animations**: AI Vision Reticle, Sonar Radar Sweep, Digital Mesh Grid, Concentric Ripple, and Hologram Shimmer.
+
+Learn more about [Searchips Pro](https://violo.ir/?p=707).
 
 == How-To and Setup ==
 
 = 1. Setting Up the AI Connection =
-Go to WooCommerce -> Search by Image. Select your AI Provider Gateway (OpenRouter in free version, or direct OpenAI / Google Gemini with Pro) and paste your corresponding API key in the field. You can use the visibility toggle to confirm the key is input correctly without trailing spaces.
+Go to WooCommerce -> Search by Image. Select your AI Provider Gateway (OpenRouter) and paste your corresponding API key in the field. You can use the visibility toggle to confirm the key is input correctly without trailing spaces.
 
 = 2. Running the Product Indexer =
 Navigate to the "Product Indexer" tab. Choose whether to index featured images, gallery images, or both. Click "Start Indexing". You can pause or stop the process at any time, or enable "Auto-Index on Save" to automatically index products upon saving.
@@ -157,10 +92,10 @@ Navigate to the "Product Indexer" tab. Choose whether to index featured images, 
 Insert the shortcode `[tsbifw_search_bar]` in any post, page, or widget template to display the camera trigger search bar.
 
 = 4. Customizing Trigger Styles and Scanner Animation =
-Use the "Styling" settings tab to configure position properties, size, and background colors using the WordPress color picker UI. You can also select your preferred scanning animation style (Laser Line, Radar Sweep, Grid Pulse, Corner Bracket) and test it with the real-time interactive preview stage.
+Use the "Styling" settings tab to configure position properties, size, and background colors using the WordPress color picker UI. You can also customize your preferred scanning accent color and test the Laser Line animation with the real-time interactive preview stage.
 
-= 5. Exploring Pro Features =
-Navigate to the "Pro" tab to explore upcoming advanced tools including Visual Search Analytics, Variation Indexing, Smart Hashing, and Mobile Camera Capture with an interactive preview.
+= 5. Advanced Capabilities =
+For advanced enterprise tools including Visual Search Analytics, Variation Indexing, Smart Hashing, and Mobile Camera Capture, see the Upgrade section.
 
 = 6. Viewing and Managing Logs =
 Navigate to the "System Logs" tab to toggle database logging, select log retention periods, copy diagnostic logs to your clipboard, or clear log history.
@@ -211,6 +146,26 @@ No, the indexer automatically detects and skips empty, missing, or corrupt image
 Search results inherit your site's WordPress Reading Settings ("Blog pages show at most X posts" under Settings -> Reading), ensuring consistent archive page pagination.
 
 == Changelog ==
+
+= 1.5.0 =
+* Architecture: Fully decoupled Strategy 2 (Vision-to-Text Description Search) into the Pro Addon via clean action and filter hooks.
+* Architecture: Removed all unused Strategy 2 methods and database queries from the free core plugin.
+* Settings: Streamlined settings registration and separated Pro Addon settings into an isolated settings group.
+* Compliance: Updated documentation and settings hooks in full compliance with WordPress.org guidelines.
+
+= 1.4.0 =
+* Architecture: Fully decoupled Free and Pro Addon integration using extensible WordPress action and filter hooks.
+* Architecture: Removed all gated settings and trialware checks from Free settings UI and script bundles.
+* Feature: Added public procedural helpers (tsbifw_index_product, tsbifw_get_indexing_stats) and action listeners.
+* Decoupling: Extracted Strategy 2 and Mobile Camera capture into pure hook-based Pro extensions.
+* Refactor: Standardized modal event listeners and modularized frontend scanning initialization.
+
+= 1.3.0 =
+* Complete WordPress.org Guideline 5 compliance and modular decoupled architecture.
+* Decoupled Pro Addon into a clean extensible architecture via standard WordPress action and filter hooks.
+* Removed all conditional Pro checks, hardcoded addon dependencies, and trialware elements from the free plugin.
+* Added extension action hooks for add-ons and gateways: tsbifw_loaded, tsbifw_register_settings, tsbifw_admin_settings_tabs, tsbifw_admin_settings_tab_content, tsbifw_admin_gateway_fields, tsbifw_settings_general_after_images, tsbifw_settings_general_after_media_column, tsbifw_settings_general_after_threshold, tsbifw_settings_general_after_auto_inject, tsbifw_settings_general_advanced, tsbifw_settings_styling_effects, and tsbifw_uninstall.
+* Cleaned uninstall routine to only manage core options and transients.
 
 = 1.2.5 =
 * Media Library Performance: Added a configurable setting ("Media Library Integration") in the Indexer settings tab allowing store owners to toggle the Media Library list view status column and filter dropdown.

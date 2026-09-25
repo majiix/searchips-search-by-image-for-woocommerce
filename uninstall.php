@@ -19,10 +19,9 @@ if ( 'yes' === get_option( 'tsbifw_delete_data_on_uninstall', 'no' ) ) {
 	// 1. Delete all custom options.
 	$tsbifw_options = array(
 		'tsbifw_api_key',
+		'tsbifw_api_gateway',
 		'tsbifw_strategy',
 		'tsbifw_embeddings_model',
-		'tsbifw_vision_model',
-		'tsbifw_sync_to_tags',
 		'tsbifw_similarity_threshold',
 		'tsbifw_exclude_below_percent',
 		'tsbifw_results_limit',
@@ -37,19 +36,8 @@ if ( 'yes' === get_option( 'tsbifw_delete_data_on_uninstall', 'no' ) ) {
 		'tsbifw_scanning_color',
 		'tsbifw_index_featured',
 		'tsbifw_index_gallery',
-		'tsbifw_index_variations',
 		'tsbifw_auto_index_on_save',
 		'tsbifw_enable_media_column',
-		'tsbifw_skip_unchanged_images_hash',
-		'tsbifw_excluded_categories',
-		'tsbifw_enable_mobile_camera',
-		'tsbifw_enable_similarity_boost',
-		'tsbifw_boost_featured',
-		'tsbifw_boost_on_sale',
-		'tsbifw_boost_percent',
-		'tsbifw_enable_analytics',
-		'tsbifw_analytics_retention',
-		'tsbifw_analytics_db_version',
 		'tsbifw_enable_logging',
 		'tsbifw_log_retention',
 		'tsbifw_enable_cron_indexing',
@@ -83,11 +71,8 @@ if ( 'yes' === get_option( 'tsbifw_delete_data_on_uninstall', 'no' ) ) {
 	// 3. Delete product post metadata.
 	$tsbifw_meta_keys = array(
 		'_tsbifw_vector',
-		'_tsbifw_description',
 		'_tsbifw_vectors',
-		'_tsbifw_descriptions',
 		'_tsbifw_indexed_status',
-		'_tsbifw_images_hash',
 		'_tsbifw_index_error',
 	);
 
@@ -95,22 +80,10 @@ if ( 'yes' === get_option( 'tsbifw_delete_data_on_uninstall', 'no' ) ) {
 		delete_post_meta_by_key( $tsbifw_key );
 	}
 
-	// 4. Drop analytics custom table.
-	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
-	$wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}tsbifw_analytics" );
-
-	// 5. Clean up analytics upload directory and query thumbnails.
-	global $wp_filesystem;
-	if ( empty( $wp_filesystem ) ) {
-		require_once ABSPATH . 'wp-admin/includes/file.php';
-		WP_Filesystem();
-	}
-
-	$tsbifw_upload_dir    = wp_upload_dir();
-	$tsbifw_analytics_dir = trailingslashit( $tsbifw_upload_dir['basedir'] ) . 'tsbifw-analytics';
-	if ( $wp_filesystem && $wp_filesystem->is_dir( $tsbifw_analytics_dir ) ) {
-		$wp_filesystem->delete( $tsbifw_analytics_dir, true );
-	}
+	/**
+	 * Fires when plugin data is deleted on uninstall.
+	 */
+	do_action( 'tsbifw_uninstall' );
 }
 
 // Always clean up scheduled cron jobs upon plugin deletion.

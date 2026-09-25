@@ -60,13 +60,8 @@ class TSBIFW_API {
 		if ( null === $gateway ) {
 			$gateway = $this->get_active_gateway();
 		}
-		if ( 'openai' === $gateway ) {
-			return get_option( 'tsbifw_api_key_openai', '' );
-		}
-		if ( 'gemini' === $gateway ) {
-			return get_option( 'tsbifw_api_key_gemini', '' );
-		}
-		return get_option( 'tsbifw_api_key', '' );
+		$api_key = get_option( 'tsbifw_api_key', '' );
+		return apply_filters( 'tsbifw_gateway_api_key', $api_key, $gateway );
 	}
 
 	/**
@@ -304,121 +299,6 @@ class TSBIFW_API {
 		TSBIFW_Logger::log( sprintf( 'Received embedding vector successfully. Dimensions: %d', count( $data['data'][0]['embedding'] ) ) );
 
 		return $data['data'][0]['embedding'];
-	}
-
-	/**
-	 * Fetch image text description from the active AI Gateway.
-	 *
-	 * @param string $base64_image Base64 encoded image data URL.
-	 * @return string|WP_Error Descriptive search phrase, or WP_Error.
-	 */
-	public function get_description( $base64_image ) {
-		$gateway = $this->get_active_gateway();
-		$api_key = $this->get_api_key( $gateway );
-		if ( empty( $api_key ) ) {
-			// translators: %s: Gateway name
-			return new WP_Error( 'tsbifw_missing_api_key', sprintf( esc_html__( '%s API Key is missing. Please configure it in WooCommerce settings.', 'searchips-search-by-image-for-woocommerce' ), ucfirst( $gateway ) ) );
-		}
-
-		$model = get_option( 'tsbifw_vision_model', 'google/gemini-2.5-flash' );
-		if ( empty( $model ) ) {
-			$model = 'google/gemini-2.5-flash';
-		}
-		$model = apply_filters( 'tsbifw_api_model', $model, $gateway, 'chat' );
-
-		$body = array(
-			'model'    => $model,
-			'messages' => array(
-				array(
-					'role'    => 'user',
-					'content' => array(
-						array(
-							'type' => 'text',
-							'text' => 'Describe this product image in a detailed, descriptive search phrase. Include keywords about its type, color, material, style, and distinguishing visual features. Output only the description phrase or comma-separated list of keywords, without any extra text or intro.',
-						),
-						array(
-							'type'      => 'image_url',
-							'image_url' => array(
-								'url' => $base64_image,
-							),
-						),
-					),
-				),
-			),
-		);
-		$body = apply_filters( 'tsbifw_chat_request_body', $body, $gateway, $model, $base64_image );
-
-		$headers = array(
-			'Authorization' => 'Bearer ' . $api_key,
-			'Content-Type'  => 'application/json',
-			'HTTP-Referer'  => get_home_url(),
-			'X-Title'       => 'Searchips WP',
-		);
-		$headers = apply_filters( 'tsbifw_api_headers', $headers, $gateway, 'chat' );
-
-		$api_url = apply_filters( 'tsbifw_api_url', 'https://openrouter.ai/api/v1/chat/completions', $gateway, 'chat' );
-
-		TSBIFW_Logger::log(
-			sprintf( 'Sending vision description request to %s for model: %s', ucfirst( $gateway ), $model ),
-			array(
-				'gateway'     => $gateway,
-				'model'       => $model,
-				'image_bytes' => strlen( $base64_image ),
-			)
-		);
-
-		$response = wp_remote_post(
-			$api_url,
-			array(
-				'method'      => 'POST',
-				'headers'     => $headers,
-				'body'        => is_array( $body ) ? wp_json_encode( $body ) : $body,
-				'data_format' => 'body',
-				'timeout'     => 45,
-			)
-		);
-
-		if ( is_wp_error( $response ) ) {
-			TSBIFW_Logger::log( sprintf( '%s Vision request failed (WP_Error).', ucfirst( $gateway ) ), array( 'error' => $response->get_error_message() ) );
-			return $response;
-		}
-
-		$response_code = wp_remote_retrieve_response_code( $response );
-		$response_body = wp_remote_retrieve_body( $response );
-
-		$parsed_custom = apply_filters( 'tsbifw_parse_chat_response', null, $response_body, $gateway, $response_code );
-		if ( null !== $parsed_custom ) {
-			return $parsed_custom;
-		}
-
-		if ( 200 !== $response_code ) {
-			$error_data   = json_decode( $response_body, true );
-			$api_err_code = isset( $error_data['error']['code'] ) ? $error_data['error']['code'] : $response_code;
-			$err_msg      = isset( $error_data['error']['message'] ) ? $error_data['error']['message'] : esc_html__( 'Unknown API error.', 'searchips-search-by-image-for-woocommerce' );
-			$log_msg      = sprintf( '%1$s Vision HTTP Error: %2$d (API Code: %3$s)', ucfirst( $gateway ), $response_code, $api_err_code );
-			TSBIFW_Logger::log( $log_msg, array( 'response' => $error_data ) );
-			return new WP_Error(
-				'tsbifw_api_error',
-				sprintf(
-					// translators: 1: Gateway, 2: API Error Code, 3: Error message
-					esc_html__( '%1$s API Error [Code %2$s]: %3$s', 'searchips-search-by-image-for-woocommerce' ),
-					ucfirst( $gateway ),
-					$api_err_code,
-					$err_msg
-				)
-			);
-		}
-
-		$data = json_decode( $response_body, true );
-		if ( ! isset( $data['choices'][0]['message']['content'] ) ) {
-			TSBIFW_Logger::log( 'Vision formatting mismatch in API response.', array( 'response' => $data ) );
-			return new WP_Error( 'tsbifw_api_format_error', esc_html__( 'Failed to extract text description from API response.', 'searchips-search-by-image-for-woocommerce' ) );
-		}
-
-		$description = wp_strip_all_tags( trim( $data['choices'][0]['message']['content'] ) );
-		TSBIFW_Logger::log( 'Received description successfully.', array( 'description' => $description ) );
-
-		return $description;
 	}
 
 	public function get_models( $modality = '', $gateway = null ) {

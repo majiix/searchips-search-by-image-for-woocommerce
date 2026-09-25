@@ -82,36 +82,6 @@ jQuery(document).ready(function($) {
 	function initModal() {
 		if ($('.tsbifw-modal-overlay').length) return;
 
-		var isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
-			(window.matchMedia && window.matchMedia('(pointer: coarse) and (max-width: 1024px)').matches);
-		var showCameraBtn = isMobileDevice && (tsbifw_frontend_params.enable_mobile_camera || !tsbifw_frontend_params.is_pro);
-		var cameraSectionHtml = '';
-
-		if (showCameraBtn) {
-			var isProLocked = !tsbifw_frontend_params.is_pro;
-			var cameraDisabledAttr = isProLocked ? ' disabled="disabled"' : '';
-			var cameraClass = isProLocked ? 'tsbifw-take-photo-btn tsbifw-btn-pro-locked' : 'tsbifw-take-photo-btn';
-			var cameraTooltip = isProLocked ? ' title="' + (tsbifw_frontend_params.strings.camera_pro_tooltip || '') + '"' : '';
-			var proBadgeHtml = isProLocked ? '<span class="tsbifw-modal-pro-badge">PRO</span>' : '';
-
-			cameraSectionHtml =
-				'<div class="tsbifw-mobile-camera-section">' +
-					'<div class="tsbifw-camera-action-wrapper">' +
-						'<button type="button" class="' + cameraClass + '"' + cameraDisabledAttr + cameraTooltip + '>' +
-							'<svg class="tsbifw-btn-camera-icon" viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">' +
-								'<path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>' +
-								'<circle cx="12" cy="13" r="4"></circle>' +
-							'</svg>' +
-							'<span>' + (tsbifw_frontend_params.strings.take_photo || 'Take Photo') + '</span>' +
-							proBadgeHtml +
-						'</button>' +
-					'</div>' +
-					'<div class="tsbifw-modal-divider">' +
-						'<span>' + (tsbifw_frontend_params.strings.or_divider || 'or') + '</span>' +
-					'</div>' +
-				'</div>';
-		}
-
 		var scanEffect = tsbifw_frontend_params.scanning_effect || 'laser';
 		var scanColor = tsbifw_frontend_params.scanning_color || '#6366f1';
 
@@ -124,7 +94,7 @@ jQuery(document).ready(function($) {
 					'</div>' +
 					'<div class="tsbifw-modal-body">' +
 						'<div class="tsbifw-modal-actions-area">' +
-							cameraSectionHtml +
+							'<div class="tsbifw-modal-extra-actions"></div>' +
 							'<div class="tsbifw-drag-zone">' +
 								'<svg class="tsbifw-drag-icon" viewBox="0 0 24 24" width="48" height="48" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">' +
 									'<rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>' +
@@ -135,7 +105,6 @@ jQuery(document).ready(function($) {
 							'</div>' +
 						'</div>' +
 						'<input type="file" class="tsbifw-file-input" accept="image/jpeg,image/png,image/webp" style="display:none;" />' +
-						'<input type="file" class="tsbifw-camera-input" accept="image/*" capture="environment" style="display:none;" />' +
 						'<div class="tsbifw-preview-wrapper" data-effect="' + scanEffect + '" style="--tsbifw-scan-color: ' + scanColor + ';">' +
 							'<div class="tsbifw-cropper-container" style="max-height: 320px; overflow: hidden; border-radius: 8px; margin-bottom: 15px; border: 1px solid #cbd5e1; position: relative;">' +
 								'<cropper-canvas id="tsbifw-frontend-cropper-canvas" style="height: 280px; display: none;">' +
@@ -196,6 +165,7 @@ jQuery(document).ready(function($) {
 			'</div>';
 
 		$('body').append(modalHtml);
+		$(document).trigger('tsbifw_modal_initialized', [$('.tsbifw-modal-overlay')]);
 
 		// Event handlers for the modal
 		$('.tsbifw-modal-close, .tsbifw-modal-overlay').on('click', function(e) {
@@ -210,22 +180,10 @@ jQuery(document).ready(function($) {
 			}
 		});
 
-		// Camera button and camera input handlers
-		var $cameraInput = $('.tsbifw-camera-input');
-		$('.tsbifw-take-photo-btn:not(.tsbifw-btn-pro-locked)').on('click', function(e) {
-			e.preventDefault();
-			if ($cameraInput.length) {
-				$cameraInput[0].click();
-			}
-		});
-
-		$cameraInput.on('click', function(e) {
-			e.stopPropagation();
-		});
-
-		$cameraInput.on('change', function(e) {
-			if (this.files && this.files[0]) {
-				handleFileSelection(this.files[0]);
+		// Allow external extensions/actions to feed selected files into the modal
+		$(document).on('tsbifw_select_file', function(e, file) {
+			if (file) {
+				handleFileSelection(file);
 			}
 		});
 
@@ -363,7 +321,6 @@ jQuery(document).ready(function($) {
 	function resetSearchUI() {
 		stopStatusRotation();
 		$('.tsbifw-file-input').val('');
-		$('.tsbifw-camera-input').val('');
 		var previewImg = $('.tsbifw-cropper-image')[0];
 		if (previewImg) {
 			previewImg.setAttribute('src', '');
@@ -374,6 +331,7 @@ jQuery(document).ready(function($) {
 		$('.tsbifw-drag-zone').show();
 		stopScanningAnimation();
 		$('.tsbifw-search-status').hide().removeClass('pulse').text('');
+		$(document).trigger('tsbifw_modal_reset');
 	}
 
 	// Process selected image file
@@ -490,48 +448,5 @@ jQuery(document).ready(function($) {
 			$('html, body').css('overflow', '');
 		}
 	});
-
-	// Visual search Click-Through Rate (CTR) tracking
-	if (tsbifw_frontend_params.current_vquery && tsbifw_frontend_params.track_endpoint) {
-		var vtoken = tsbifw_frontend_params.current_vquery;
-		var trackUrl = tsbifw_frontend_params.track_endpoint;
-		var trackedThisPage = false;
-
-		$(document).on('click', '.product a, a.woocommerce-LoopProduct-link, .add_to_cart_button', function() {
-			if (trackedThisPage) return;
-			var $target = $(this);
-			var $product = $target.closest('.product');
-			var productId = 0;
-
-			if ($target.data('product_id')) {
-				productId = parseInt($target.data('product_id'), 10);
-			} else if ($product.length) {
-				var classList = $product.attr('class') || '';
-				var match = classList.match(/post-(\d+)/);
-				if (match && match[1]) {
-					productId = parseInt(match[1], 10);
-				}
-			}
-
-			if (productId > 0) {
-				trackedThisPage = true;
-				var payload = JSON.stringify({
-					token: vtoken,
-					product_id: productId,
-					security: (tsbifw_frontend_params && tsbifw_frontend_params.nonce) || ''
-				});
-				if (navigator.sendBeacon) {
-					var blob = new Blob([payload], { type: 'application/json' });
-					navigator.sendBeacon(trackUrl, blob);
-				} else if (window.fetch) {
-					fetch(trackUrl, {
-						method: 'POST',
-						headers: { 'Content-Type': 'application/json' },
-						body: payload,
-						keepalive: true
-					});
-				}
-			}
-		});
-	}
 });
+

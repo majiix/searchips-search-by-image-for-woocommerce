@@ -150,8 +150,6 @@ class TSBIFW_Search {
 		);
 
 		$enable_auto_inject   = get_option( 'tsbifw_enable_auto_inject', 'yes' );
-		$is_pro               = apply_filters( 'tsbifw_is_pro_active', false );
-		$enable_mobile_camera = apply_filters( 'tsbifw_enable_mobile_camera', ( 'yes' === get_option( 'tsbifw_enable_mobile_camera', 'yes' ) ) );
 		$max_mb               = (int) get_option( 'tsbifw_max_upload_size', 2 );
 		if ( $max_mb <= 0 ) {
 			$max_mb = 2;
@@ -175,18 +173,12 @@ class TSBIFW_Search {
 				'current_vquery'       => $current_vquery,
 				'cropper_src'          => esc_url_raw( TSBIFW_PLUGIN_URL . 'assets/js/cropper.min.js' ),
 				'auto_inject'          => ( 'yes' === $enable_auto_inject ),
-				'enable_mobile_camera' => $enable_mobile_camera,
-				'is_pro'               => $is_pro,
 				'scanning_effect'      => $scanning_effect,
 				'scanning_color'       => $scanning_color,
 				'nonce'                => wp_create_nonce( 'tsbifw_frontend_search' ),
 				'max_upload_size'      => $max_mb * 1024 * 1024,
 				'strings'              => array(
 					'modal_title'        => esc_html__( 'Search by Image', 'searchips-search-by-image-for-woocommerce' ),
-					'take_photo'         => esc_html__( 'Take Photo', 'searchips-search-by-image-for-woocommerce' ),
-					'upload_gallery'     => esc_html__( 'Upload from Gallery', 'searchips-search-by-image-for-woocommerce' ),
-					'or_divider'         => esc_html__( 'or', 'searchips-search-by-image-for-woocommerce' ),
-					'camera_pro_tooltip' => esc_html__( 'Mobile Camera Capture is available with the Pro Addon.', 'searchips-search-by-image-for-woocommerce' ),
 					// translators: %d: Max upload size in MB
 					'drag_drop_text'     => sprintf( esc_html__( 'Drag and drop an image here or click to browse (Max size: %dMB)', 'searchips-search-by-image-for-woocommerce' ), $max_mb ),
 					'scanning'           => esc_html__( 'Searching...', 'searchips-search-by-image-for-woocommerce' ),
@@ -749,23 +741,21 @@ class TSBIFW_Search {
 				// Calculate similarity scores in cursor batches to prevent memory and packet limits.
 				$scores = $this->calculate_vector_scores( $query_vector, $threshold, $match_meta );
 			} else {
-				// Get text description.
-				$description = $api->get_description( $base64 );
-				if ( is_wp_error( $description ) ) {
-					if ( ! $sandbox ) {
-						return new WP_Error(
-							'tsbifw_search_failed',
-							esc_html__( 'Search failed. Please try again.', 'searchips-search-by-image-for-woocommerce' ),
-							array( 'status' => 503 )
-						);
-					}
-					$status_code = ( 'tsbifw_missing_api_key' === $description->get_error_code() ) ? 400 : 422;
-					$description->add_data( array( 'status' => $status_code ) );
-					return $description;
+				/**
+				 * Filter to allow custom search strategies (e.g. Vision-to-Text Description Search in Pro Addon).
+				 *
+				 * @param array|WP_Error|null $custom_scores Return array of scores (product_id => score) or WP_Error.
+				 * @param string              $strategy      Active strategy.
+				 * @param string              $base64        Base64 query image.
+				 * @param float               $threshold     Calculated similarity threshold.
+				 * @param array               &$match_meta   Reference array for matched image/variation IDs.
+				 * @param bool                $sandbox       Whether sandbox mode is active.
+				 */
+				$custom_scores = apply_filters_ref_array( 'tsbifw_custom_strategy_search_scores', array( null, $strategy, $base64, $threshold, &$match_meta, $sandbox ) );
+				if ( is_wp_error( $custom_scores ) ) {
+					return $custom_scores;
 				}
-
-				// Calculate similarity scores in cursor batches.
-				$scores = $this->calculate_description_scores( $description, $threshold, $match_meta );
+				$scores = is_array( $custom_scores ) ? $custom_scores : array();
 			}
 
 			if ( ! empty( $scores ) ) {
@@ -799,39 +789,11 @@ class TSBIFW_Search {
 						break;
 					}
 				}
-			} elseif ( 'embeddings' !== $strategy && ! empty( $description ) ) {
-				// Fallback to standard text search query for description strategy when no jaccard matches found.
-				$args = array(
-					'post_type'      => 'product',
-					'post_status'    => 'publish',
-					'posts_per_page' => $limit,
-					's'              => $description,
-					'fields'         => 'ids',
-				);
-
-				$search_query = new WP_Query( $args );
-				$ids          = $search_query->posts;
-
-				if ( function_exists( '_prime_post_caches' ) && ! empty( $ids ) ) {
-					_prime_post_caches( $ids, true, true );
-				}
-
-				$resolved_products = array();
-				foreach ( $ids as $product_id ) {
-					$product = wc_get_product( $product_id );
-					if ( ! $this->is_product_viewable_and_visible( $product, $include_hidden ) ) {
-						continue;
-					}
-
-					$matched_posts[] = array(
-						'id'           => $product_id,
-						'score'        => null,
-						'image_id'     => 0,
-						'variation_id' => 0,
-					);
-					if ( $sandbox && $product ) {
-						$resolved_products[ $product_id ] = $product;
-					}
+			} elseif ( 'embeddings' !== $strategy ) {
+				// Allow add-ons to provide fallback results if direct score matching returned empty.
+				$custom_fallback = apply_filters( 'tsbifw_custom_strategy_fallback_posts', array(), $strategy, $limit, $include_hidden );
+				if ( is_array( $custom_fallback ) && ! empty( $custom_fallback ) ) {
+					$matched_posts = $custom_fallback;
 				}
 			}
 		} catch ( Throwable $e ) {
@@ -943,7 +905,7 @@ class TSBIFW_Search {
 			);
 			set_transient( 'tsbifw_vquery_' . $sandbox_token, $transient_payload, $cache_expiry );
 
-			$search_term = ( 'vision' === $strategy && ! empty( $description ) ) ? $description : _x( 'image-search', 'default search term for visual search', 'searchips-search-by-image-for-woocommerce' );
+			$search_term = apply_filters( 'tsbifw_search_term', _x( 'image-search', 'default search term for visual search', 'searchips-search-by-image-for-woocommerce' ), $strategy, $matched_posts );
 
 			$redirect_url = add_query_arg(
 				array(
@@ -990,7 +952,7 @@ class TSBIFW_Search {
 			do_action( 'tsbifw_record_search', $token, $uploaded_file['tmp_name'], $strategy, count( $product_ids ) );
 		}
 
-		$search_term = ( 'vision' === $strategy && ! empty( $description ) ) ? $description : _x( 'image-search', 'default search term for visual search', 'searchips-search-by-image-for-woocommerce' );
+		$search_term = apply_filters( 'tsbifw_search_term', _x( 'image-search', 'default search term for visual search', 'searchips-search-by-image-for-woocommerce' ), $strategy, $matched_posts );
 
 		$redirect_url = add_query_arg(
 			array(
@@ -1087,77 +1049,6 @@ class TSBIFW_Search {
 	}
 
 	/**
-	 * Retrieve cached catalog descriptions with multi-tier caching (in-memory static -> persistent object cache -> transient -> db).
-	 *
-	 * @return array Map of product ID => array of image description data.
-	 */
-	private function get_cached_catalog_descriptions() {
-		static $memory_cache = null;
-		if ( null !== $memory_cache ) {
-			return $memory_cache;
-		}
-
-		$cache_key = 'tsbifw_catalog_descriptions';
-		$cached    = wp_cache_get( $cache_key, 'tsbifw_cache' );
-		if ( false === $cached ) {
-			$cached = get_transient( $cache_key );
-		}
-
-		if ( is_array( $cached ) ) {
-			$memory_cache = $cached;
-			return $memory_cache;
-		}
-
-		global $wpdb;
-		$descriptions = array();
-		$batch_size   = 500;
-		$last_post_id = 0;
-
-		do {
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-			$rows = $wpdb->get_results(
-				$wpdb->prepare(
-					"SELECT pm.post_id, pm.meta_value 
-					FROM {$wpdb->postmeta} pm
-					INNER JOIN {$wpdb->posts} p ON p.ID = pm.post_id
-					WHERE pm.meta_key = %s 
-					  AND p.post_status = %s 
-					  AND p.post_type = %s 
-					  AND pm.post_id > %d
-					ORDER BY pm.post_id ASC
-					LIMIT %d",
-					'_tsbifw_descriptions',
-					'publish',
-					'product',
-					$last_post_id,
-					$batch_size
-				),
-				ARRAY_A
-			);
-
-			if ( empty( $rows ) ) {
-				break;
-			}
-
-			foreach ( $rows as $row ) {
-				$last_post_id = (int) $row['post_id'];
-				$desc_list    = $this->safe_unserialize( $row['meta_value'] );
-				if ( is_array( $desc_list ) && ! empty( $desc_list ) ) {
-					$descriptions[ $last_post_id ] = $desc_list;
-				}
-			}
-
-			unset( $rows );
-		} while ( true );
-
-		$memory_cache = $descriptions;
-		wp_cache_set( $cache_key, $descriptions, 'tsbifw_cache', 12 * HOUR_IN_SECONDS );
-		set_transient( $cache_key, $descriptions, 12 * HOUR_IN_SECONDS );
-
-		return $memory_cache;
-	}
-
-	/**
 	 * Calculate cosine similarity scores for all published products using cached catalog vectors.
 	 *
 	 * @param array $query_vector Query embedding vector.
@@ -1189,57 +1080,6 @@ class TSBIFW_Search {
 			foreach ( $vector_list as $img_data ) {
 				if ( isset( $img_data['vector'] ) && is_array( $img_data['vector'] ) ) {
 					$score = $this->cosine_similarity_fast( $query_vector, $norm_query, $img_data['vector'] );
-					if ( $score > $max_score ) {
-						$max_score   = $score;
-						$best_img_id = isset( $img_data['id'] ) ? (int) $img_data['id'] : 0;
-						$best_var_id = isset( $img_data['variation_id'] ) ? (int) $img_data['variation_id'] : 0;
-					}
-				}
-			}
-
-			if ( $max_score > 0.0 ) {
-				$scores[ $post_id ]     = $max_score;
-				$match_meta[ $post_id ] = array(
-					'image_id'     => $best_img_id,
-					'variation_id' => $best_var_id,
-				);
-			}
-		}
-
-		$scores = apply_filters( 'tsbifw_candidate_scores', $scores, $threshold );
-		foreach ( $scores as $post_id => $score ) {
-			if ( $score < $threshold ) {
-				unset( $scores[ $post_id ] );
-				unset( $match_meta[ $post_id ] );
-			}
-		}
-
-		return $scores;
-	}
-
-	/**
-	 * Calculate Jaccard similarity scores for all published products using cached catalog descriptions.
-	 *
-	 * @param string $query_desc Query text description.
-	 * @param float  $threshold  Minimum similarity threshold.
-	 * @param array  $match_meta Optional by-reference array populated with best matching image_id and variation_id per product.
-	 * @return array Map of product ID => similarity score.
-	 */
-	private function calculate_description_scores( $query_desc, $threshold, &$match_meta = array() ) {
-		if ( ! is_string( $query_desc ) || '' === trim( $query_desc ) ) {
-			return array();
-		}
-
-		$scores               = array();
-		$catalog_descriptions = $this->get_cached_catalog_descriptions();
-
-		foreach ( $catalog_descriptions as $post_id => $desc_list ) {
-			$max_score   = 0.0;
-			$best_img_id = 0;
-			$best_var_id = 0;
-			foreach ( $desc_list as $img_data ) {
-				if ( isset( $img_data['description'] ) && is_string( $img_data['description'] ) ) {
-					$score = $this->jaccard_similarity( $query_desc, $img_data['description'] );
 					if ( $score > $max_score ) {
 						$max_score   = $score;
 						$best_img_id = isset( $img_data['id'] ) ? (int) $img_data['id'] : 0;
@@ -1302,55 +1142,6 @@ class TSBIFW_Search {
 		}
 
 		return $dot_product / ( $norm_a * sqrt( $norm_b ) );
-	}
-
-	/**
-	 * Compute Jaccard Similarity between two description strings (fuzzy matching).
-	 *
-	 * @param string $str1 String 1.
-	 * @param string $str2 String 2.
-	 * @return float Jaccard Similarity score between 0.0 and 1.0.
-	 */
-	private function jaccard_similarity( $str1, $str2 ) {
-		if ( ! is_string( $str1 ) || ! is_string( $str2 ) ) {
-			return 0.0;
-		}
-
-		$tokens1 = $this->tokenize_description( $str1 );
-		$tokens2 = $this->tokenize_description( $str2 );
-
-		if ( empty( $tokens1 ) || empty( $tokens2 ) ) {
-			return 0.0;
-		}
-
-		$intersection = array_intersect( $tokens1, $tokens2 );
-		$union        = array_unique( array_merge( $tokens1, $tokens2 ) );
-
-		return count( $intersection ) / count( $union );
-	}
-
-	/**
-	 * Tokenize description text into keywords.
-	 *
-	 * @param string $str Text to tokenize.
-	 * @return array Unique token strings.
-	 */
-	private function tokenize_description( $str ) {
-		static $stop_words = array(
-			'and', 'or', 'with', 'the', 'for', 'a', 'an', 'in', 'on', 'of',
-			'to', 'at', 'by', 'this', 'that', 'is', 'are', 'was', 'were',
-			'it', 'its', 'from', 'product', 'image',
-		);
-
-		$words  = explode( ' ', strtolower( $str ) );
-		$tokens = array();
-		foreach ( $words as $word ) {
-			$word = trim( preg_replace( '/[^a-z0-9]/', '', $word ) );
-			if ( strlen( $word ) > 2 && ! in_array( $word, $stop_words, true ) ) {
-				$tokens[] = $word;
-			}
-		}
-		return array_unique( $tokens );
 	}
 
 	/**
