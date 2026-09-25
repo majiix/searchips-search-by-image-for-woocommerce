@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Searchips Search By Image for WooCommerce
  * Description: Enable customers to search WooCommerce products using images powered by machine learning.
- * Version:     1.5.0
+ * Version:     1.6.0
  * Author:      micromax
  * Text Domain: searchips-search-by-image-for-woocommerce
  * Domain Path: /languages
@@ -22,7 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Define plugin constants.
-define( 'TSBIFW_VERSION', '1.5.0' );
+define( 'TSBIFW_VERSION', '1.6.0' );
 define( 'TSBIFW_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'TSBIFW_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 
