@@ -24,7 +24,6 @@ if ( 'yes' === get_option( 'tsbifw_delete_data_on_uninstall', 'no' ) ) {
 		'tsbifw_embeddings_model',
 		'tsbifw_similarity_threshold',
 		'tsbifw_exclude_below_percent',
-		'tsbifw_results_limit',
 		'tsbifw_max_upload_size',
 		'tsbifw_search_cache_expiry',
 		'tsbifw_enable_auto_inject',
@@ -67,6 +66,10 @@ if ( 'yes' === get_option( 'tsbifw_delete_data_on_uninstall', 'no' ) ) {
 	$wpdb->query( "DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_tsbifw_vquery_%'" );
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 	$wpdb->query( "DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_timeout_tsbifw_vquery_%'" );
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+	$wpdb->query( "DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_tsbifw_rl_%'" );
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+	$wpdb->query( "DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_timeout_tsbifw_rl_%'" );
 
 	// 3. Delete product post metadata.
 	$tsbifw_meta_keys = array(

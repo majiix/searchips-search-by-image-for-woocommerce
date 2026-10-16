@@ -61,6 +61,9 @@ class TSBIFW_Admin {
 
 		// Hook when search strategy changes.
 		add_action( 'update_option_tsbifw_strategy', array( $this, 'on_strategy_change' ), 10, 2 );
+
+		// Register suggested privacy policy content.
+		add_action( 'admin_init', array( $this, 'add_privacy_policy_content' ) );
 	}
 
 	/**
@@ -75,8 +78,8 @@ class TSBIFW_Admin {
 
 		wp_enqueue_script( 'tsbifw-cropperjs', TSBIFW_PLUGIN_URL . 'assets/js/cropper.min.js', array(), '2.1.1', true );
 		wp_enqueue_style( 'wp-color-picker' );
-		wp_enqueue_style( 'tsbifw-admin-css', TSBIFW_PLUGIN_URL . 'assets/css/admin.css', array( 'wp-color-picker' ), TSBIFW_VERSION . '.2' );
-		wp_enqueue_script( 'tsbifw-admin-js', TSBIFW_PLUGIN_URL . 'assets/js/admin.js', array( 'jquery', 'tsbifw-cropperjs', 'wp-color-picker' ), TSBIFW_VERSION . '.2', true );
+		wp_enqueue_style( 'tsbifw-admin-css', TSBIFW_PLUGIN_URL . 'assets/css/admin.css', array( 'wp-color-picker' ), TSBIFW_VERSION );
+		wp_enqueue_script( 'tsbifw-admin-js', TSBIFW_PLUGIN_URL . 'assets/js/admin.js', array( 'jquery', 'tsbifw-cropperjs', 'wp-color-picker' ), TSBIFW_VERSION, true );
 
 		$max_mb = (int) get_option( 'tsbifw_max_upload_size', 2 );
 		if ( $max_mb <= 0 ) {
@@ -90,9 +93,9 @@ class TSBIFW_Admin {
 				'ajax_url'        => admin_url( 'admin-ajax.php' ),
 				'nonce'           => wp_create_nonce( 'tsbifw_admin_nonce' ),
 				'wp_rest_nonce'   => wp_create_nonce( 'wp_rest' ),
-				'confirm'         => esc_html__( 'Are you sure you want to clear all indexed data? This cannot be undone.', 'searchips-search-by-image-for-woocommerce' ),
 				'search_endpoint' => esc_url_raw( rest_url( 'tsbifw/v1/search' ) ),
-				'track_endpoint'  => esc_url_raw( rest_url( 'tsbifw/v1/track-click' ) ),
+				'track_endpoint'  => esc_url_raw( apply_filters( 'tsbifw_track_endpoint', '' ) ),
+				'gateway_labels'  => apply_filters( 'tsbifw_admin_gateway_labels', array( 'openrouter' => 'OpenRouter' ) ),
 				'max_upload_size' => $max_mb * 1024 * 1024,
 				'scanning_effect' => array_key_exists( get_option( 'tsbifw_scanning_effect', 'laser' ), apply_filters( 'tsbifw_scanning_effects', array( 'laser' => 'Laser' ) ) ) ? get_option( 'tsbifw_scanning_effect', 'laser' ) : 'laser',
 				'scanning_color'  => get_option( 'tsbifw_scanning_color', '#6366f1' ),
@@ -313,7 +316,7 @@ class TSBIFW_Admin {
 													</option>
 												<?php endforeach; ?>
 											</select>
-											<p class="description"><?php esc_html_e( 'Select the AI provider to handle image embeddings and descriptions.', 'searchips-search-by-image-for-woocommerce' ); ?></p>
+											<p class="description"><?php esc_html_e( 'Select the AI provider to handle image embeddings.', 'searchips-search-by-image-for-woocommerce' ); ?></p>
 
 										</td>
 									</tr>
@@ -327,7 +330,7 @@ class TSBIFW_Admin {
 													<span class="dashicons dashicons-visibility"></span>
 												</button>
 											</div>
-											<p class="description"><?php esc_html_e( 'Enter your OpenRouter API key to communicate with embeddings and vision models.', 'searchips-search-by-image-for-woocommerce' ); ?></p>
+											<p class="description"><?php esc_html_e( 'Enter your OpenRouter API key to communicate with embeddings models.', 'searchips-search-by-image-for-woocommerce' ); ?></p>
 										</td>
 									</tr>
 
@@ -378,7 +381,7 @@ class TSBIFW_Admin {
 												<input type="checkbox" name="tsbifw_auto_index_on_save" id="tsbifw_auto_index_on_save" value="yes" <?php checked( $auto_index_on_save, 'yes' ); ?> />
 												<?php esc_html_e( 'Automatically index new products or image updates on publish/save', 'searchips-search-by-image-for-woocommerce' ); ?>
 											</label>
-											<p class="description"><?php esc_html_e( 'Immediately generates embeddings or descriptions when a product is saved or updated.', 'searchips-search-by-image-for-woocommerce' ); ?></p>
+											<p class="description"><?php esc_html_e( 'Immediately generates embeddings when a product is saved or updated.', 'searchips-search-by-image-for-woocommerce' ); ?></p>
 
 										</td>
 									</tr>
@@ -469,10 +472,19 @@ class TSBIFW_Admin {
 										<th scope="row"><label for="tsbifw_cron_interval"><?php esc_html_e( 'Cron Run Interval', 'searchips-search-by-image-for-woocommerce' ); ?></label></th>
 										<td>
 											<select name="tsbifw_cron_interval" id="tsbifw_cron_interval">
-												<?php $current_interval = get_option( 'tsbifw_cron_interval', 'tsbifw_every_5_minutes' ); ?>
-												<option value="tsbifw_every_minute" <?php selected( in_array( $current_interval, array( 'tsbifw_every_minute', 'every_minute' ), true ) ); ?>><?php esc_html_e( 'Every Minute', 'searchips-search-by-image-for-woocommerce' ); ?></option>
-												<option value="tsbifw_every_5_minutes" <?php selected( in_array( $current_interval, array( 'tsbifw_every_5_minutes', 'every_5_minutes' ), true ) ); ?>><?php esc_html_e( 'Every 5 Minutes', 'searchips-search-by-image-for-woocommerce' ); ?></option>
-												<option value="tsbifw_every_15_minutes" <?php selected( in_array( $current_interval, array( 'tsbifw_every_15_minutes', 'every_15_minutes' ), true ) ); ?>><?php esc_html_e( 'Every 15 Minutes', 'searchips-search-by-image-for-woocommerce' ); ?></option>
+												<?php
+												$current_interval = get_option( 'tsbifw_cron_interval', 'tsbifw_every_5_minutes' );
+												if ( 'every_minute' === $current_interval ) {
+													$current_interval = 'tsbifw_every_minute';
+												} elseif ( 'every_5_minutes' === $current_interval ) {
+													$current_interval = 'tsbifw_every_5_minutes';
+												} elseif ( 'every_15_minutes' === $current_interval ) {
+													$current_interval = 'tsbifw_every_15_minutes';
+												}
+												?>
+												<option value="tsbifw_every_minute" <?php selected( $current_interval, 'tsbifw_every_minute' ); ?>><?php esc_html_e( 'Every Minute', 'searchips-search-by-image-for-woocommerce' ); ?></option>
+												<option value="tsbifw_every_5_minutes" <?php selected( $current_interval, 'tsbifw_every_5_minutes' ); ?>><?php esc_html_e( 'Every 5 Minutes', 'searchips-search-by-image-for-woocommerce' ); ?></option>
+												<option value="tsbifw_every_15_minutes" <?php selected( $current_interval, 'tsbifw_every_15_minutes' ); ?>><?php esc_html_e( 'Every 15 Minutes', 'searchips-search-by-image-for-woocommerce' ); ?></option>
 												<option value="hourly" <?php selected( $current_interval, 'hourly' ); ?>><?php esc_html_e( 'Hourly', 'searchips-search-by-image-for-woocommerce' ); ?></option>
 												<option value="twice_daily" <?php selected( $current_interval, 'twice_daily' ); ?>><?php esc_html_e( 'Twice Daily', 'searchips-search-by-image-for-woocommerce' ); ?></option>
 												<option value="daily" <?php selected( $current_interval, 'daily' ); ?>><?php esc_html_e( 'Daily', 'searchips-search-by-image-for-woocommerce' ); ?></option>
@@ -501,7 +513,7 @@ class TSBIFW_Admin {
 										<input type="checkbox" name="tsbifw_delete_data_on_uninstall" id="tsbifw_delete_data_on_uninstall" value="yes" <?php checked( get_option( 'tsbifw_delete_data_on_uninstall', 'no' ), 'yes' ); ?> style="margin-top: 3px;" />
 										<div>
 											<span style="font-weight: 600; color: #991b1b; display: block; margin-bottom: 3px;"><?php esc_html_e( 'Delete all plugin data on uninstall', 'searchips-search-by-image-for-woocommerce' ); ?></span>
-											<span class="description" style="color: #7f1d1d;"><?php esc_html_e( 'If checked, all product vectors, image descriptions, search logs, and settings will be permanently deleted from the database when you delete this plugin.', 'searchips-search-by-image-for-woocommerce' ); ?></span>
+											<span class="description" style="color: #7f1d1d;"><?php esc_html_e( 'If checked, all product vectors, search logs, and settings will be permanently deleted from the database when you delete this plugin.', 'searchips-search-by-image-for-woocommerce' ); ?></span>
 										</div>
 									</label>
 								</div>
@@ -1149,30 +1161,12 @@ class TSBIFW_Admin {
 			$embedding_models = $api->filter_embedding_models( $embeddings_data );
 		}
 
-		// Fetch text generation models and filter for vision support.
-		$generation_data = $api->get_models( '', $gateway );
-		if ( is_wp_error( $generation_data ) ) {
-			$vision_models = array();
-		} else {
-			$vision_models = $api->filter_vision_models( $generation_data );
-		}
-
 		// Fallback models in case of network issues or empty responses.
 		if ( empty( $embedding_models ) ) {
 			$embedding_models = array(
 				array( 'id' => 'google/gemini-embedding-2', 'name' => 'Google: Gemini Embedding 2' ),
 				array( 'id' => 'openai/text-embedding-3-small', 'name' => 'OpenAI: Text Embedding 3 (Small)' ),
 				array( 'id' => 'openai/text-embedding-3-large', 'name' => 'OpenAI: Text Embedding 3 (Large)' ),
-			);
-		}
-
-		if ( empty( $vision_models ) ) {
-			$vision_models = array(
-				array( 'id' => 'google/gemini-2.5-flash', 'name' => 'Google: Gemini 2.5 Flash' ),
-				array( 'id' => 'google/gemini-2.5-pro', 'name' => 'Google: Gemini 2.5 Pro' ),
-				array( 'id' => 'openai/gpt-4o-mini', 'name' => 'OpenAI: GPT-4o Mini' ),
-				array( 'id' => 'openai/gpt-4o', 'name' => 'OpenAI: GPT-4o' ),
-				array( 'id' => 'anthropic/claude-3-haiku', 'name' => 'Anthropic: Claude 3 Haiku' ),
 			);
 		}
 
@@ -1183,14 +1177,17 @@ class TSBIFW_Admin {
 			return strcasecmp( $name_a, $name_b );
 		};
 		usort( $embedding_models, $sort_models_by_name );
-		usort( $vision_models, $sort_models_by_name );
 
-		wp_send_json_success(
+		$response_data = apply_filters(
+			'tsbifw_admin_available_models',
 			array(
 				'embedding_models' => $embedding_models,
-				'vision_models'    => $vision_models,
-			)
+			),
+			$gateway,
+			$api
 		);
+
+		wp_send_json_success( $response_data );
 	}
 
 	/**
@@ -1737,13 +1734,21 @@ class TSBIFW_Admin {
 	 */
 	public function sanitize_cron_interval( $value ) {
 		$value = sanitize_text_field( $value );
+
+		// Normalize legacy un-prefixed values to compliant tsbifw_ keys.
+		$legacy_map = array(
+			'every_minute'     => 'tsbifw_every_minute',
+			'every_5_minutes'  => 'tsbifw_every_5_minutes',
+			'every_15_minutes' => 'tsbifw_every_15_minutes',
+		);
+		if ( isset( $legacy_map[ $value ] ) ) {
+			$value = $legacy_map[ $value ];
+		}
+
 		$valid = array(
 			'tsbifw_every_minute',
 			'tsbifw_every_5_minutes',
 			'tsbifw_every_15_minutes',
-			'every_minute',
-			'every_5_minutes',
-			'every_15_minutes',
 			'hourly',
 			'twice_daily',
 			'daily',
@@ -1980,14 +1985,7 @@ class TSBIFW_Admin {
 						<div class="tsbifw-fx-stage-wrap tsbifw-mockup-stage" data-effect="reticle" style="--tsbifw-scan-color: #6366f1;">
 							<img src="<?php echo esc_url( TSBIFW_PLUGIN_URL . 'assets/images/preview-sample.svg' ); ?>" alt="Reticle Preview" class="tsbifw-mockup-img" />
 							<div class="tsbifw-scan-container tsbifw-scan-active" data-effect="reticle">
-								<div class="tsbifw-effect-layer tsbifw-effect-reticle">
-									<div class="tsbifw-reticle-bracket tsbifw-reticle-tl"></div>
-									<div class="tsbifw-reticle-bracket tsbifw-reticle-tr"></div>
-									<div class="tsbifw-reticle-bracket tsbifw-reticle-bl"></div>
-									<div class="tsbifw-reticle-bracket tsbifw-reticle-br"></div>
-									<div class="tsbifw-reticle-crosshair"></div>
-									<div class="tsbifw-reticle-tag">AI_TARGET: 0x94F2</div>
-								</div>
+								<?php do_action( 'tsbifw_pro_preview_effect_layer', 'reticle' ); ?>
 							</div>
 							<div class="tsbifw-mockup-status" style="bottom: 8px; padding: 4px 10px; font-size: 10px;">
 								<span class="tsbifw-pulse-dot" style="background: #6366f1; box-shadow: 0 0 8px #6366f1;"></span>
@@ -2020,12 +2018,7 @@ class TSBIFW_Admin {
 						<div class="tsbifw-fx-stage-wrap tsbifw-mockup-stage" data-effect="radar" style="--tsbifw-scan-color: #10b981;">
 							<img src="<?php echo esc_url( TSBIFW_PLUGIN_URL . 'assets/images/preview-sample.svg' ); ?>" alt="Radar Preview" class="tsbifw-mockup-img" />
 							<div class="tsbifw-scan-container tsbifw-scan-active" data-effect="radar">
-								<div class="tsbifw-effect-layer tsbifw-effect-radar">
-									<div class="tsbifw-radar-ring tsbifw-radar-ring-1"></div>
-									<div class="tsbifw-radar-ring tsbifw-radar-ring-2"></div>
-									<div class="tsbifw-radar-sweep"></div>
-									<div class="tsbifw-radar-grid"></div>
-								</div>
+								<?php do_action( 'tsbifw_pro_preview_effect_layer', 'radar' ); ?>
 							</div>
 							<div class="tsbifw-mockup-status" style="bottom: 8px; padding: 4px 10px; font-size: 10px;">
 								<span class="tsbifw-pulse-dot" style="background: #10b981; box-shadow: 0 0 8px #10b981;"></span>
@@ -2058,9 +2051,7 @@ class TSBIFW_Admin {
 						<div class="tsbifw-fx-stage-wrap tsbifw-mockup-stage" data-effect="matrix" style="--tsbifw-scan-color: #06b6d4;">
 							<img src="<?php echo esc_url( TSBIFW_PLUGIN_URL . 'assets/images/preview-sample.svg' ); ?>" alt="Mesh Preview" class="tsbifw-mockup-img" />
 							<div class="tsbifw-scan-container tsbifw-scan-active" data-effect="matrix">
-								<div class="tsbifw-effect-layer tsbifw-effect-matrix">
-									<div class="tsbifw-matrix-grid"></div>
-								</div>
+								<?php do_action( 'tsbifw_pro_preview_effect_layer', 'matrix' ); ?>
 							</div>
 							<div class="tsbifw-mockup-status" style="bottom: 8px; padding: 4px 10px; font-size: 10px;">
 								<span class="tsbifw-pulse-dot" style="background: #06b6d4; box-shadow: 0 0 8px #06b6d4;"></span>
@@ -2093,12 +2084,7 @@ class TSBIFW_Admin {
 						<div class="tsbifw-fx-stage-wrap tsbifw-mockup-stage" data-effect="ripple" style="--tsbifw-scan-color: #ec4899;">
 							<img src="<?php echo esc_url( TSBIFW_PLUGIN_URL . 'assets/images/preview-sample.svg' ); ?>" alt="Ripple Preview" class="tsbifw-mockup-img" />
 							<div class="tsbifw-scan-container tsbifw-scan-active" data-effect="ripple">
-								<div class="tsbifw-effect-layer tsbifw-effect-ripple">
-									<div class="tsbifw-ripple-wave tsbifw-ripple-1"></div>
-									<div class="tsbifw-ripple-wave tsbifw-ripple-2"></div>
-									<div class="tsbifw-ripple-wave tsbifw-ripple-3"></div>
-									<div class="tsbifw-ripple-core"></div>
-								</div>
+								<?php do_action( 'tsbifw_pro_preview_effect_layer', 'ripple' ); ?>
 							</div>
 							<div class="tsbifw-mockup-status" style="bottom: 8px; padding: 4px 10px; font-size: 10px;">
 								<span class="tsbifw-pulse-dot" style="background: #ec4899; box-shadow: 0 0 8px #ec4899;"></span>
@@ -2131,10 +2117,7 @@ class TSBIFW_Admin {
 						<div class="tsbifw-fx-stage-wrap tsbifw-mockup-stage" data-effect="hologram" style="--tsbifw-scan-color: #8b5cf6;">
 							<img src="<?php echo esc_url( TSBIFW_PLUGIN_URL . 'assets/images/preview-sample.svg' ); ?>" alt="Hologram Preview" class="tsbifw-mockup-img" />
 							<div class="tsbifw-scan-container tsbifw-scan-active" data-effect="hologram">
-								<div class="tsbifw-effect-layer tsbifw-effect-hologram">
-									<div class="tsbifw-hologram-prism"></div>
-									<div class="tsbifw-hologram-shimmer"></div>
-								</div>
+								<?php do_action( 'tsbifw_pro_preview_effect_layer', 'hologram' ); ?>
 							</div>
 							<div class="tsbifw-mockup-status" style="bottom: 8px; padding: 4px 10px; font-size: 10px;">
 								<span class="tsbifw-pulse-dot" style="background: #8b5cf6; box-shadow: 0 0 8px #8b5cf6;"></span>
@@ -2286,6 +2269,26 @@ class TSBIFW_Admin {
 			</div>
 		</div>
 		<?php
+	}
+
+	/**
+	 * Register suggested privacy policy content for site owners.
+	 */
+	public function add_privacy_policy_content() {
+		if ( ! function_exists( 'wp_add_privacy_policy_content' ) ) {
+			return;
+		}
+
+		$content = sprintf(
+			'<p>%s</p><p>%s</p>',
+			esc_html__( 'When visitors use the Search by Image feature, their uploaded image or photo is sent securely to OpenRouter API (https://openrouter.ai) to calculate a mathematical vector embedding for product similarity matching.', 'searchips-search-by-image-for-woocommerce' ),
+			esc_html__( 'Uploaded search images are processed in transit and are not permanently retained or linked to personal account data by the search system.', 'searchips-search-by-image-for-woocommerce' )
+		);
+
+		wp_add_privacy_policy_content(
+			__( 'Searchips Search By Image for WooCommerce', 'searchips-search-by-image-for-woocommerce' ),
+			wp_kses_post( wpautop( $content, false ) )
+		);
 	}
 }
 

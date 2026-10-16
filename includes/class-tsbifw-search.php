@@ -19,13 +19,6 @@ class TSBIFW_Search {
 	private static $instance = null;
 
 	/**
-	 * Active visual search matched metadata (e.g. matched variation ID and image ID).
-	 *
-	 * @var array
-	 */
-	private $active_matched_meta = array();
-
-	/**
 	 * Get class instance.
 	 *
 	 * @return TSBIFW_Search
@@ -51,10 +44,6 @@ class TSBIFW_Search {
 		add_action( 'pre_get_posts', array( $this, 'modify_search_query' ) );
 		add_filter( 'query_vars', array( $this, 'register_query_vars' ) );
 		add_filter( 'posts_search', array( $this, 'clear_search_keyword_sql' ), 10, 2 );
-
-		// Hook into product image and loop link for matched variation swap.
-		add_filter( 'woocommerce_product_get_image', array( $this, 'filter_product_image_for_matched_variation' ), 10, 5 );
-		add_filter( 'woocommerce_loop_product_link', array( $this, 'filter_product_link_for_matched_variation' ), 10, 2 );
 	}
 
 	/**
@@ -169,7 +158,7 @@ class TSBIFW_Search {
 			'tsbifw_frontend_params',
 			array(
 				'search_endpoint'      => esc_url_raw( rest_url( 'tsbifw/v1/search' ) ),
-				'track_endpoint'       => esc_url_raw( rest_url( 'tsbifw/v1/track-click' ) ),
+				'track_endpoint'       => esc_url_raw( apply_filters( 'tsbifw_track_endpoint', '' ) ),
 				'current_vquery'       => $current_vquery,
 				'cropper_src'          => esc_url_raw( TSBIFW_PLUGIN_URL . 'assets/js/cropper.min.js' ),
 				'auto_inject'          => ( 'yes' === $enable_auto_inject ),
@@ -264,12 +253,10 @@ class TSBIFW_Search {
 		}
 
 		if ( isset( $transient_data['ids'] ) && is_array( $transient_data['ids'] ) ) {
-			$product_ids               = $transient_data['ids'];
-			$this->active_matched_meta = isset( $transient_data['matches'] ) && is_array( $transient_data['matches'] ) ? $transient_data['matches'] : array();
+			$product_ids = $transient_data['ids'];
 		} else {
 			// Backward compatibility for flat ID arrays.
-			$product_ids               = $transient_data;
-			$this->active_matched_meta = array();
+			$product_ids = $transient_data;
 		}
 
 		if ( empty( $product_ids ) ) {
@@ -285,79 +272,6 @@ class TSBIFW_Search {
 
 		// Order results by the matched IDs order (sorted by similarity score descending)
 		$query->set( 'orderby', 'post__in' );
-	}
-
-	/**
-	 * Ensure matched metadata is populated from transient token for current request.
-	 */
-	private function ensure_active_matched_meta() {
-		if ( ! empty( $this->active_matched_meta ) ) {
-			return;
-		}
-		$token = $this->get_request_token();
-		if ( ! empty( $token ) ) {
-			$transient_data = get_transient( 'tsbifw_vquery_' . $token );
-			if ( is_array( $transient_data ) && isset( $transient_data['matches'] ) && is_array( $transient_data['matches'] ) ) {
-				$this->active_matched_meta = $transient_data['matches'];
-			}
-		}
-	}
-
-	/**
-	 * Filter product catalog image to show the matched variation image when searching by image.
-	 *
-	 * @param string       $image       Product image HTML.
-	 * @param WC_Product   $product     Product object.
-	 * @param string|array $size        Image size.
-	 * @param array        $attr        Image attributes.
-	 * @param bool         $placeholder Placeholder flag.
-	 * @return string Modified image HTML.
-	 */
-	public function filter_product_image_for_matched_variation( $image, $product, $size = 'woocommerce_thumbnail', $attr = array(), $placeholder = true ) {
-		$this->ensure_active_matched_meta();
-		if ( empty( $this->active_matched_meta ) || ! $product ) {
-			return $image;
-		}
-
-		$product_id = $product->get_id();
-		if ( isset( $this->active_matched_meta[ $product_id ]['image_id'] ) ) {
-			$matched_img_id = (int) $this->active_matched_meta[ $product_id ]['image_id'];
-			if ( $matched_img_id > 0 && $matched_img_id !== (int) $product->get_image_id() ) {
-				$var_image = wp_get_attachment_image( $matched_img_id, $size, false, $attr );
-				if ( ! empty( $var_image ) ) {
-					return $var_image;
-				}
-			}
-		}
-
-		return $image;
-	}
-
-	/**
-	 * Filter product loop link to navigate to matched variation with attributes pre-selected.
-	 *
-	 * @param string     $link    Product permalink.
-	 * @param WC_Product $product Product object.
-	 * @return string Modified permalink.
-	 */
-	public function filter_product_link_for_matched_variation( $link, $product ) {
-		$this->ensure_active_matched_meta();
-		if ( empty( $this->active_matched_meta ) || ! $product ) {
-			return $link;
-		}
-
-		$product_id = $product->get_id();
-		if ( isset( $this->active_matched_meta[ $product_id ]['variation_id'] ) ) {
-			$var_id = (int) $this->active_matched_meta[ $product_id ]['variation_id'];
-			if ( $var_id > 0 ) {
-				$variation = wc_get_product( $var_id );
-				if ( $variation ) {
-					return esc_url( $variation->get_permalink() );
-				}
-			}
-		}
-
-		return $link;
 	}
 
 	/**
@@ -445,100 +359,6 @@ class TSBIFW_Search {
 				),
 			)
 		);
-
-		register_rest_route(
-			'tsbifw/v1',
-			'/track-click',
-			array(
-				'methods'             => 'POST',
-				'callback'            => array( $this, 'handle_track_click' ),
-				'permission_callback' => array( $this, 'check_track_click_permission' ),
-				'args'                => array(
-					'token'      => array(
-						'type'              => 'string',
-						'required'          => true,
-						'sanitize_callback' => 'sanitize_text_field',
-					),
-					'product_id' => array(
-						'type'              => 'integer',
-						'required'          => true,
-						'sanitize_callback' => 'absint',
-					),
-					'security'   => array(
-						'type'              => 'string',
-						'required'          => false,
-						'sanitize_callback' => 'sanitize_text_field',
-					),
-				),
-			)
-		);
-	}
-
-	/**
-	 * Verify permissions and rate limit for REST click tracking beacons.
-	 *
-	 * @param WP_REST_Request $request REST request object.
-	 * @return bool|WP_Error True if allowed, WP_Error otherwise.
-	 */
-	public function check_track_click_permission( $request ) {
-		$nonce = $request->get_header( 'X-WP-Nonce' );
-		if ( ! $nonce ) {
-			$nonce = $request->get_param( 'security' );
-		}
-
-		$valid = wp_verify_nonce( $nonce, 'tsbifw_frontend_search' ) || wp_verify_nonce( $nonce, 'tsbifw_admin_nonce' );
-
-		if ( ! $valid && function_exists( 'wp_validate_auth_cookie' ) ) {
-			$logged_in_user_id = wp_validate_auth_cookie( '', 'logged_in' );
-			if ( $logged_in_user_id ) {
-				$current_user_id = get_current_user_id();
-				wp_set_current_user( $logged_in_user_id );
-				$valid = (bool) ( wp_verify_nonce( $nonce, 'tsbifw_frontend_search' ) || wp_verify_nonce( $nonce, 'tsbifw_admin_nonce' ) );
-				wp_set_current_user( $current_user_id );
-			}
-		}
-
-		if ( ! $valid ) {
-			return new WP_Error(
-				'rest_forbidden',
-				esc_html__( 'Forbidden: invalid security token.', 'searchips-search-by-image-for-woocommerce' ),
-				array( 'status' => 403 )
-			);
-		}
-
-		// Rate limit: max 60 click beacons per minute per IP address.
-		$client_ip = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : 'unknown';
-		$rl_key    = 'tsbifw_rl_click_' . md5( $client_ip );
-		$hits      = (int) get_transient( $rl_key );
-
-		if ( $hits >= 60 ) {
-			return new WP_Error(
-				'rest_rate_limited',
-				esc_html__( 'Too many click tracking requests. Please wait a minute and try again.', 'searchips-search-by-image-for-woocommerce' ),
-				array( 'status' => 429 )
-			);
-		}
-
-		set_transient( $rl_key, $hits + 1, MINUTE_IN_SECONDS );
-
-		return true;
-	}
-
-	/**
-	 * Handle visual search click tracking beacon.
-	 *
-	 * @param WP_REST_Request $request REST request object.
-	 * @return WP_REST_Response
-	 */
-	public function handle_track_click( $request ) {
-		$token      = $request->get_param( 'token' );
-		$product_id = absint( $request->get_param( 'product_id' ) );
-
-		if ( ! empty( $token ) && $product_id > 0 ) {
-			do_action( 'tsbifw_record_click', $token, $product_id );
-		}
-
-		return rest_ensure_response( array( 'success' => true ) );
 	}
 
 	/**
@@ -815,9 +635,8 @@ class TSBIFW_Search {
 				return new WP_Error( 'tsbifw_forbidden', esc_html__( 'Forbidden.', 'searchips-search-by-image-for-woocommerce' ), array( 'status' => 403 ) );
 			}
 
-			// Pre-prime attachment image and variation product caches for sandbox results to avoid N+1 queries.
-			$image_ids     = array();
-			$variation_ids = array();
+			// Pre-prime attachment image caches for sandbox results to avoid N+1 queries.
+			$image_ids = array();
 			foreach ( $matched_posts as $match ) {
 				$product_id  = $match['id'];
 				$product     = isset( $resolved_products[ $product_id ] ) ? $resolved_products[ $product_id ] : wc_get_product( $product_id );
@@ -825,18 +644,10 @@ class TSBIFW_Search {
 				if ( $matched_img ) {
 					$image_ids[] = $matched_img;
 				}
-				if ( ! empty( $match['variation_id'] ) ) {
-					$variation_ids[] = (int) $match['variation_id'];
-				}
 			}
 
-			if ( function_exists( '_prime_post_caches' ) ) {
-				if ( ! empty( $image_ids ) ) {
-					_prime_post_caches( $image_ids, false, true );
-				}
-				if ( ! empty( $variation_ids ) ) {
-					_prime_post_caches( $variation_ids, true, true );
-				}
+			if ( function_exists( '_prime_post_caches' ) && ! empty( $image_ids ) ) {
+				_prime_post_caches( $image_ids, false, true );
 			}
 
 			// Format product response lists for admin test search sandbox.
@@ -848,31 +659,34 @@ class TSBIFW_Search {
 					continue;
 				}
 
-				$variation_id = ! empty( $match['variation_id'] ) ? (int) $match['variation_id'] : 0;
-				$variation    = $variation_id ? wc_get_product( $variation_id ) : null;
-
 				$image_id  = ! empty( $match['image_id'] ) ? (int) $match['image_id'] : (int) $product->get_image_id();
 				$image_url = $image_id ? wp_get_attachment_image_url( $image_id, 'medium' ) : wc_placeholder_img_src();
 
 				$score_percentage = null !== $match['score'] ? round( $match['score'] * 100 ) . '%' : null;
 
-				// Add to Cart integration.
-				$add_to_cart_url = esc_url( $variation ? $variation->add_to_cart_url() : $product->add_to_cart_url() );
-				$title           = $variation ? wp_strip_all_tags( $variation->get_name() ) : wp_strip_all_tags( $product->get_name() );
-				$permalink       = $variation ? esc_url( $variation->get_permalink() ) : esc_url( $product->get_permalink() );
-
-				$formatted_results[] = array(
+				$item_data = array(
 					'id'                 => $product_id,
-					'variation_id'       => $variation_id,
-					'title'              => $title,
-					'permalink'          => $permalink,
+					'variation_id'       => 0,
+					'title'              => wp_strip_all_tags( $product->get_name() ),
+					'permalink'          => esc_url( $product->get_permalink() ),
 					'image'              => esc_url( $image_url ),
-					'price_html'         => $variation ? $variation->get_price_html() : $product->get_price_html(),
+					'price_html'         => $product->get_price_html(),
 					'score'              => $score_percentage,
-					'add_to_cart_url'    => $add_to_cart_url,
-					'is_in_stock'        => $variation ? $variation->is_in_stock() : $product->is_in_stock(),
+					'add_to_cart_url'    => esc_url( $product->add_to_cart_url() ),
+					'is_in_stock'        => $product->is_in_stock(),
 					'is_catalog_visible' => $product->is_visible(),
 				);
+
+				/**
+				 * Filter test search sandbox result item.
+				 *
+				 * @param array      $item_data Result item data.
+				 * @param array      $match     Raw match item.
+				 * @param WC_Product $product   Product instance.
+				 */
+				$item_data = apply_filters( 'tsbifw_search_test_result_item', $item_data, $match, $product );
+
+				$formatted_results[] = $item_data;
 			}
 
 			TSBIFW_Logger::log(

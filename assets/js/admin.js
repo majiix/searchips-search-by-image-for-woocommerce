@@ -94,9 +94,8 @@ jQuery(document).ready(function($) {
 		var gw = $('#tsbifw_api_gateway').val();
 		var strategy = $('#tsbifw_strategy').val();
 
-		var gwName = 'OpenRouter';
-		if ('openai' === gw) gwName = 'OpenAI Direct';
-		if ('gemini' === gw) gwName = 'Google Gemini Direct';
+		var labels = (tsbifw_admin_params && tsbifw_admin_params.gateway_labels) || {};
+		var gwName = labels[gw] || 'OpenRouter';
 
 		$('#tsbifw-embeddings-model-desc').text('Select the embedding model ID for ' + gwName + '.');
 		$(document).trigger('tsbifw_gateway_guidance_updated', [gw, strategy, gwName]);
@@ -662,7 +661,7 @@ jQuery(document).ready(function($) {
 
 				var $grid = $('#tsbifw-admin-results-grid');
 				var $toolbar = $('#tsbifw-admin-results-toolbar');
-				$grid.html('').show();
+				$grid.html('').attr('data-search-token', token).show();
 
 				if (!products || products.length === 0) {
 					$toolbar.hide();
@@ -683,24 +682,24 @@ jQuery(document).ready(function($) {
 				products.forEach(function(product) {
 					var badgeHtml = product.score ? '<span class="tsbifw-similarity-badge">' + tsbifw_admin_params.strings.similarity_label + ' ' + product.score + '</span>' : '';
 					var hiddenBadgeHtml = product.is_catalog_visible === false ? '<span class="tsbifw-hidden-badge">' + (tsbifw_admin_params.strings.hidden_from_catalog || 'Hidden from Catalog') + '</span>' : '';
-					var cartBtnHtml = product.is_in_stock ? '<a href="' + product.add_to_cart_url + '" target="_blank" class="tsbifw-btn tsbifw-btn-primary tsbifw-trackable-link">' + tsbifw_admin_params.strings.add_to_cart + '</a>' : '';
+					var cartBtnHtml = product.is_in_stock ? '<a href="' + product.add_to_cart_url + '" target="_blank" class="tsbifw-btn tsbifw-btn-primary">' + tsbifw_admin_params.strings.add_to_cart + '</a>' : '';
 
 					var cardHtml =
 						'<div class="tsbifw-product-card" data-product-id="' + product.id + '">' +
 							badgeHtml +
 							hiddenBadgeHtml +
 							'<div class="tsbifw-card-image-wrapper">' +
-								'<a href="' + product.permalink + '" target="_blank" class="tsbifw-trackable-link">' +
+								'<a href="' + product.permalink + '" target="_blank">' +
 									'<img class="tsbifw-card-image" src="' + product.image + '" alt="' + product.title + '" />' +
 								'</a>' +
 							'</div>' +
 							'<div class="tsbifw-card-body">' +
 								'<h4 class="tsbifw-card-title">' +
-									'<a href="' + product.permalink + '" target="_blank" class="tsbifw-trackable-link">' + product.title + '</a>' +
+									'<a href="' + product.permalink + '" target="_blank">' + product.title + '</a>' +
 								'</h4>' +
 								'<div class="tsbifw-card-price">' + product.price_html + '</div>' +
 								'<div class="tsbifw-card-actions">' +
-									'<a href="' + product.permalink + '" target="_blank" class="tsbifw-btn tsbifw-btn-secondary tsbifw-trackable-link">' + tsbifw_admin_params.strings.view_product + '</a>' +
+									'<a href="' + product.permalink + '" target="_blank" class="tsbifw-btn tsbifw-btn-secondary">' + tsbifw_admin_params.strings.view_product + '</a>' +
 									cartBtnHtml +
 								'</div>' +
 							'</div>' +
@@ -708,32 +707,6 @@ jQuery(document).ready(function($) {
 
 					$grid.append(cardHtml);
 				});
-
-				// Track clicks on sandbox product cards for CTR parity and testing
-				if (token && tsbifw_admin_params.track_endpoint) {
-					$grid.find('.tsbifw-trackable-link').on('click', function() {
-						var $card = $(this).closest('.tsbifw-product-card');
-						var productId = parseInt($card.data('product-id'), 10);
-						if (productId > 0) {
-							var payload = JSON.stringify({
-								token: token,
-								product_id: productId,
-								security: (tsbifw_admin_params && tsbifw_admin_params.nonce) || ''
-							});
-							if (navigator.sendBeacon) {
-								var blob = new Blob([payload], { type: 'application/json' });
-								navigator.sendBeacon(tsbifw_admin_params.track_endpoint, blob);
-							} else if (window.fetch) {
-								fetch(tsbifw_admin_params.track_endpoint, {
-									method: 'POST',
-									headers: { 'Content-Type': 'application/json' },
-									body: payload,
-									keepalive: true
-								});
-							}
-						}
-					});
-				}
 			},
 			error: function(xhr) {
 				stopAdminStatusRotation();

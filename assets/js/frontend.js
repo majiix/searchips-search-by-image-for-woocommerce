@@ -125,33 +125,6 @@ jQuery(document).ready(function($) {
 										'<div class="tsbifw-scanner-bar"></div>' +
 										'<div class="tsbifw-scanning-overlay"></div>' +
 									'</div>' +
-									'<div class="tsbifw-effect-layer tsbifw-effect-reticle">' +
-										'<div class="tsbifw-reticle-bracket tsbifw-reticle-tl"></div>' +
-										'<div class="tsbifw-reticle-bracket tsbifw-reticle-tr"></div>' +
-										'<div class="tsbifw-reticle-bracket tsbifw-reticle-bl"></div>' +
-										'<div class="tsbifw-reticle-bracket tsbifw-reticle-br"></div>' +
-										'<div class="tsbifw-reticle-crosshair"></div>' +
-										'<div class="tsbifw-reticle-tag">AI_TARGET: 0x94F2</div>' +
-									'</div>' +
-									'<div class="tsbifw-effect-layer tsbifw-effect-radar">' +
-										'<div class="tsbifw-radar-ring tsbifw-radar-ring-1"></div>' +
-										'<div class="tsbifw-radar-ring tsbifw-radar-ring-2"></div>' +
-										'<div class="tsbifw-radar-sweep"></div>' +
-										'<div class="tsbifw-radar-grid"></div>' +
-									'</div>' +
-									'<div class="tsbifw-effect-layer tsbifw-effect-matrix">' +
-										'<div class="tsbifw-matrix-grid"></div>' +
-									'</div>' +
-									'<div class="tsbifw-effect-layer tsbifw-effect-ripple">' +
-										'<div class="tsbifw-ripple-wave tsbifw-ripple-1"></div>' +
-										'<div class="tsbifw-ripple-wave tsbifw-ripple-2"></div>' +
-										'<div class="tsbifw-ripple-wave tsbifw-ripple-3"></div>' +
-										'<div class="tsbifw-ripple-core"></div>' +
-									'</div>' +
-									'<div class="tsbifw-effect-layer tsbifw-effect-hologram">' +
-										'<div class="tsbifw-hologram-prism"></div>' +
-										'<div class="tsbifw-hologram-shimmer"></div>' +
-									'</div>' +
 								'</div>' +
 							'</div>' +
 							'<div class="tsbifw-preview-actions" style="margin-top: 15px; display: flex; gap: 10px; justify-content: center; align-items: center;">' +
@@ -165,6 +138,7 @@ jQuery(document).ready(function($) {
 			'</div>';
 
 		$('body').append(modalHtml);
+		$(document).trigger('tsbifw_modal_rendered', [$('.tsbifw-modal-overlay'), $('.tsbifw-scan-container')]);
 		$(document).trigger('tsbifw_modal_initialized', [$('.tsbifw-modal-overlay')]);
 
 		// Event handlers for the modal

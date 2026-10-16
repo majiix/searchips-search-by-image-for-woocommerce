@@ -2,7 +2,7 @@
 
 ## Overview
 
-Searchips Search By Image for WooCommerce (version 1.6.0) is an image-based visual search plugin for WooCommerce stores. It enables shoppers to search for matching products using photos and images powered by machine learning models via the OpenRouter API. It provides multimodal vector embedding similarity matching (Strategy 1), an in-admin test search sandbox, a batch indexer, and customizable frontend camera triggers.
+Searchips Search By Image for WooCommerce (version 1.7.0) is an image-based visual search plugin for WooCommerce stores. It enables shoppers to search for matching products using photos and images powered by machine learning models via the OpenRouter API. It provides multimodal vector embedding similarity matching (Strategy 1), an in-admin test search sandbox, a batch indexer, and customizable frontend camera triggers.
 
 The plugin strictly adheres to WordPress.org Plugin Directory guidelines (including Guideline 5 prohibiting trialware, artificial limits on local features, and crippling settings forms). The Free plugin is 100% self-contained and operational on its own, with zero dependencies or hardcoded checks for commercial addons.
 
@@ -33,22 +33,26 @@ The plugin is structured into modular components:
 - `includes/class-tsbifw-logger.php`: Handles diagnostic logging supporting WooCommerce file logs (`wc_get_logger()`), non-blocking database writes for high-concurrency requests, and autoload-free option storage with full configurable retention.
 - `includes/class-tsbifw-api.php`: Handles OpenRouter API communication, model fetching, image resizing, and base64 encoding. Filters API keys via `tsbifw_gateway_api_key`.
 - `includes/class-tsbifw-indexer.php`: Handles product image indexing, metadata mutations, batch queue priming, custom prefixed cron intervals, and transient-cached O(1) attachment lookups. Decoupled via `tsbifw_product_target_images`, `tsbifw_skip_product_indexing`, `tsbifw_index_product_custom_strategy`, `tsbifw_clear_product_indexed_meta`, `tsbifw_clear_all_indexed_data`, and `tsbifw_after_product_indexed`.
-- `includes/class-tsbifw-admin.php`: Registers admin settings pages, asset enqueueing (`tsbifw-cropperjs`, `tsbifw-admin-js`), consolidated status count queries with transient caching, AJAX endpoints for batch indexing, test sandbox, and informational upgrade cards. All settings forms are 100% operational with zero disabled or readonly inputs. Exposes `tsbifw_admin_after_settings_fields` for addon settings fields.
-- `includes/class-tsbifw-search.php`: Manages frontend search shortcodes, on-demand lazy loading of Cropper.js, REST API search route (`tsbifw/v1/search`) with rate limiting (HTTP 429), bulk candidate cache pre-priming (`_prime_post_caches`), and query modifications. Decoupled via `tsbifw_custom_strategy_search_scores`, `tsbifw_custom_strategy_fallback_posts`, `tsbifw_search_term`, `tsbifw_candidate_scores`, `tsbifw_record_search`, and `tsbifw_record_click`.
-- `assets/js/frontend.js`: Frontend modal management, Cropper.js integration, scanning effects, and decoupled events (`tsbifw_modal_initialized`, `tsbifw_modal_reset`, `tsbifw_select_file`).
+- `includes/class-tsbifw-admin.php`: Registers admin settings pages, asset enqueueing (`tsbifw-cropperjs`, `tsbifw-admin-js`), consolidated status count queries with transient caching, AJAX endpoints for batch indexing, test sandbox, and informational upgrade cards. All settings forms are 100% operational with zero disabled or readonly inputs. Exposes `tsbifw_admin_after_settings_fields`, `tsbifw_admin_available_models`, and `tsbifw_admin_gateway_labels` for addon extensions.
+- `includes/class-tsbifw-search.php`: Manages frontend search shortcodes, on-demand lazy loading of Cropper.js, REST API search route (`tsbifw/v1/search`) with rate limiting (HTTP 429), bulk candidate cache pre-priming (`_prime_post_caches`), and query modifications. Decoupled via `tsbifw_custom_strategy_search_scores`, `tsbifw_custom_strategy_fallback_posts`, `tsbifw_search_term`, `tsbifw_candidate_scores`, `tsbifw_record_search`, `tsbifw_record_click`, and `tsbifw_track_endpoint`.
+- `assets/js/frontend.js`: Frontend modal management, Cropper.js integration, scanning effects (Laser Line core effect), and decoupled events (`tsbifw_modal_rendered`, `tsbifw_modal_initialized`, `tsbifw_modal_reset`, `tsbifw_select_file`).
 - `assets/js/admin.js`: Backend settings UI management, dynamic model fetching, and decoupled events (`tsbifw_strategy_toggled`, `tsbifw_gateway_guidance_updated`, `tsbifw_before_load_models`, `tsbifw_models_loaded`).
 - `uninstall.php`: Clean cleanup of core options, metadata, transients, and cron hooks upon plugin deletion. Fires `do_action( 'tsbifw_uninstall' )`.
 
-## WordPress.org Guideline 5 Compliance Architecture
+## WordPress.org Guideline Compliance Architecture
 
-To strictly comply with WordPress.org Plugin Review Team requirements (especially Guideline 5 prohibiting trialware, dead code, crippled local settings, and artificial restrictions):
+To strictly comply with WordPress.org Plugin Review Team requirements (especially Guideline 5 prohibiting trialware and dormant code, and Guideline 17 requiring unique prefixing):
 
+- **Strict Namespace & Prefixing (Guideline 17)**: All cron schedule intervals are strictly prefixed (`tsbifw_every_minute`, `tsbifw_every_5_minutes`, `tsbifw_every_15_minutes`). Un-prefixed keys are strictly avoided in global hooks.
+- **Zero Latent/Dormant Paid Code (Guideline 5)**: Free JavaScript bundles (`admin.js`, `frontend.js`) contain zero beacon or tracking endpoints. Click tracking for Pro CTR analytics is attached exclusively by the Pro addon (`pro-admin.js`).
+- **Human-Readable Source Code (Guideline 1)**: Both minified (`assets/js/cropper.min.js`) and unminified human-readable (`assets/js/cropper.js`) versions of Cropper.js v2.1.1 are bundled in the repository.
+- **Privacy Policy Integration (Guideline 6)**: Core `wp_add_privacy_policy_content()` integration registers suggested privacy disclosures regarding OpenRouter image processing.
 - **Zero Locked Form Fields**: Active settings forms (General, Styling, Indexer, Test Search, System Logs) contain no disabled form fields, lock badges, or nag messages. All rendered inputs are immediately actionable.
 - **Zero Pro Hardcoding**: The Free plugin contains no references to Pro classes (`TSBIFW_Pro_Addon`, `TSBIFW_Pro_Analytics`), Pro constants (`TSBIFW_PRO_VERSION`), Pro meta keys (`_tsbifw_images_hash`, `_tsbifw_descriptions`), or internal helper methods (`is_pro_active()`).
 - **Hook-Driven Decoupling**: All extension points are exposed through standard WordPress actions and filters. Addons inject their fields, tabs, and filters without modifying core plugin code.
-- **Informational Pro Promotion Cards**: Non-disruptive, informational sidebar widgets (`render_pro_card()`) highlight features available in the Pro Addon. Commercial upgrade information is consolidated in the dedicated Upgrade tab (`tab=pro`) rather than inside active settings forms, preventing commercial translation catalog pollution. These are easily suppressed by addons via `tsbifw_show_upgrade_card` and `tsbifw_show_upgrade_tab`.
+- **Informational Pro Promotion Cards**: Non-disruptive, informational sidebar widgets (`render_pro_card()`) highlight features available in the Pro Addon. Commercial upgrade information is consolidated in the dedicated Upgrade tab (`tab=pro`) rather than inside active settings forms.
 - **Zero Artificial Restrictions**: Core features have no artificial clamps or gates. Users can freely configure cache expiry, log retention, and cron schedules without restriction.
-- **Self-Contained Data Management**: The Free plugin only creates, modifies, and deletes its own core options and metadata in `uninstall.php`. Pro database tables (e.g. analytics) and Pro options are managed exclusively by the Pro Addon.
+- **Self-Contained Data Management**: The Free plugin cleans up options, metadata, cron jobs, and transients (including rate limit transients `_transient_tsbifw_rl_%`) in `uninstall.php`.
 
 ## Extension Hooks and Filters
 
@@ -91,9 +95,15 @@ The core plugin provides the following hooks for extensions:
 - `tsbifw_candidate_scores`: Filter candidate search similarity scores map.
 - `tsbifw_record_search`: Action fired when a visual search is performed.
 - `tsbifw_record_click`: Action fired when a search result click is tracked.
+- `tsbifw_track_endpoint`: Filter to customize or supply the REST API endpoint URL for click tracking (returns empty string by default in Free).
+- `tsbifw_admin_available_models`: Filter to customize the list of available models returned by the admin AJAX handler.
+- `tsbifw_admin_gateway_labels`: Filter to customize the mapping of gateway slugs to human-readable names in admin JavaScript.
 - `tsbifw_show_upgrade_card`: Filter boolean to show or hide the upgrade sidebar card.
 - `tsbifw_show_upgrade_tab`: Filter boolean to show or hide the upgrade tab link and content.
+- `tsbifw_search_test_result_item`: Filter to customize or enrich individual test search result items in the admin sandbox.
+- `tsbifw_pro_preview_effect_layer`: Action fired inside the Pro Features preview cards to render custom scanning animation layers.
 - `tsbifw_uninstall`: Action fired during core plugin uninstallation.
+- `tsbifw_modal_rendered`: JavaScript custom event dispatched when the search modal markup is injected and ready in the DOM.
 
 ## Current Features
 

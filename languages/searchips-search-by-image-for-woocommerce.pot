@@ -1,7 +1,7 @@
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: Searchips Search By Image for WooCommerce 1.6.0\n"
+"Project-Id-Version: Searchips Search By Image for WooCommerce 1.7.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-09-25 09:35+0000\n"
 "PO-Revision-Date: \n"
@@ -139,15 +139,15 @@ msgid "AI Provider Gateway"
 msgstr ""
 
 #: includes/class-tsbifw-admin.php:316
-msgid "Select the AI provider to handle image embeddings and descriptions."
+msgid "Select the AI provider to handle image embeddings."
 msgstr ""
 
 #: includes/class-tsbifw-admin.php:327
 msgid "OpenRouter API Key"
 msgstr ""
 
-#: includes/class-tsbifw-admin.php:335
-msgid "Enter your OpenRouter API key to communicate with embeddings and vision models."
+#: includes/class-tsbifw-admin.php:333
+msgid "Enter your OpenRouter API key to communicate with embeddings models."
 msgstr ""
 
 #: includes/class-tsbifw-admin.php:342
@@ -182,8 +182,8 @@ msgstr ""
 msgid "Automatically index new products or image updates on publish/save"
 msgstr ""
 
-#: includes/class-tsbifw-admin.php:396
-msgid "Immediately generates embeddings or descriptions when a product is saved or updated."
+#: includes/class-tsbifw-admin.php:381
+msgid "Immediately generates embeddings when a product is saved or updated."
 msgstr ""
 
 #: includes/class-tsbifw-admin.php:407
@@ -329,8 +329,8 @@ msgstr ""
 msgid "Delete all plugin data on uninstall"
 msgstr ""
 
-#: includes/class-tsbifw-admin.php:529
-msgid "If checked, all product vectors, image descriptions, search logs, and settings will be permanently deleted from the database when you delete this plugin."
+#: includes/class-tsbifw-admin.php:504
+msgid "If checked, all product vectors, search logs, and settings will be permanently deleted from the database when you delete this plugin."
 msgstr ""
 
 #: includes/class-tsbifw-admin.php:551
@@ -1282,8 +1282,8 @@ msgstr ""
 msgid "Product image metadata deleted (%1$s) for product ID %2$d. Queued for background indexing."
 msgstr ""
 
-#: includes/class-tsbifw-indexer.php:513
-msgid "All product embeddings, descriptions, and indexing metadata cleared successfully."
+#: includes/class-tsbifw-indexer.php:505
+msgid "All product embeddings and indexing metadata cleared successfully."
 msgstr ""
 
 #: includes/class-tsbifw-search.php:401

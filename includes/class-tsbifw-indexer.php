@@ -137,7 +137,6 @@ class TSBIFW_Indexer {
 		if ( empty( $target_images ) ) {
 			update_post_meta( $product_id, '_tsbifw_indexed_status', 'skipped' );
 			delete_post_meta( $product_id, '_tsbifw_vectors' );
-			delete_post_meta( $product_id, '_tsbifw_descriptions' );
 			delete_post_meta( $product_id, '_tsbifw_index_error' );
 			do_action( 'tsbifw_clear_product_indexed_meta', $product_id );
 			if ( ! $skip_cache_clear ) {
@@ -288,7 +287,6 @@ class TSBIFW_Indexer {
 			TSBIFW_Logger::log( $msg );
 			delete_post_meta( $target_product_id, '_tsbifw_indexed_status' );
 			delete_post_meta( $target_product_id, '_tsbifw_vectors' );
-			delete_post_meta( $target_product_id, '_tsbifw_descriptions' );
 			delete_post_meta( $target_product_id, '_tsbifw_index_error' );
 			do_action( 'tsbifw_clear_product_indexed_meta', $target_product_id );
 			$this->clear_cache();
@@ -346,7 +344,6 @@ class TSBIFW_Indexer {
 			TSBIFW_Logger::log( $msg );
 			delete_post_meta( $target_product_id, '_tsbifw_indexed_status' );
 			delete_post_meta( $target_product_id, '_tsbifw_vectors' );
-			delete_post_meta( $target_product_id, '_tsbifw_descriptions' );
 			delete_post_meta( $target_product_id, '_tsbifw_index_error' );
 			do_action( 'tsbifw_clear_product_indexed_meta', $target_product_id );
 			$this->clear_cache();
@@ -471,11 +468,6 @@ class TSBIFW_Indexer {
 			'display'  => esc_html__( 'Every 15 Minutes', 'searchips-search-by-image-for-woocommerce' ),
 		);
 
-		// Legacy aliases for backwards compatibility.
-		$schedules['every_minute']     = $schedules['tsbifw_every_minute'];
-		$schedules['every_5_minutes']  = $schedules['tsbifw_every_5_minutes'];
-		$schedules['every_15_minutes'] = $schedules['tsbifw_every_15_minutes'];
-
 		return $schedules;
 	}
 
@@ -487,7 +479,6 @@ class TSBIFW_Indexer {
 	public function on_product_delete( $post_id ) {
 		if ( 'product' === get_post_type( $post_id ) ) {
 			delete_post_meta( $post_id, '_tsbifw_vectors' );
-			delete_post_meta( $post_id, '_tsbifw_descriptions' );
 			delete_post_meta( $post_id, '_tsbifw_indexed_status' );
 			delete_post_meta( $post_id, '_tsbifw_index_error' );
 			do_action( 'tsbifw_clear_product_indexed_meta', $post_id );
@@ -500,9 +491,7 @@ class TSBIFW_Indexer {
 	 */
 	public function clear_all_indexed_data() {
 		delete_metadata( 'post', 0, '_tsbifw_vector', '', true );
-		delete_metadata( 'post', 0, '_tsbifw_description', '', true );
 		delete_metadata( 'post', 0, '_tsbifw_vectors', '', true );
-		delete_metadata( 'post', 0, '_tsbifw_descriptions', '', true );
 		delete_metadata( 'post', 0, '_tsbifw_indexed_status', '', true );
 		delete_metadata( 'post', 0, '_tsbifw_index_error', '', true );
 
@@ -510,7 +499,7 @@ class TSBIFW_Indexer {
 
 		$this->clear_cache();
 
-		TSBIFW_Logger::log( esc_html__( 'All product embeddings, descriptions, and indexing metadata cleared successfully.', 'searchips-search-by-image-for-woocommerce' ) );
+		TSBIFW_Logger::log( esc_html__( 'All product embeddings and indexing metadata cleared successfully.', 'searchips-search-by-image-for-woocommerce' ) );
 	}
 
 	/**
@@ -524,8 +513,6 @@ class TSBIFW_Indexer {
 		delete_transient( 'tsbifw_indexing_stats' );
 		wp_cache_delete( 'tsbifw_catalog_vectors', 'tsbifw_cache' );
 		delete_transient( 'tsbifw_catalog_vectors' );
-		wp_cache_delete( 'tsbifw_catalog_descriptions', 'tsbifw_cache' );
-		delete_transient( 'tsbifw_catalog_descriptions' );
 	}
 
 	/**

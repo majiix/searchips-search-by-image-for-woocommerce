@@ -6,7 +6,7 @@ Tested up to: 7.1
 Requires PHP: 7.4
 WC requires at least: 5.0
 WC tested up to: 11.1
-Stable tag: 1.6.0
+Stable tag: 1.7.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -146,6 +146,13 @@ No, the indexer automatically detects and skips empty, missing, or corrupt image
 Search results inherit your site's WordPress Reading Settings ("Blog pages show at most X posts" under Settings -> Reading), ensuring consistent archive page pagination.
 
 == Changelog ==
+
+= 1.7.0 =
+* Compliance: Fully decoupled Pro scanning effect DOM layers, styles, and keyframes into the Pro Addon, keeping Free core focused on the Laser Line effect and adding the tsbifw_modal_rendered DOM event.
+* Compliance: Relocated click-tracking REST endpoint (POST /wp-json/tsbifw/v1/track-click) and permission checks to the Pro Addon, introducing the tsbifw_track_endpoint filter.
+* Architecture: Relocated variable product variation thumbnail swapping and loop link filtering to the Pro Addon.
+* Architecture: Decoupled vision models list and gateway labels from Free settings AJAX handler, introducing tsbifw_admin_available_models and tsbifw_admin_gateway_labels filters.
+* Database: Cleaned up residual description metadata and legacy keys from Free indexer reset routines and translation catalog.
 
 = 1.5.0 =
 * Architecture: Fully decoupled Strategy 2 (Vision-to-Text Description Search) into the Pro Addon via clean action and filter hooks.

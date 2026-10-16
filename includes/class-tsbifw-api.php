@@ -378,27 +378,4 @@ class TSBIFW_API {
 		);
 	}
 
-	/**
-	 * Filter models for vision.
-	 *
-	 * @param array $models List of model arrays.
-	 * @return array Filtered list.
-	 */
-	public function filter_vision_models( $models ) {
-		$filtered = array();
-		if ( ! is_array( $models ) ) {
-			return $filtered;
-		}
-		foreach ( $models as $model ) {
-			if ( ! isset( $model['id'] ) ) {
-				continue;
-			}
-			$id       = strtolower( $model['id'] );
-			$modality = isset( $model['architecture']['modality'] ) ? strtolower( $model['architecture']['modality'] ) : '';
-			if ( strpos( $modality, 'image' ) !== false || strpos( $id, 'vision' ) !== false || strpos( $id, 'gpt-4o' ) !== false || strpos( $id, 'gemini-flash' ) !== false || strpos( $id, 'gemini-pro' ) !== false ) {
-				$filtered[] = $model;
-			}
-		}
-		return $filtered;
-	}
 }
