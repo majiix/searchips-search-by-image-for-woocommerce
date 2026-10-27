@@ -872,6 +872,7 @@ class TSBIFW_Admin {
 				</div>
 
 				<div class="tsbifw-sidebar-column">
+					<?php $this->render_sidebar_pro_upsell_card(); ?>
 					<?php if ( 'general' === $active_tab ) : ?>
 						<div class="tsbifw-sidebar-card">
 							<div class="tsbifw-sidebar-card-header">
@@ -1866,6 +1867,112 @@ class TSBIFW_Admin {
 	 */
 	public function render_sidebar_strategies_guide() {
 		// Available in Pro version.
+	}
+
+	/**
+	 * Render the Pro Upgrade upsell card in the admin settings sidebar.
+	 */
+	public function render_sidebar_pro_upsell_card() {
+		$buy_url = 'https://violo.ir/?p=707';
+		?>
+		<div class="tsbifw-sidebar-card tsbifw-pro-upsell-card">
+			<div class="tsbifw-pro-upsell-header">
+				<div class="tsbifw-pro-upsell-title">
+					<svg class="tsbifw-pro-star-icon" width="18" height="18" viewBox="0 0 24 24" fill="#fbbf24" stroke="#f59e0b" stroke-width="1.5">
+						<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+					</svg>
+					<h4><?php esc_html_e( 'Upgrade to Pro', 'searchips-search-by-image-for-woocommerce' ); ?></h4>
+				</div>
+				<span class="tsbifw-pro-badge-pill"><?php esc_html_e( 'PRO ADDON', 'searchips-search-by-image-for-woocommerce' ); ?></span>
+			</div>
+			<div class="tsbifw-pro-upsell-body">
+				<p class="tsbifw-pro-upsell-intro">
+					<?php esc_html_e( 'Unlock advanced enterprise tools to convert shoppers and maximize visual search performance:', 'searchips-search-by-image-for-woocommerce' ); ?>
+				</p>
+				<ul class="tsbifw-pro-features-list">
+					<li class="tsbifw-pro-feature-item">
+						<span class="tsbifw-pro-feature-icon">
+							<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+								<path d="M3 3v18h18"></path>
+								<path d="m19 9-5 5-4-4-3 3"></path>
+								<circle cx="19" cy="9" r="1.5" fill="currentColor"></circle>
+								<circle cx="14" cy="14" r="1.5" fill="currentColor"></circle>
+								<circle cx="10" cy="10" r="1.5" fill="currentColor"></circle>
+								<circle cx="7" cy="13" r="1.5" fill="currentColor"></circle>
+							</svg>
+						</span>
+						<div class="tsbifw-pro-feature-content">
+							<strong><?php esc_html_e( 'Visual Search Analytics:', 'searchips-search-by-image-for-woocommerce' ); ?></strong>
+							<span><?php esc_html_e( 'Track queries, CTR & zero-result demand', 'searchips-search-by-image-for-woocommerce' ); ?></span>
+						</div>
+					</li>
+					<li class="tsbifw-pro-feature-item">
+						<span class="tsbifw-pro-feature-icon">
+							<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+								<rect width="14" height="14" x="7" y="7" rx="2" ry="2"></rect>
+								<path d="M4 17c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h11c1.1 0 2 .9 2 2"></path>
+							</svg>
+						</span>
+						<div class="tsbifw-pro-feature-content">
+							<strong><?php esc_html_e( 'Variation Images Indexing:', 'searchips-search-by-image-for-woocommerce' ); ?></strong>
+							<span><?php esc_html_e( 'Match specific color & style variants', 'searchips-search-by-image-for-woocommerce' ); ?></span>
+						</div>
+					</li>
+					<li class="tsbifw-pro-feature-item">
+						<span class="tsbifw-pro-feature-icon">
+							<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+								<ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+								<path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+								<path d="M3 12c0 1.66 4 3 9 3s9-1.34 9-3"></path>
+							</svg>
+						</span>
+						<div class="tsbifw-pro-feature-content">
+							<strong><?php esc_html_e( 'Smart Image Hashing (MD5):', 'searchips-search-by-image-for-woocommerce' ); ?></strong>
+							<span><?php esc_html_e( 'Skip unchanged images to slash API bills', 'searchips-search-by-image-for-woocommerce' ); ?></span>
+						</div>
+					</li>
+					<li class="tsbifw-pro-feature-item">
+						<span class="tsbifw-pro-feature-icon">
+							<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+								<path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"></path>
+							</svg>
+						</span>
+						<div class="tsbifw-pro-feature-content">
+							<strong><?php esc_html_e( 'Direct OpenAI & Gemini:', 'searchips-search-by-image-for-woocommerce' ); ?></strong>
+							<span><?php esc_html_e( 'Connect directly without middleware fees', 'searchips-search-by-image-for-woocommerce' ); ?></span>
+						</div>
+					</li>
+					<li class="tsbifw-pro-feature-item">
+						<span class="tsbifw-pro-feature-icon">
+							<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+								<path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"></path>
+								<circle cx="12" cy="13" r="3"></circle>
+							</svg>
+						</span>
+						<div class="tsbifw-pro-feature-content">
+							<strong><?php esc_html_e( 'Mobile Camera Instant Capture:', 'searchips-search-by-image-for-woocommerce' ); ?></strong>
+							<span><?php esc_html_e( 'Let shoppers snap live photos on phones', 'searchips-search-by-image-for-woocommerce' ); ?></span>
+						</div>
+					</li>
+					<li class="tsbifw-pro-feature-item">
+						<span class="tsbifw-pro-feature-icon">
+							<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+								<path d="m5 12 7-7 7 7"></path>
+								<path d="M12 19V5"></path>
+							</svg>
+						</span>
+						<div class="tsbifw-pro-feature-content">
+							<strong><?php esc_html_e( 'Similarity Score Boost:', 'searchips-search-by-image-for-woocommerce' ); ?></strong>
+							<span><?php esc_html_e( 'Boost on-sale & featured products', 'searchips-search-by-image-for-woocommerce' ); ?></span>
+						</div>
+					</li>
+				</ul>
+				<a href="<?php echo esc_url( $buy_url ); ?>" target="_blank" rel="noopener noreferrer" class="tsbifw-pro-btn-primary">
+					<?php esc_html_e( 'Get Pro Addon', 'searchips-search-by-image-for-woocommerce' ); ?> &rarr;
+				</a>
+			</div>
+		</div>
+		<?php
 	}
 
 	/**
