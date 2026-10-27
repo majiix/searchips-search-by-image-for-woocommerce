@@ -64,6 +64,14 @@ class TSBIFW_Admin {
 
 		// Register suggested privacy policy content.
 		add_action( 'admin_init', array( $this, 'add_privacy_policy_content' ) );
+
+		// Unified feature UI renderers.
+		add_action( 'tsbifw_admin_gateway_fields', array( $this, 'render_additional_gateway_fields' ) );
+		add_action( 'tsbifw_settings_styling_effects', array( $this, 'render_styling_effects' ) );
+		add_action( 'tsbifw_preview_stage_effects', array( $this, 'render_preview_stage_effects' ) );
+		add_action( 'tsbifw_admin_sidebar_gateways_guide', array( $this, 'render_sidebar_gateways_guide' ) );
+		add_action( 'tsbifw_admin_sidebar_models_guide', array( $this, 'render_sidebar_models_guide' ) );
+		add_filter( 'tsbifw_api_gateways', array( $this, 'register_default_gateway_labels' ) );
 	}
 
 	/**
@@ -94,7 +102,6 @@ class TSBIFW_Admin {
 				'nonce'           => wp_create_nonce( 'tsbifw_admin_nonce' ),
 				'wp_rest_nonce'   => wp_create_nonce( 'wp_rest' ),
 				'search_endpoint' => esc_url_raw( rest_url( 'tsbifw/v1/search' ) ),
-				'track_endpoint'  => esc_url_raw( apply_filters( 'tsbifw_track_endpoint', '' ) ),
 				'gateway_labels'  => apply_filters( 'tsbifw_admin_gateway_labels', array( 'openrouter' => 'OpenRouter' ) ),
 				'max_upload_size' => $max_mb * 1024 * 1024,
 				'scanning_effect' => array_key_exists( get_option( 'tsbifw_scanning_effect', 'laser' ), apply_filters( 'tsbifw_scanning_effects', array( 'laser' => 'Laser' ) ) ) ? get_option( 'tsbifw_scanning_effect', 'laser' ) : 'laser',
@@ -115,6 +122,7 @@ class TSBIFW_Admin {
 					'search_btn_text'      => esc_html__( 'Start Search', 'searchips-search-by-image-for-woocommerce' ),
 					// translators: %d: Max upload size in MB
 					'file_too_large'       => sprintf( esc_html__( 'Selected file is too large. Maximum allowed size is %dMB.', 'searchips-search-by-image-for-woocommerce' ), $max_mb ),
+					'deselect_all'         => esc_html__( 'Deselect All', 'searchips-search-by-image-for-woocommerce' ),
 				),
 			)
 		);
@@ -265,11 +273,6 @@ class TSBIFW_Admin {
 					<?php esc_html_e( 'System Logs', 'searchips-search-by-image-for-woocommerce' ); ?>
 				</a>
 				<?php do_action( 'tsbifw_admin_settings_tabs', $active_tab ); ?>
-				<?php if ( apply_filters( 'tsbifw_show_upgrade_tab', true ) ) : ?>
-					<a href="?page=tsbifw-settings&tab=pro" class="nav-tab <?php echo 'pro' === $active_tab ? 'nav-tab-active' : ''; ?>">
-						<?php esc_html_e( 'Upgrade', 'searchips-search-by-image-for-woocommerce' ); ?>
-					</a>
-				<?php endif; ?>
 			</h2>
 
 			<div class="tsbifw-admin-columns">
@@ -339,16 +342,11 @@ class TSBIFW_Admin {
 									<tr>
 										<th scope="row"><label for="tsbifw_strategy"><?php esc_html_e( 'Search Strategy', 'searchips-search-by-image-for-woocommerce' ); ?></label></th>
 										<td>
-											<select name="tsbifw_strategy" id="tsbifw_strategy">
-												<?php foreach ( $strategies as $s_key => $s_label ) : ?>
-													<option value="<?php echo esc_attr( $s_key ); ?>" <?php selected( $strategy, $s_key ); ?>><?php echo esc_html( $s_label ); ?></option>
-												<?php endforeach; ?>
-											</select>
-											<?php do_action( 'tsbifw_admin_after_strategy_select', $strategy, $active_gateway ); ?>
+											<input type="text" readonly value="<?php esc_attr_e( 'Strategy 1: Multimodal Vector Embeddings (Recommended)', 'searchips-search-by-image-for-woocommerce' ); ?>" class="regular-text" style="background:#f6f7f7; cursor:default;" />
+											<input type="hidden" name="tsbifw_strategy" id="tsbifw_strategy" value="embeddings" />
 											<p class="description">
-												<?php esc_html_e( 'Select the underlying strategy for product indexing and searching.', 'searchips-search-by-image-for-woocommerce' ); ?>
+												<?php esc_html_e( 'High-accuracy visual search powered by multimodal vector embeddings.', 'searchips-search-by-image-for-woocommerce' ); ?>
 											</p>
-
 										</td>
 									</tr>
 
@@ -399,7 +397,7 @@ class TSBIFW_Admin {
 
 									<?php do_action( 'tsbifw_settings_general_after_media_column' ); ?>
 
-									<tr class="tsbifw-strategy-field embeddings-field" style="<?php echo 'embeddings' === $strategy ? '' : 'display:none;'; ?>">
+									<tr class="tsbifw-strategy-field embeddings-field">
 										<th scope="row"><label for="tsbifw_embeddings_model"><?php esc_html_e( 'Embeddings Model ID', 'searchips-search-by-image-for-woocommerce' ); ?></label></th>
 										<td>
 											<div class="tsbifw-skeleton-loader" id="tsbifw-embeddings-model-skeleton"></div>
@@ -866,12 +864,7 @@ class TSBIFW_Admin {
 									?>
 								</div>
 							</div>
-						<?php elseif ( 'pro' === $active_tab ) : ?>
-							<?php if ( apply_filters( 'tsbifw_show_upgrade_tab', true ) ) : ?>
-								<div class="tsbifw-tab-pane tsbifw-pro-pane">
-									<?php $this->render_pro_preview_tab(); ?>
-								</div>
-							<?php endif; ?>
+						
 						<?php else : ?>
 							<?php do_action( 'tsbifw_admin_settings_tab_content', $active_tab ); ?>
 						<?php endif; ?>
@@ -879,7 +872,6 @@ class TSBIFW_Admin {
 				</div>
 
 				<div class="tsbifw-sidebar-column">
-					<?php $this->render_pro_card( $active_tab ); ?>
 					<?php if ( 'general' === $active_tab ) : ?>
 						<div class="tsbifw-sidebar-card">
 							<div class="tsbifw-sidebar-card-header">
@@ -1508,112 +1500,6 @@ class TSBIFW_Admin {
 	}
 
 	/**
-	 * Renders upgrade card to purchase/activate Pro version.
-	 *
-	 * @param string $active_tab Current active settings tab.
-	 */
-	private function render_pro_card( $active_tab = 'general' ) {
-		if ( ! apply_filters( 'tsbifw_show_upgrade_card', true ) ) {
-			return;
-		}
-		?>
-		<div class="tsbifw-sidebar-card tsbifw-upgrade-card" style="border: 1px solid #c7d2fe !important; border-radius: 10px !important; overflow: hidden !important; background: #ffffff !important; box-shadow: 0 4px 16px rgba(79, 70, 229, 0.08) !important;">
-			<div class="tsbifw-sidebar-card-header" style="background: linear-gradient(135deg, #4338ca 0%, #312e81 100%) !important; padding: 14px 16px !important; display: flex !important; align-items: center !important; justify-content: space-between !important;">
-				<div style="display: flex; align-items: center; gap: 8px;">
-					<span class="dashicons dashicons-star-filled" style="color: #facc15 !important; font-size: 18px !important; width: 18px !important; height: 18px !important; line-height: 18px !important;"></span>
-					<strong style="color: #ffffff !important; font-size: 14px !important; font-weight: 700 !important; margin: 0 !important;"><?php esc_html_e( 'Upgrade to Pro', 'searchips-search-by-image-for-woocommerce' ); ?></strong>
-				</div>
-				<span class="tsbifw-upgrade-badge" style="background: rgba(255, 255, 255, 0.18) !important; color: #ffffff !important; font-size: 10px !important; font-weight: 700 !important; text-transform: uppercase !important; padding: 3px 8px !important; border-radius: 12px !important; letter-spacing: 0.5px !important; border: 1px solid rgba(255, 255, 255, 0.3) !important; white-space: nowrap !important;"><?php esc_html_e( 'Pro Addon', 'searchips-search-by-image-for-woocommerce' ); ?></span>
-			</div>
-			<div class="tsbifw-sidebar-card-body" style="padding: 18px 16px !important;">
-				<p class="tsbifw-upgrade-intro" style="font-size: 13px !important; line-height: 1.5 !important; color: #334155 !important; margin: 0 0 14px 0 !important; font-weight: 500 !important;">
-					<?php esc_html_e( 'Unlock advanced enterprise tools to convert shoppers and maximize visual search performance:', 'searchips-search-by-image-for-woocommerce' ); ?>
-				</p>
-				<ul class="tsbifw-upgrade-features" style="list-style: none !important; list-style-type: none !important; margin: 0 0 18px 0 !important; padding: 0 !important; padding-left: 0 !important; display: flex !important; flex-direction: column !important; gap: 10px !important;">
-					<li style="list-style: none !important; list-style-type: none !important; margin: 0 !important; padding: 0 !important; display: flex !important; align-items: flex-start !important; gap: 10px !important;">
-						<span class="tsbifw-feat-icon" style="display: inline-flex !important; align-items: center !important; justify-content: center !important; width: 22px !important; height: 22px !important; border-radius: 6px !important; background: #eef2ff !important; color: #4f46e5 !important; flex-shrink: 0 !important; margin-top: 1px !important;">
-							<span class="dashicons dashicons-chart-area" style="font-size: 14px !important; width: 14px !important; height: 14px !important; line-height: 14px !important; color: #4f46e5 !important;"></span>
-						</span>
-						<div style="font-size: 12px !important; line-height: 1.45 !important; color: #475569 !important;">
-							<strong style="color: #0f172a !important; font-weight: 600 !important;"><?php esc_html_e( 'Visual Search Analytics', 'searchips-search-by-image-for-woocommerce' ); ?>:</strong>
-							<?php esc_html_e( 'Track queries, CTR & zero-result demand', 'searchips-search-by-image-for-woocommerce' ); ?>
-						</div>
-					</li>
-					<li style="list-style: none !important; list-style-type: none !important; margin: 0 !important; padding: 0 !important; display: flex !important; align-items: flex-start !important; gap: 10px !important;">
-						<span class="tsbifw-feat-icon" style="display: inline-flex !important; align-items: center !important; justify-content: center !important; width: 22px !important; height: 22px !important; border-radius: 6px !important; background: #eef2ff !important; color: #4f46e5 !important; flex-shrink: 0 !important; margin-top: 1px !important;">
-							<span class="dashicons dashicons-images-alt2" style="font-size: 14px !important; width: 14px !important; height: 14px !important; line-height: 14px !important; color: #4f46e5 !important;"></span>
-						</span>
-						<div style="font-size: 12px !important; line-height: 1.45 !important; color: #475569 !important;">
-							<strong style="color: #0f172a !important; font-weight: 600 !important;"><?php esc_html_e( 'Variation Images Indexing', 'searchips-search-by-image-for-woocommerce' ); ?>:</strong>
-							<?php esc_html_e( 'Match specific color & style variants', 'searchips-search-by-image-for-woocommerce' ); ?>
-						</div>
-					</li>
-					<li style="list-style: none !important; list-style-type: none !important; margin: 0 !important; padding: 0 !important; display: flex !important; align-items: flex-start !important; gap: 10px !important;">
-						<span class="tsbifw-feat-icon" style="display: inline-flex !important; align-items: center !important; justify-content: center !important; width: 22px !important; height: 22px !important; border-radius: 6px !important; background: #eef2ff !important; color: #4f46e5 !important; flex-shrink: 0 !important; margin-top: 1px !important;">
-							<span class="dashicons dashicons-database" style="font-size: 14px !important; width: 14px !important; height: 14px !important; line-height: 14px !important; color: #4f46e5 !important;"></span>
-						</span>
-						<div style="font-size: 12px !important; line-height: 1.45 !important; color: #475569 !important;">
-							<strong style="color: #0f172a !important; font-weight: 600 !important;"><?php esc_html_e( 'Smart Image Hashing (MD5)', 'searchips-search-by-image-for-woocommerce' ); ?>:</strong>
-							<?php esc_html_e( 'Skip unchanged images to slash API bills', 'searchips-search-by-image-for-woocommerce' ); ?>
-						</div>
-					</li>
-					<li style="list-style: none !important; list-style-type: none !important; margin: 0 !important; padding: 0 !important; display: flex !important; align-items: flex-start !important; gap: 10px !important;">
-						<span class="tsbifw-feat-icon" style="display: inline-flex !important; align-items: center !important; justify-content: center !important; width: 22px !important; height: 22px !important; border-radius: 6px !important; background: #eef2ff !important; color: #4f46e5 !important; flex-shrink: 0 !important; margin-top: 1px !important;">
-							<span class="dashicons dashicons-cloud" style="font-size: 14px !important; width: 14px !important; height: 14px !important; line-height: 14px !important; color: #4f46e5 !important;"></span>
-						</span>
-						<div style="font-size: 12px !important; line-height: 1.45 !important; color: #475569 !important;">
-							<strong style="color: #0f172a !important; font-weight: 600 !important;"><?php esc_html_e( 'Direct OpenAI & Gemini', 'searchips-search-by-image-for-woocommerce' ); ?>:</strong>
-							<?php esc_html_e( 'Connect directly without middleware fees', 'searchips-search-by-image-for-woocommerce' ); ?>
-						</div>
-					</li>
-					<li style="list-style: none !important; list-style-type: none !important; margin: 0 !important; padding: 0 !important; display: flex !important; align-items: flex-start !important; gap: 10px !important;">
-						<span class="tsbifw-feat-icon" style="display: inline-flex !important; align-items: center !important; justify-content: center !important; width: 22px !important; height: 22px !important; border-radius: 6px !important; background: #eef2ff !important; color: #4f46e5 !important; flex-shrink: 0 !important; margin-top: 1px !important;">
-							<span class="dashicons dashicons-camera" style="font-size: 14px !important; width: 14px !important; height: 14px !important; line-height: 14px !important; color: #4f46e5 !important;"></span>
-						</span>
-						<div style="font-size: 12px !important; line-height: 1.45 !important; color: #475569 !important;">
-							<strong style="color: #0f172a !important; font-weight: 600 !important;"><?php esc_html_e( 'Mobile Camera Instant Capture', 'searchips-search-by-image-for-woocommerce' ); ?>:</strong>
-							<?php esc_html_e( 'Let shoppers snap live photos on phones', 'searchips-search-by-image-for-woocommerce' ); ?>
-						</div>
-					</li>
-					<li style="list-style: none !important; list-style-type: none !important; margin: 0 !important; padding: 0 !important; display: flex !important; align-items: flex-start !important; gap: 10px !important;">
-						<span class="tsbifw-feat-icon" style="display: inline-flex !important; align-items: center !important; justify-content: center !important; width: 22px !important; height: 22px !important; border-radius: 6px !important; background: #eef2ff !important; color: #4f46e5 !important; flex-shrink: 0 !important; margin-top: 1px !important;">
-							<span class="dashicons dashicons-arrow-up-alt" style="font-size: 14px !important; width: 14px !important; height: 14px !important; line-height: 14px !important; color: #4f46e5 !important;"></span>
-						</span>
-						<div style="font-size: 12px !important; line-height: 1.45 !important; color: #475569 !important;">
-							<strong style="color: #0f172a !important; font-weight: 600 !important;"><?php esc_html_e( 'Similarity Score Boost', 'searchips-search-by-image-for-woocommerce' ); ?>:</strong>
-							<?php esc_html_e( 'Boost on-sale & featured products', 'searchips-search-by-image-for-woocommerce' ); ?>
-						</div>
-					</li>
-					<li style="list-style: none !important; list-style-type: none !important; margin: 0 !important; padding: 0 !important; display: flex !important; align-items: flex-start !important; gap: 10px !important;">
-						<span class="tsbifw-feat-icon" style="display: inline-flex !important; align-items: center !important; justify-content: center !important; width: 22px !important; height: 22px !important; border-radius: 6px !important; background: #eef2ff !important; color: #4f46e5 !important; flex-shrink: 0 !important; margin-top: 1px !important;">
-							<span class="dashicons dashicons-admin-customizer" style="font-size: 14px !important; width: 14px !important; height: 14px !important; line-height: 14px !important; color: #4f46e5 !important;"></span>
-						</span>
-						<div style="font-size: 12px !important; line-height: 1.45 !important; color: #475569 !important;">
-							<strong style="color: #0f172a !important; font-weight: 600 !important;"><?php esc_html_e( '5 Futuristic Scanner FX', 'searchips-search-by-image-for-woocommerce' ); ?>:</strong>
-							<?php esc_html_e( 'Reticle, radar, mesh, ripple & hologram', 'searchips-search-by-image-for-woocommerce' ); ?>
-						</div>
-					</li>
-				</ul>
-				<div class="tsbifw-upgrade-actions" style="display: flex !important; flex-direction: column !important; gap: 10px !important; margin-top: 16px !important; padding-top: 16px !important; border-top: 1px solid #f1f5f9 !important;">
-					<a href="https://violo.ir/?p=707" target="_blank" rel="noopener noreferrer" class="tsbifw-btn-upgrade" style="display: flex !important; align-items: center !important; justify-content: center !important; gap: 8px !important; width: 100% !important; box-sizing: border-box !important; padding: 11px 16px !important; background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%) !important; color: #ffffff !important; border: 1px solid #4338ca !important; border-radius: 8px !important; font-size: 13.5px !important; font-weight: 700 !important; text-decoration: none !important; text-shadow: none !important; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25) !important; cursor: pointer !important;">
-						<span><?php esc_html_e( 'Get Pro Addon', 'searchips-search-by-image-for-woocommerce' ); ?></span>
-						<span style="font-size: 16px; font-weight: 700;">&rarr;</span>
-					</a>
-					<?php if ( 'pro' !== $active_tab ) : ?>
-						<a href="<?php echo esc_url( admin_url( 'admin.php?page=tsbifw-settings&tab=pro' ) ); ?>" class="tsbifw-btn-preview" style="display: flex !important; align-items: center !important; justify-content: center !important; gap: 7px !important; width: 100% !important; box-sizing: border-box !important; padding: 10px 16px !important; background: #ffffff !important; color: #4338ca !important; border: 1.5px solid #c7d2fe !important; border-radius: 8px !important; font-size: 13px !important; font-weight: 600 !important; text-decoration: none !important; text-shadow: none !important; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04) !important; cursor: pointer !important;">
-							<span class="dashicons dashicons-visibility" style="font-size: 16px !important; width: 16px !important; height: 16px !important; line-height: 16px !important; color: #6366f1 !important;"></span>
-							<span><?php esc_html_e( 'Explore Interactive Preview', 'searchips-search-by-image-for-woocommerce' ); ?></span>
-						</a>
-					<?php endif; ?>
-				</div>
-			</div>
-		</div>
-		<?php
-	}
-
-
-
-	/**
 	 * Sanitize CSS position property (e.g. left, right).
 	 *
 	 * @param string $value CSS position.
@@ -1803,472 +1689,209 @@ class TSBIFW_Admin {
 
 
 	/**
-	 * Render the dedicated Pro Feature Preview Tab for Free users.
+	 * Render Direct AI Gateway API key fields in General tab.
 	 *
-	 * Compliant with WordPress.org Plugin Directory Guidelines. Provides an
-	 * educational preview of features available in the Searchips Pro Addon.
+	 * Kept as an action target for potential extensions.
+	 *
+	 * @param string $active_gateway Current active gateway key.
 	 */
-	public function render_pro_preview_tab() {
+	public function render_additional_gateway_fields( $active_gateway ) {
+		// OpenAI Direct and Google Gemini Direct are removed in free edition.
+	}
+
+	/**
+	 * Render strategy guidance notice below the strategy dropdown.
+	 *
+	 * @param string $strategy Current active strategy.
+	 * @param string $gateway  Current active gateway.
+	 */
+	public function render_strategy_guidance_notice( $strategy, $gateway ) {
+		// Not applicable when OpenRouter is the active gateway.
+	}
+
+	/**
+	 * Render Strategy 2 settings fields stub (available in Pro).
+	 *
+	 * @param string $strategy Current active strategy.
+	 */
+	public function render_strategy_fields( $strategy ) {
+		// Available in Pro version.
+	}
+
+	/**
+	 * Render variation images indexing option stub (Pro only).
+	 */
+	public function render_variations_field() {
+		// Available in Pro version.
+	}
+
+	/**
+	 * Render smart hashing and category exclusions settings rows stub (Pro only).
+	 */
+	public function render_hashing_and_categories_fields() {
+		// Available in Pro version.
+	}
+
+	/**
+	 * Render similarity score boost settings row stub (Pro only).
+	 */
+	public function render_similarity_boost_fields() {
+		// Available in Pro version.
+	}
+
+	/**
+	 * Render mobile camera capture option row stub (Pro only).
+	 */
+	public function render_mobile_camera_field() {
+		// Available in Pro version.
+	}
+
+	/**
+	 * Render additional scanning effect selector cards in Styling tab.
+	 *
+	 * @param string $scanning_effect Current scanning effect key.
+	 */
+	public function render_styling_effects( $scanning_effect ) {
+		$effects = array(
+			'reticle'  => array(
+				'title' => __( 'AI Vision Reticle', 'searchips-search-by-image-for-woocommerce' ),
+				'desc'  => __( 'Military-grade target locking brackets with crosshairs and tag metadata.', 'searchips-search-by-image-for-woocommerce' ),
+				'icon'  => 'dashicons-visibility',
+			),
+			'radar'    => array(
+				'title' => __( 'Sonar Radar Sweep', 'searchips-search-by-image-for-woocommerce' ),
+				'desc'  => __( 'Circular sonar sweep with expanding concentric rings and target dots.', 'searchips-search-by-image-for-woocommerce' ),
+				'icon'  => 'dashicons-update',
+			),
+			'matrix'   => array(
+				'title' => __( 'Digital Mesh Grid', 'searchips-search-by-image-for-woocommerce' ),
+				'desc'  => __( 'Tron-style 3D perspective grid wireframe with streaming coordinate dots.', 'searchips-search-by-image-for-woocommerce' ),
+				'icon'  => 'dashicons-screenoptions',
+			),
+			'ripple'   => array(
+				'title' => __( 'Concentric Ripple', 'searchips-search-by-image-for-woocommerce' ),
+				'desc'  => __( 'Smooth organic water-ripple wave pulse propagating from photo center.', 'searchips-search-by-image-for-woocommerce' ),
+				'icon'  => 'dashicons-marker',
+			),
+			'hologram' => array(
+				'title' => __( 'Luxury Hologram', 'searchips-search-by-image-for-woocommerce' ),
+				'desc'  => __( 'Iridescent chromatic prism light shimmer with diamond glint particles.', 'searchips-search-by-image-for-woocommerce' ),
+				'icon'  => 'dashicons-star-filled',
+			),
+		);
+
+		foreach ( $effects as $eff_key => $eff_data ) :
+			$is_selected = ( $eff_key === $scanning_effect );
+			?>
+			<div class="tsbifw-effect-card <?php echo $is_selected ? 'active' : ''; ?>" data-effect="<?php echo esc_attr( $eff_key ); ?>">
+				<input type="radio" name="tsbifw_scanning_effect" value="<?php echo esc_attr( $eff_key ); ?>" <?php checked( $scanning_effect, $eff_key ); ?> />
+				<div class="tsbifw-effect-card-header">
+					<span class="tsbifw-effect-icon dashicons <?php echo esc_attr( $eff_data['icon'] ); ?>"></span>
+					<strong class="tsbifw-effect-title"><?php echo esc_html( $eff_data['title'] ); ?></strong>
+				</div>
+				<p class="tsbifw-effect-desc"><?php echo esc_html( $eff_data['desc'] ); ?></p>
+			</div>
+		<?php endforeach;
+	}
+
+	/**
+	 * Render scanning animation effect layers for preview stages.
+	 */
+	public function render_preview_stage_effects() {
 		?>
-		<div class="tsbifw-pro-preview-wrap">
-			<!-- Hero Header -->
-			<div class="tsbifw-pro-hero" style="background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); color: #fff; padding: 40px 30px; border-radius: 12px; margin-bottom: 30px; box-shadow: 0 10px 25px -5px rgba(79, 70, 229, 0.25);">
-				<div style="max-width: 800px;">
-					<span style="display: inline-block; background: rgba(255,255,255,0.2); backdrop-filter: blur(4px); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; padding: 4px 10px; border-radius: 20px; margin-bottom: 12px;">
-						<?php esc_html_e( 'Searchips Pro Addon', 'searchips-search-by-image-for-woocommerce' ); ?>
-					</span>
-					<h2 style="font-size: 28px; font-weight: 800; color: #fff; margin: 0 0 12px 0; line-height: 1.25;">
-						<?php esc_html_e( 'Supercharge Your Visual Search with Pro', 'searchips-search-by-image-for-woocommerce' ); ?>
-					</h2>
-					<p style="font-size: 15px; line-height: 1.6; color: #e0e7ff; margin: 0 0 20px 0;">
-						<?php esc_html_e( 'Unlock enterprise-grade features designed for fast-growing stores: live analytics with Click-Through Rate tracking, variable product variations indexing, direct OpenAI & Gemini API connections, smart MD5 caching to slash API bills, and algorithmic similarity boosting.', 'searchips-search-by-image-for-woocommerce' ); ?>
-					</p>
-					<div style="display: flex; gap: 12px; flex-wrap: wrap;">
-						<a href="https://violo.ir/?p=707" target="_blank" rel="noopener noreferrer" class="button button-primary" style="background: #fff; color: #4f46e5; border: none; font-size: 14px; font-weight: 700; padding: 8px 24px; height: auto; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
-							<?php esc_html_e( 'Upgrade to Searchips Pro', 'searchips-search-by-image-for-woocommerce' ); ?> &rarr;
-						</a>
-					</div>
-				</div>
-			</div>
-
-			<!-- Feature Showcase Grid -->
-			<h3 style="font-size: 18px; font-weight: 700; color: #0f172a; margin: 0 0 18px 0;">
-				<?php esc_html_e( 'Explore Pro Features & Settings Preview', 'searchips-search-by-image-for-woocommerce' ); ?>
-			</h3>
-
-			<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; margin-bottom: 35px;">
-				<!-- Card 1: Visual Search Analytics Mockup -->
-				<div id="pro-feature-analytics" style="background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 22px; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
-					<div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
-						<span class="dashicons dashicons-chart-area" style="font-size: 24px; width: 24px; height: 24px; color: #4f46e5;"></span>
-						<h4 style="margin: 0; font-size: 16px; color: #0f172a;"><?php esc_html_e( 'Visual Search Analytics & CTR', 'searchips-search-by-image-for-woocommerce' ); ?></h4>
-					</div>
-					<p style="font-size: 13px; color: #64748b; line-height: 1.5; margin: 0 0 14px 0;">
-						<?php esc_html_e( 'Monitor shopper behavior in real-time. View exact photo thumbnails searched, conversion Click-Through Rate, and uncover zero-result queries to optimize catalog stock.', 'searchips-search-by-image-for-woocommerce' ); ?>
-					</p>
-					<!-- Mini Interactive Preview Mockup -->
-					<div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 12px; font-size: 12px;">
-						<div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-							<span><strong><?php esc_html_e( 'Total Queries:', 'searchips-search-by-image-for-woocommerce' ); ?></strong> 1,420</span>
-							<span style="color: #10b981;"><strong><?php esc_html_e( 'CTR:', 'searchips-search-by-image-for-woocommerce' ); ?></strong> 34.8%</span>
-						</div>
-						<div style="background: #e2e8f0; height: 6px; border-radius: 3px; overflow: hidden;">
-							<div style="background: #4f46e5; width: 34.8%; height: 100%;"></div>
-						</div>
-						<span style="display: block; margin-top: 8px; font-size: 11px; color: #94a3b8;"><?php esc_html_e( '140 Zero-Result Unfulfilled Searches flagged for inventory restocking.', 'searchips-search-by-image-for-woocommerce' ); ?></span>
-					</div>
-				</div>
-
-				<!-- Card 2: Variations Indexing -->
-				<div id="pro-feature-variations" style="background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 22px; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
-					<div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
-						<span class="dashicons dashicons-images-alt2" style="font-size: 24px; width: 24px; height: 24px; color: #0284c7;"></span>
-						<h4 style="margin: 0; font-size: 16px; color: #0f172a;"><?php esc_html_e( 'Variable Product Variations Indexing', 'searchips-search-by-image-for-woocommerce' ); ?></h4>
-					</div>
-					<p style="font-size: 13px; color: #64748b; line-height: 1.5; margin: 0 0 14px 0;">
-						<?php esc_html_e( 'Indexes individual WooCommerce variable product thumbnails. When customers upload a photo of a blue shirt, the visual search links straight to the blue variation swatch.', 'searchips-search-by-image-for-woocommerce' ); ?>
-					</p>
-					<div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 12px; font-size: 12px;">
-						<div style="display: inline-flex; align-items: center; gap: 6px; color: #0369a1; font-weight: 600;">
-							<span class="dashicons dashicons-yes"></span>
-							<?php esc_html_e( 'Swaps thumbnail on archive loops to the exact matching variation.', 'searchips-search-by-image-for-woocommerce' ); ?>
-						</div>
-					</div>
-				</div>
-
-				<!-- Card 3: Direct Gateways -->
-				<div id="pro-feature-gateways" style="background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 22px; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
-					<div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
-						<span class="dashicons dashicons-rest-api" style="font-size: 24px; width: 24px; height: 24px; color: #10b981;"></span>
-						<h4 style="margin: 0; font-size: 16px; color: #0f172a;"><?php esc_html_e( 'Direct OpenAI & Gemini Gateways', 'searchips-search-by-image-for-woocommerce' ); ?></h4>
-					</div>
-					<p style="font-size: 13px; color: #64748b; line-height: 1.5; margin: 0 0 14px 0;">
-						<?php esc_html_e( 'Connect directly to your own OpenAI or Google AI Studio accounts. Zero intermediary markup, lower latency, and full support for GPT-4o vision and native multimodal embeddings.', 'searchips-search-by-image-for-woocommerce' ); ?>
-					</p>
-					<div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 12px; font-size: 12px; color: #334155;">
-						<code>OpenAI Direct (text-embedding-3 / GPT-4o)</code><br />
-						<code>Google AI Studio (Gemini Embedding 2 / 2.5 Flash)</code>
-					</div>
-				</div>
-
-				<!-- Card 4: Smart Image Hashing -->
-				<div id="pro-feature-hashing" style="background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 22px; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
-					<div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
-						<span class="dashicons dashicons-shield" style="font-size: 24px; width: 24px; height: 24px; color: #d97706;"></span>
-						<h4 style="margin: 0; font-size: 16px; color: #0f172a;"><?php esc_html_e( 'Smart MD5 Image Hashing', 'searchips-search-by-image-for-woocommerce' ); ?></h4>
-					</div>
-					<p style="font-size: 13px; color: #64748b; line-height: 1.5; margin: 0 0 14px 0;">
-						<?php esc_html_e( 'Calculates file checksum hashes of product attachments. When products are saved or batch-indexed, unchanged images are skipped, slashing API costs by up to 80%.', 'searchips-search-by-image-for-woocommerce' ); ?>
-					</p>
-					<div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 12px; font-size: 12px; color: #b45309;">
-						<span class="dashicons dashicons-saved" style="vertical-align: text-bottom;"></span>
-						<?php esc_html_e( 'Reduces server CPU, prevents timeouts, and conserves API quotas.', 'searchips-search-by-image-for-woocommerce' ); ?>
-					</div>
-				</div>
-
-				<!-- Card 5: Category Exclusions -->
-				<div id="pro-feature-categories" style="background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 22px; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
-					<div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
-						<span class="dashicons dashicons-category" style="font-size: 24px; width: 24px; height: 24px; color: #8b5cf6;"></span>
-						<h4 style="margin: 0; font-size: 16px; color: #0f172a;"><?php esc_html_e( 'Category Exclusion Rules', 'searchips-search-by-image-for-woocommerce' ); ?></h4>
-					</div>
-					<p style="font-size: 13px; color: #64748b; line-height: 1.5; margin: 0 0 14px 0;">
-						<?php esc_html_e( 'Exclude non-physical categories like digital downloads, gift cards, software licenses, or warranties from visual search indexing automatically.', 'searchips-search-by-image-for-woocommerce' ); ?>
-					</p>
-					<div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 12px; font-size: 12px; color: #475569;">
-						<?php esc_html_e( 'Multi-select categories to keep visual search results focused on tangible products.', 'searchips-search-by-image-for-woocommerce' ); ?>
-					</div>
-				</div>
-
-				<!-- Card 6: Similarity Boost -->
-				<div id="pro-feature-boost" style="background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 22px; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
-					<div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
-						<span class="dashicons dashicons-awards" style="font-size: 24px; width: 24px; height: 24px; color: #ec4899;"></span>
-						<h4 style="margin: 0; font-size: 16px; color: #0f172a;"><?php esc_html_e( 'Algorithmic Similarity Boost', 'searchips-search-by-image-for-woocommerce' ); ?></h4>
-					</div>
-					<p style="font-size: 13px; color: #64748b; line-height: 1.5; margin: 0 0 14px 0;">
-						<?php esc_html_e( 'Give featured and on-sale items a +1% to +30% boost in visual similarity scores to prioritize inventory with promotions or higher margins.', 'searchips-search-by-image-for-woocommerce' ); ?>
-					</p>
-					<div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 12px; font-size: 12px; color: #be185d;">
-						<?php esc_html_e( 'Configurable +10% default bonus for Featured and Sale products.', 'searchips-search-by-image-for-woocommerce' ); ?>
-					</div>
-				</div>
-
-				<!-- Card 7: Native Mobile Camera Photo Capture -->
-				<div id="pro-feature-mobile-camera" style="background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 22px; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
-					<div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
-						<span class="dashicons dashicons-camera" style="font-size: 24px; width: 24px; height: 24px; color: #10b981;"></span>
-						<h4 style="margin: 0; font-size: 16px; color: #0f172a;"><?php esc_html_e( 'Mobile Camera Instant Capture', 'searchips-search-by-image-for-woocommerce' ); ?></h4>
-					</div>
-					<p style="font-size: 13px; color: #64748b; line-height: 1.5; margin: 0 0 14px 0;">
-						<?php esc_html_e( 'Mobile shoppers can tap "Take Photo" inside the search modal to launch their native smartphone camera directly and search live photos.', 'searchips-search-by-image-for-woocommerce' ); ?>
-					</p>
-					<div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 12px; font-size: 12px; color: #047857;">
-						<span class="dashicons dashicons-smartphone" style="vertical-align: text-bottom;"></span>
-						<?php esc_html_e( 'HTML5 native environment capture with autofocus and zero user permission hurdles.', 'searchips-search-by-image-for-woocommerce' ); ?>
-					</div>
-				</div>
-
-				</div>
-
-			<!-- 5 Futuristic Scanner FXs Live Interactive Showcase -->
-			<div id="pro-feature-effects" class="tsbifw-pro-scanner-showcase">
-				<div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px; margin-bottom: 22px; border-bottom: 1px solid #f1f5f9; padding-bottom: 18px;">
-					<div>
-						<div style="display: flex; align-items: center; gap: 10px; margin-bottom: 6px;">
-							<span class="dashicons dashicons-admin-customizer" style="font-size: 26px; width: 26px; height: 26px; color: #4f46e5;"></span>
-							<h3 style="margin: 0; font-size: 20px; font-weight: 700; color: #0f172a;"><?php esc_html_e( '5 Futuristic Scanner FXs (Live Previews)', 'searchips-search-by-image-for-woocommerce' ); ?></h3>
-							<span class="tsbifw-fx-badge-pro"><?php esc_html_e( 'Pro Feature', 'searchips-search-by-image-for-woocommerce' ); ?></span>
-						</div>
-						<p style="font-size: 13.5px; color: #64748b; margin: 0; line-height: 1.5; max-width: 820px;">
-							<?php esc_html_e( 'Delight shoppers with cinema-grade visual scanning animations that elevate your store above competitors. All 5 Pro effects run in pure GPU-accelerated CSS and dynamically inherit your custom brand glow color. Preview each animation live below:', 'searchips-search-by-image-for-woocommerce' ); ?>
-						</p>
-					</div>
-					<div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-						<a href="https://violo.ir/?p=707" target="_blank" rel="noopener noreferrer" class="button button-primary" style="background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%); border-color: #4338ca; font-weight: 700; font-size: 13px; padding: 6px 18px;">
-							<?php esc_html_e( 'Get Pro Addon to Unlock All 5', 'searchips-search-by-image-for-woocommerce' ); ?> &rarr;
-						</a>
-					</div>
-				</div>
-
-				<!-- Live Preview Cards Grid (5 Pro FXs + 1 Free Baseline) -->
-				<div class="tsbifw-fx-gallery-grid">
-					<!-- 1. AI Vision Reticle (Pro) -->
-					<div class="tsbifw-fx-preview-card">
-						<div class="tsbifw-fx-card-header">
-							<div class="tsbifw-fx-card-title-wrap">
-								<span class="dashicons dashicons-visibility" style="color: #6366f1;"></span>
-								<h4 class="tsbifw-fx-card-title"><?php esc_html_e( '1. AI Vision Reticle', 'searchips-search-by-image-for-woocommerce' ); ?></h4>
-							</div>
-							<span class="tsbifw-fx-badge-pro"><?php esc_html_e( 'Pro Addon', 'searchips-search-by-image-for-woocommerce' ); ?></span>
-						</div>
-						<div class="tsbifw-fx-stage-wrap tsbifw-mockup-stage" data-effect="reticle" style="--tsbifw-scan-color: #6366f1;">
-							<img src="<?php echo esc_url( TSBIFW_PLUGIN_URL . 'assets/images/preview-sample.svg' ); ?>" alt="Reticle Preview" class="tsbifw-mockup-img" />
-							<div class="tsbifw-scan-container tsbifw-scan-active" data-effect="reticle">
-								<?php do_action( 'tsbifw_pro_preview_effect_layer', 'reticle' ); ?>
-							</div>
-							<div class="tsbifw-mockup-status" style="bottom: 8px; padding: 4px 10px; font-size: 10px;">
-								<span class="tsbifw-pulse-dot" style="background: #6366f1; box-shadow: 0 0 8px #6366f1;"></span>
-								<span><?php esc_html_e( 'AI_TARGET: 0x94F2 (Locking Features)', 'searchips-search-by-image-for-woocommerce' ); ?></span>
-							</div>
-						</div>
-						<div class="tsbifw-fx-card-body">
-							<p class="tsbifw-fx-desc">
-								<?php esc_html_e( 'Precision computer vision corner brackets with 360-degree rotating crosshairs, pulsing acquisition locks, and live coordinate tracking tags.', 'searchips-search-by-image-for-woocommerce' ); ?>
-							</p>
-							<div class="tsbifw-fx-fit">
-								<strong><?php esc_html_e( 'Best For:', 'searchips-search-by-image-for-woocommerce' ); ?></strong> <?php esc_html_e( 'Streetwear, High-Tech, Electronics, Footwear & Apparel.', 'searchips-search-by-image-for-woocommerce' ); ?>
-							</div>
-							<div class="tsbifw-fx-tags">
-								<span class="tsbifw-fx-tag"><?php esc_html_e( 'Target Crosshairs', 'searchips-search-by-image-for-woocommerce' ); ?></span>
-								<span class="tsbifw-fx-tag"><?php esc_html_e( 'Coordinate Telemetry', 'searchips-search-by-image-for-woocommerce' ); ?></span>
-							</div>
-						</div>
-					</div>
-
-					<!-- 2. Sonar Radar Sweep (Pro) -->
-					<div class="tsbifw-fx-preview-card">
-						<div class="tsbifw-fx-card-header">
-							<div class="tsbifw-fx-card-title-wrap">
-								<span class="dashicons dashicons-marker" style="color: #10b981;"></span>
-								<h4 class="tsbifw-fx-card-title"><?php esc_html_e( '2. Sonar Radar Sweep', 'searchips-search-by-image-for-woocommerce' ); ?></h4>
-							</div>
-							<span class="tsbifw-fx-badge-pro"><?php esc_html_e( 'Pro Addon', 'searchips-search-by-image-for-woocommerce' ); ?></span>
-						</div>
-						<div class="tsbifw-fx-stage-wrap tsbifw-mockup-stage" data-effect="radar" style="--tsbifw-scan-color: #10b981;">
-							<img src="<?php echo esc_url( TSBIFW_PLUGIN_URL . 'assets/images/preview-sample.svg' ); ?>" alt="Radar Preview" class="tsbifw-mockup-img" />
-							<div class="tsbifw-scan-container tsbifw-scan-active" data-effect="radar">
-								<?php do_action( 'tsbifw_pro_preview_effect_layer', 'radar' ); ?>
-							</div>
-							<div class="tsbifw-mockup-status" style="bottom: 8px; padding: 4px 10px; font-size: 10px;">
-								<span class="tsbifw-pulse-dot" style="background: #10b981; box-shadow: 0 0 8px #10b981;"></span>
-								<span><?php esc_html_e( 'RADAR: 360° Spatial Echo Scanning', 'searchips-search-by-image-for-woocommerce' ); ?></span>
-							</div>
-						</div>
-						<div class="tsbifw-fx-card-body">
-							<p class="tsbifw-fx-desc">
-								<?php esc_html_e( '360-degree rotating conical radar beam with concentric distance rings simulating military-grade spatial echo and sonar catalog probing.', 'searchips-search-by-image-for-woocommerce' ); ?>
-							</p>
-							<div class="tsbifw-fx-fit">
-								<strong><?php esc_html_e( 'Best For:', 'searchips-search-by-image-for-woocommerce' ); ?></strong> <?php esc_html_e( 'Outdoor, Sports, Tactical, Camping & Industrial gear.', 'searchips-search-by-image-for-woocommerce' ); ?>
-							</div>
-							<div class="tsbifw-fx-tags">
-								<span class="tsbifw-fx-tag"><?php esc_html_e( 'Conic Sweep Beam', 'searchips-search-by-image-for-woocommerce' ); ?></span>
-								<span class="tsbifw-fx-tag"><?php esc_html_e( 'Concentric Rings', 'searchips-search-by-image-for-woocommerce' ); ?></span>
-							</div>
-						</div>
-					</div>
-
-					<!-- 3. Digital Mesh Grid (Pro) -->
-					<div class="tsbifw-fx-preview-card">
-						<div class="tsbifw-fx-card-header">
-							<div class="tsbifw-fx-card-title-wrap">
-								<span class="dashicons dashicons-grid-view" style="color: #06b6d4;"></span>
-								<h4 class="tsbifw-fx-card-title"><?php esc_html_e( '3. Digital Mesh Grid', 'searchips-search-by-image-for-woocommerce' ); ?></h4>
-							</div>
-							<span class="tsbifw-fx-badge-pro"><?php esc_html_e( 'Pro Addon', 'searchips-search-by-image-for-woocommerce' ); ?></span>
-						</div>
-						<div class="tsbifw-fx-stage-wrap tsbifw-mockup-stage" data-effect="matrix" style="--tsbifw-scan-color: #06b6d4;">
-							<img src="<?php echo esc_url( TSBIFW_PLUGIN_URL . 'assets/images/preview-sample.svg' ); ?>" alt="Mesh Preview" class="tsbifw-mockup-img" />
-							<div class="tsbifw-scan-container tsbifw-scan-active" data-effect="matrix">
-								<?php do_action( 'tsbifw_pro_preview_effect_layer', 'matrix' ); ?>
-							</div>
-							<div class="tsbifw-mockup-status" style="bottom: 8px; padding: 4px 10px; font-size: 10px;">
-								<span class="tsbifw-pulse-dot" style="background: #06b6d4; box-shadow: 0 0 8px #06b6d4;"></span>
-								<span><?php esc_html_e( 'MESH: Volumetric 3D Topology Active', 'searchips-search-by-image-for-woocommerce' ); ?></span>
-							</div>
-						</div>
-						<div class="tsbifw-fx-card-body">
-							<p class="tsbifw-fx-desc">
-								<?php esc_html_e( 'Luminous wireframe matrix with animated perspective flow simulating 3D surface depth mapping and geometric object reconstruction.', 'searchips-search-by-image-for-woocommerce' ); ?>
-							</p>
-							<div class="tsbifw-fx-fit">
-								<strong><?php esc_html_e( 'Best For:', 'searchips-search-by-image-for-woocommerce' ); ?></strong> <?php esc_html_e( 'Cyber, Gaming, Modern Gadgets & 3D Products.', 'searchips-search-by-image-for-woocommerce' ); ?>
-							</div>
-							<div class="tsbifw-fx-tags">
-								<span class="tsbifw-fx-tag"><?php esc_html_e( 'Perspective Matrix', 'searchips-search-by-image-for-woocommerce' ); ?></span>
-								<span class="tsbifw-fx-tag"><?php esc_html_e( '3D Depth Mapping', 'searchips-search-by-image-for-woocommerce' ); ?></span>
-							</div>
-						</div>
-					</div>
-
-					<!-- 4. Concentric Ripple (Pro) -->
-					<div class="tsbifw-fx-preview-card">
-						<div class="tsbifw-fx-card-header">
-							<div class="tsbifw-fx-card-title-wrap">
-								<span class="dashicons dashicons-update" style="color: #ec4899;"></span>
-								<h4 class="tsbifw-fx-card-title"><?php esc_html_e( '4. Concentric Ripple', 'searchips-search-by-image-for-woocommerce' ); ?></h4>
-							</div>
-							<span class="tsbifw-fx-badge-pro"><?php esc_html_e( 'Pro Addon', 'searchips-search-by-image-for-woocommerce' ); ?></span>
-						</div>
-						<div class="tsbifw-fx-stage-wrap tsbifw-mockup-stage" data-effect="ripple" style="--tsbifw-scan-color: #ec4899;">
-							<img src="<?php echo esc_url( TSBIFW_PLUGIN_URL . 'assets/images/preview-sample.svg' ); ?>" alt="Ripple Preview" class="tsbifw-mockup-img" />
-							<div class="tsbifw-scan-container tsbifw-scan-active" data-effect="ripple">
-								<?php do_action( 'tsbifw_pro_preview_effect_layer', 'ripple' ); ?>
-							</div>
-							<div class="tsbifw-mockup-status" style="bottom: 8px; padding: 4px 10px; font-size: 10px;">
-								<span class="tsbifw-pulse-dot" style="background: #ec4899; box-shadow: 0 0 8px #ec4899;"></span>
-								<span><?php esc_html_e( 'RIPPLE: Harmonic 432Hz Pulse Wave', 'searchips-search-by-image-for-woocommerce' ); ?></span>
-							</div>
-						</div>
-						<div class="tsbifw-fx-card-body">
-							<p class="tsbifw-fx-desc">
-								<?php esc_html_e( 'Calm biometric sonar ripples radiating outward smoothly from the image focal center with glowing harmonic resonance and organic pacing.', 'searchips-search-by-image-for-woocommerce' ); ?>
-							</p>
-							<div class="tsbifw-fx-fit">
-								<strong><?php esc_html_e( 'Best For:', 'searchips-search-by-image-for-woocommerce' ); ?></strong> <?php esc_html_e( 'Wellness, Beauty, Cosmetics, Organic & Home Decor.', 'searchips-search-by-image-for-woocommerce' ); ?>
-							</div>
-							<div class="tsbifw-fx-tags">
-								<span class="tsbifw-fx-tag"><?php esc_html_e( 'Harmonic Resonator', 'searchips-search-by-image-for-woocommerce' ); ?></span>
-								<span class="tsbifw-fx-tag"><?php esc_html_e( 'Organic Flow', 'searchips-search-by-image-for-woocommerce' ); ?></span>
-							</div>
-						</div>
-					</div>
-
-					<!-- 5. Luxury Hologram Shimmer (Pro) -->
-					<div class="tsbifw-fx-preview-card">
-						<div class="tsbifw-fx-card-header">
-							<div class="tsbifw-fx-card-title-wrap">
-								<span class="dashicons dashicons-admin-appearance" style="color: #8b5cf6;"></span>
-								<h4 class="tsbifw-fx-card-title"><?php esc_html_e( '5. Luxury Hologram', 'searchips-search-by-image-for-woocommerce' ); ?></h4>
-							</div>
-							<span class="tsbifw-fx-badge-pro"><?php esc_html_e( 'Pro Addon', 'searchips-search-by-image-for-woocommerce' ); ?></span>
-						</div>
-						<div class="tsbifw-fx-stage-wrap tsbifw-mockup-stage" data-effect="hologram" style="--tsbifw-scan-color: #8b5cf6;">
-							<img src="<?php echo esc_url( TSBIFW_PLUGIN_URL . 'assets/images/preview-sample.svg' ); ?>" alt="Hologram Preview" class="tsbifw-mockup-img" />
-							<div class="tsbifw-scan-container tsbifw-scan-active" data-effect="hologram">
-								<?php do_action( 'tsbifw_pro_preview_effect_layer', 'hologram' ); ?>
-							</div>
-							<div class="tsbifw-mockup-status" style="bottom: 8px; padding: 4px 10px; font-size: 10px;">
-								<span class="tsbifw-pulse-dot" style="background: #8b5cf6; box-shadow: 0 0 8px #8b5cf6;"></span>
-								<span><?php esc_html_e( 'HOLOGRAM: Iridescent Prism Sheen', 'searchips-search-by-image-for-woocommerce' ); ?></span>
-							</div>
-						</div>
-						<div class="tsbifw-fx-card-body">
-							<p class="tsbifw-fx-desc">
-								<?php esc_html_e( 'Diagonal iridescent prism sheen with glassmorphism reflections and multidimensional light refractions engineered for high-end boutique storefronts.', 'searchips-search-by-image-for-woocommerce' ); ?>
-							</p>
-							<div class="tsbifw-fx-fit">
-								<strong><?php esc_html_e( 'Best For:', 'searchips-search-by-image-for-woocommerce' ); ?></strong> <?php esc_html_e( 'Jewelry, Watches, Luxury Handbags & High Fashion.', 'searchips-search-by-image-for-woocommerce' ); ?>
-							</div>
-							<div class="tsbifw-fx-tags">
-								<span class="tsbifw-fx-tag"><?php esc_html_e( 'Prism Glassmorphism', 'searchips-search-by-image-for-woocommerce' ); ?></span>
-								<span class="tsbifw-fx-tag"><?php esc_html_e( 'Iridescent Shimmer', 'searchips-search-by-image-for-woocommerce' ); ?></span>
-							</div>
-						</div>
-					</div>
-
-					<!-- 6. Classic Laser Sweep (Free Baseline) -->
-					<div class="tsbifw-fx-preview-card">
-						<div class="tsbifw-fx-card-header">
-							<div class="tsbifw-fx-card-title-wrap">
-								<span class="dashicons dashicons-image-filter" style="color: #64748b;"></span>
-								<h4 class="tsbifw-fx-card-title"><?php esc_html_e( 'Classic Laser Sweep', 'searchips-search-by-image-for-woocommerce' ); ?></h4>
-							</div>
-							<span class="tsbifw-fx-badge-free"><?php esc_html_e( 'Free Included', 'searchips-search-by-image-for-woocommerce' ); ?></span>
-						</div>
-						<div class="tsbifw-fx-stage-wrap tsbifw-mockup-stage" data-effect="laser" style="--tsbifw-scan-color: #6366f1;">
-							<img src="<?php echo esc_url( TSBIFW_PLUGIN_URL . 'assets/images/preview-sample.svg' ); ?>" alt="Laser Preview" class="tsbifw-mockup-img" />
-							<div class="tsbifw-scan-container tsbifw-scan-active" data-effect="laser">
-								<div class="tsbifw-effect-layer tsbifw-effect-laser">
-									<div class="tsbifw-scanner-bar"></div>
-									<div class="tsbifw-scanning-overlay"></div>
-								</div>
-							</div>
-							<div class="tsbifw-mockup-status" style="bottom: 8px; padding: 4px 10px; font-size: 10px;">
-								<span class="tsbifw-pulse-dot" style="background: #6366f1; box-shadow: 0 0 8px #6366f1;"></span>
-								<span><?php esc_html_e( 'LASER: Linear Vertical Sweep', 'searchips-search-by-image-for-woocommerce' ); ?></span>
-							</div>
-						</div>
-						<div class="tsbifw-fx-card-body">
-							<p class="tsbifw-fx-desc">
-								<?php esc_html_e( 'Standard vertical neon laser line sweeping continuously up and down across the preview image. Included for all users in the Free version.', 'searchips-search-by-image-for-woocommerce' ); ?>
-							</p>
-							<div class="tsbifw-fx-fit" style="border-left-color: #94a3b8;">
-								<strong><?php esc_html_e( 'Baseline:', 'searchips-search-by-image-for-woocommerce' ); ?></strong> <?php esc_html_e( 'General retail and all standard WooCommerce catalogs.', 'searchips-search-by-image-for-woocommerce' ); ?>
-							</div>
-							<div class="tsbifw-fx-tags">
-								<span class="tsbifw-fx-tag"><?php esc_html_e( 'Linear Beam', 'searchips-search-by-image-for-woocommerce' ); ?></span>
-								<span class="tsbifw-fx-tag"><?php esc_html_e( 'Standard Default', 'searchips-search-by-image-for-woocommerce' ); ?></span>
-							</div>
-						</div>
-					</div>
-				</div>
-			</div>
-
-			<!-- Comparison Table -->
-			<h3 style="font-size: 18px; font-weight: 700; color: #0f172a; margin: 0 0 18px 0;">
-				<?php esc_html_e( 'Feature Comparison: Free vs Pro Addon', 'searchips-search-by-image-for-woocommerce' ); ?>
-			</h3>
-
-			<div style="background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; overflow: hidden; margin-bottom: 30px; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
-				<table class="widefat" style="border: none; border-collapse: collapse;">
-					<thead>
-						<tr style="background: #f8fafc; border-bottom: 2px solid #e2e8f0;">
-							<th style="padding: 14px 20px; font-size: 13px; font-weight: 700; color: #334155;"><?php esc_html_e( 'Feature / Capability', 'searchips-search-by-image-for-woocommerce' ); ?></th>
-							<th style="padding: 14px 20px; font-size: 13px; font-weight: 700; color: #334155; width: 180px; text-align: center;"><?php esc_html_e( 'Free Version', 'searchips-search-by-image-for-woocommerce' ); ?></th>
-							<th style="padding: 14px 20px; font-size: 13px; font-weight: 700; color: #4f46e5; width: 220px; text-align: center; background: #eef2ff;"><?php esc_html_e( 'Searchips Pro Addon', 'searchips-search-by-image-for-woocommerce' ); ?></th>
-						</tr>
-					</thead>
-					<tbody>
-						<tr style="border-bottom: 1px solid #f1f5f9;">
-							<td style="padding: 12px 20px;"><strong><?php esc_html_e( 'Strategy 1: Vector Embeddings Search', 'searchips-search-by-image-for-woocommerce' ); ?></strong></td>
-							<td style="padding: 12px 20px; text-align: center; color: #10b981;">&#10004; <?php esc_html_e( 'Included', 'searchips-search-by-image-for-woocommerce' ); ?></td>
-							<td style="padding: 12px 20px; text-align: center; color: #10b981; font-weight: 600; background: #f8fafc;">&#10004; <?php esc_html_e( 'Included', 'searchips-search-by-image-for-woocommerce' ); ?></td>
-						</tr>
-						<tr style="border-bottom: 1px solid #f1f5f9;">
-							<td style="padding: 12px 20px;"><strong><?php esc_html_e( 'Strategy 2: Vision-to-Text Description Search', 'searchips-search-by-image-for-woocommerce' ); ?></strong></td>
-							<td style="padding: 12px 20px; text-align: center; color: #94a3b8;">-</td>
-							<td style="padding: 12px 20px; text-align: center; color: #10b981; font-weight: 600; background: #f8fafc;">&#10004; <?php esc_html_e( 'Included (GPT-4o & Gemini Flash)', 'searchips-search-by-image-for-woocommerce' ); ?></td>
-						</tr>
-						<tr style="border-bottom: 1px solid #f1f5f9;">
-							<td style="padding: 12px 20px;"><strong><?php esc_html_e( 'Featured & Gallery Image Indexing', 'searchips-search-by-image-for-woocommerce' ); ?></strong></td>
-							<td style="padding: 12px 20px; text-align: center; color: #10b981;">&#10004; <?php esc_html_e( 'Included', 'searchips-search-by-image-for-woocommerce' ); ?></td>
-							<td style="padding: 12px 20px; text-align: center; color: #10b981; font-weight: 600; background: #f8fafc;">&#10004; <?php esc_html_e( 'Included', 'searchips-search-by-image-for-woocommerce' ); ?></td>
-						</tr>
-						<tr style="border-bottom: 1px solid #f1f5f9;">
-							<td style="padding: 12px 20px;"><strong><?php esc_html_e( 'Product Variation Images Indexing', 'searchips-search-by-image-for-woocommerce' ); ?></strong></td>
-							<td style="padding: 12px 20px; text-align: center; color: #94a3b8;">-</td>
-							<td style="padding: 12px 20px; text-align: center; color: #10b981; font-weight: 600; background: #f8fafc;">&#10004; <?php esc_html_e( 'Full Variable Support', 'searchips-search-by-image-for-woocommerce' ); ?></td>
-						</tr>
-						<tr style="border-bottom: 1px solid #f1f5f9;">
-							<td style="padding: 12px 20px;"><strong><?php esc_html_e( 'Supported AI Gateways', 'searchips-search-by-image-for-woocommerce' ); ?></strong></td>
-							<td style="padding: 12px 20px; text-align: center; color: #475569;"><?php esc_html_e( 'OpenRouter', 'searchips-search-by-image-for-woocommerce' ); ?></td>
-							<td style="padding: 12px 20px; text-align: center; color: #10b981; font-weight: 600; background: #f8fafc;"><?php esc_html_e( 'OpenRouter, OpenAI Direct, Gemini Direct', 'searchips-search-by-image-for-woocommerce' ); ?></td>
-						</tr>
-						<tr style="border-bottom: 1px solid #f1f5f9;">
-							<td style="padding: 12px 20px;"><strong><?php esc_html_e( 'Visual Search Analytics & CTR Tracker', 'searchips-search-by-image-for-woocommerce' ); ?></strong></td>
-							<td style="padding: 12px 20px; text-align: center; color: #94a3b8;">-</td>
-							<td style="padding: 12px 20px; text-align: center; color: #10b981; font-weight: 600; background: #f8fafc;">&#10004; <?php esc_html_e( 'Full Dashboard & Retention Control', 'searchips-search-by-image-for-woocommerce' ); ?></td>
-						</tr>
-						<tr style="border-bottom: 1px solid #f1f5f9;">
-							<td style="padding: 12px 20px;"><strong><?php esc_html_e( 'Smart MD5 Image Hashing', 'searchips-search-by-image-for-woocommerce' ); ?></strong></td>
-							<td style="padding: 12px 20px; text-align: center; color: #94a3b8;">-</td>
-							<td style="padding: 12px 20px; text-align: center; color: #10b981; font-weight: 600; background: #f8fafc;">&#10004; <?php esc_html_e( 'Automatic Cost Saving', 'searchips-search-by-image-for-woocommerce' ); ?></td>
-						</tr>
-						<tr style="border-bottom: 1px solid #f1f5f9;">
-							<td style="padding: 12px 20px;"><strong><?php esc_html_e( 'Category Exclusion Rules', 'searchips-search-by-image-for-woocommerce' ); ?></strong></td>
-							<td style="padding: 12px 20px; text-align: center; color: #94a3b8;">-</td>
-							<td style="padding: 12px 20px; text-align: center; color: #10b981; font-weight: 600; background: #f8fafc;">&#10004; <?php esc_html_e( 'Multi-Category Filter', 'searchips-search-by-image-for-woocommerce' ); ?></td>
-						</tr>
-						<tr style="border-bottom: 1px solid #f1f5f9;">
-							<td style="padding: 12px 20px;"><strong><?php esc_html_e( 'Algorithmic Similarity Boost', 'searchips-search-by-image-for-woocommerce' ); ?></strong></td>
-							<td style="padding: 12px 20px; text-align: center; color: #94a3b8;">-</td>
-							<td style="padding: 12px 20px; text-align: center; color: #10b981; font-weight: 600; background: #f8fafc;">&#10004; <?php esc_html_e( '+1% to +30% Score Boost', 'searchips-search-by-image-for-woocommerce' ); ?></td>
-						</tr>
-						<tr style="border-bottom: 1px solid #f1f5f9;">
-							<td style="padding: 12px 20px;"><strong><?php esc_html_e( 'Visual Scanning Animations', 'searchips-search-by-image-for-woocommerce' ); ?></strong></td>
-							<td style="padding: 12px 20px; text-align: center; color: #475569;"><?php esc_html_e( 'Laser line', 'searchips-search-by-image-for-woocommerce' ); ?></td>
-							<td style="padding: 12px 20px; text-align: center; color: #10b981; font-weight: 600; background: #f8fafc;"><?php esc_html_e( '6 Animations (Radar, Mesh, Reticle, etc.)', 'searchips-search-by-image-for-woocommerce' ); ?></td>
-						</tr>
-						<tr style="border-bottom: 1px solid #f1f5f9;">
-							<td style="padding: 12px 20px;"><strong><?php esc_html_e( 'WC Products Bulk Action Indexing', 'searchips-search-by-image-for-woocommerce' ); ?></strong></td>
-							<td style="padding: 12px 20px; text-align: center; color: #94a3b8;">-</td>
-							<td style="padding: 12px 20px; text-align: center; color: #10b981; font-weight: 600; background: #f8fafc;">&#10004; <?php esc_html_e( 'Action Scheduler Async Background', 'searchips-search-by-image-for-woocommerce' ); ?></td>
-						</tr>
-						<tr>
-							<td style="padding: 12px 20px;"><strong><?php esc_html_e( 'WP-CLI CLI Integration', 'searchips-search-by-image-for-woocommerce' ); ?></strong></td>
-							<td style="padding: 12px 20px; text-align: center; color: #94a3b8;">-</td>
-							<td style="padding: 12px 20px; text-align: center; color: #10b981; font-weight: 600; background: #f8fafc;">&#10004; <code>wp searchips index</code></td>
-						</tr>
-					</tbody>
-				</table>
-			</div>
-
-			<!-- Call To Action Footer -->
-			<div style="text-align: center; padding: 25px 20px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px;">
-				<h4 style="margin: 0 0 8px 0; font-size: 18px; color: #0f172a; font-weight: 700;">
-					<?php esc_html_e( 'Ready to unlock Searchips Pro?', 'searchips-search-by-image-for-woocommerce' ); ?>
-				</h4>
-				<p style="margin: 0 0 16px 0; color: #64748b; font-size: 13px;">
-					<?php esc_html_e( 'Install and activate the Searchips Pro Addon plugin on this site to seamlessly activate all capabilities.', 'searchips-search-by-image-for-woocommerce' ); ?>
-				</p>
-				<a href="https://violo.ir/?p=707" target="_blank" rel="noopener noreferrer" class="button button-primary" style="background: #4f46e5; border-color: #4338ca; font-size: 14px; font-weight: 700; padding: 8px 26px; height: auto;">
-					<?php esc_html_e( 'Get Searchips Pro Addon', 'searchips-search-by-image-for-woocommerce' ); ?> &rarr;
-				</a>
-			</div>
+		<!-- Reticle layer -->
+		<div class="tsbifw-effect-layer tsbifw-effect-reticle">
+			<div class="tsbifw-reticle-bracket tsbifw-reticle-tl"></div>
+			<div class="tsbifw-reticle-bracket tsbifw-reticle-tr"></div>
+			<div class="tsbifw-reticle-bracket tsbifw-reticle-bl"></div>
+			<div class="tsbifw-reticle-bracket tsbifw-reticle-br"></div>
+			<div class="tsbifw-reticle-crosshair"></div>
+			<div class="tsbifw-reticle-tag">AI_TARGET: 0x94F2</div>
+		</div>
+		<!-- Radar layer -->
+		<div class="tsbifw-effect-layer tsbifw-effect-radar">
+			<div class="tsbifw-radar-ring tsbifw-radar-ring-1"></div>
+			<div class="tsbifw-radar-ring tsbifw-radar-ring-2"></div>
+			<div class="tsbifw-radar-sweep"></div>
+			<div class="tsbifw-radar-grid"></div>
+		</div>
+		<!-- Matrix layer -->
+		<div class="tsbifw-effect-layer tsbifw-effect-matrix">
+			<div class="tsbifw-matrix-grid"></div>
+		</div>
+		<!-- Ripple layer -->
+		<div class="tsbifw-effect-layer tsbifw-effect-ripple">
+			<div class="tsbifw-ripple-wave tsbifw-ripple-1"></div>
+			<div class="tsbifw-ripple-wave tsbifw-ripple-2"></div>
+			<div class="tsbifw-ripple-wave tsbifw-ripple-3"></div>
+			<div class="tsbifw-ripple-core"></div>
+		</div>
+		<!-- Hologram layer -->
+		<div class="tsbifw-effect-layer tsbifw-effect-hologram">
+			<div class="tsbifw-hologram-prism"></div>
+			<div class="tsbifw-hologram-shimmer"></div>
 		</div>
 		<?php
+	}
+
+	/**
+	 * Render OpenRouter setup guide in settings sidebar card.
+	 */
+	public function render_sidebar_gateways_guide() {
+		?>
+		<h5 style="margin: 0 0 6px 0; font-size: 13px; color: #0f172a;"><?php esc_html_e( 'OpenRouter API Key', 'searchips-search-by-image-for-woocommerce' ); ?></h5>
+		<ol style="margin: 0 0 14px 0; padding-left: 18px; list-style-type: decimal;">
+			<li style="font-size: 12px; line-height: 1.5; color: #475569; margin-bottom: 4px;">
+				<?php
+				// translators: %s is the link to the external website.
+				$msg = sprintf( esc_html__( 'Visit the %s page.', 'searchips-search-by-image-for-woocommerce' ), '<a href="https://openrouter.ai/keys" target="_blank" rel="noopener noreferrer">OpenRouter Keys</a>' );
+				echo wp_kses_post( $msg );
+				?>
+			</li>
+			<li style="font-size: 12px; line-height: 1.5; color: #475569; margin-bottom: 4px;"><?php esc_html_e( 'Create an API key and add credits to your OpenRouter account.', 'searchips-search-by-image-for-woocommerce' ); ?></li>
+			<li style="font-size: 12px; line-height: 1.5; color: #475569; margin-bottom: 4px;"><?php esc_html_e( 'Copy and paste the secret key into the OpenRouter API Key field.', 'searchips-search-by-image-for-woocommerce' ); ?></li>
+		</ol>
+		<?php
+	}
+
+	/**
+	 * Render model help in settings sidebar card.
+	 */
+	public function render_sidebar_models_guide() {
+		// Embeddings model help is rendered in main card.
+	}
+
+	/**
+	 * Render strategy help in settings sidebar card stub.
+	 */
+	public function render_sidebar_strategies_guide() {
+		// Available in Pro version.
+	}
+
+	/**
+	 * Supply models in models AJAX response stub.
+	 *
+	 * @param array      $response_data Models response array.
+	 * @param string     $gateway       Active gateway slug.
+	 * @param TSBIFW_API $api           API instance.
+	 * @return array
+	 */
+	public function filter_admin_available_models( $response_data, $gateway, $api ) {
+		return $response_data;
+	}
+
+	/**
+	 * Register default gateway labels.
+	 *
+	 * @param array $labels Existing gateway labels.
+	 * @return array
+	 */
+	public function register_default_gateway_labels( $labels ) {
+		if ( ! is_array( $labels ) ) {
+			$labels = array();
+		}
+		$labels['openrouter'] = __( 'OpenRouter', 'searchips-search-by-image-for-woocommerce' );
+		return $labels;
 	}
 
 	/**

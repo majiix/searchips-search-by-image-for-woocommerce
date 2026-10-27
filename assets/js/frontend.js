@@ -422,5 +422,60 @@ jQuery(document).ready(function($) {
 			$('html, body').css('overflow', '');
 		}
 	});
-});
 
+
+	// ==========================================================================
+	// Scanning FX Layers
+	// ==========================================================================
+	function setupScanningEffectLayers($modal, $container) {
+		var $scanContainer = ($container && $container.length) ? $container : $('.tsbifw-scan-container');
+		if (!$scanContainer.length) {
+			return;
+		}
+
+		var scanEffect = $scanContainer.attr('data-effect') ||
+			(window.tsbifw_frontend_params && window.tsbifw_frontend_params.scanning_effect) || 'laser';
+
+		var scanningEffectLayers = {
+			reticle: '<div class="tsbifw-effect-layer tsbifw-effect-reticle">' +
+				'<div class="tsbifw-reticle-bracket tsbifw-reticle-tl"></div>' +
+				'<div class="tsbifw-reticle-bracket tsbifw-reticle-tr"></div>' +
+				'<div class="tsbifw-reticle-bracket tsbifw-reticle-bl"></div>' +
+				'<div class="tsbifw-reticle-bracket tsbifw-reticle-br"></div>' +
+				'<div class="tsbifw-reticle-crosshair"></div>' +
+				'<div class="tsbifw-reticle-tag">AI_TARGET: 0x94F2</div>' +
+			'</div>',
+			radar: '<div class="tsbifw-effect-layer tsbifw-effect-radar">' +
+				'<div class="tsbifw-radar-ring tsbifw-radar-ring-1"></div>' +
+				'<div class="tsbifw-radar-ring tsbifw-radar-ring-2"></div>' +
+				'<div class="tsbifw-radar-sweep"></div>' +
+				'<div class="tsbifw-radar-grid"></div>' +
+			'</div>',
+			matrix: '<div class="tsbifw-effect-layer tsbifw-effect-matrix">' +
+				'<div class="tsbifw-matrix-grid"></div>' +
+			'</div>',
+			ripple: '<div class="tsbifw-effect-layer tsbifw-effect-ripple">' +
+				'<div class="tsbifw-ripple-wave tsbifw-ripple-1"></div>' +
+				'<div class="tsbifw-ripple-wave tsbifw-ripple-2"></div>' +
+				'<div class="tsbifw-ripple-wave tsbifw-ripple-3"></div>' +
+				'<div class="tsbifw-ripple-core"></div>' +
+			'</div>',
+			hologram: '<div class="tsbifw-effect-layer tsbifw-effect-hologram">' +
+				'<div class="tsbifw-hologram-prism"></div>' +
+				'<div class="tsbifw-hologram-shimmer"></div>' +
+			'</div>'
+		};
+
+		if (scanningEffectLayers[scanEffect] && !$scanContainer.find('.tsbifw-effect-' + scanEffect).length) {
+			$scanContainer.append(scanningEffectLayers[scanEffect]);
+		}
+	}
+
+	$(document).on('tsbifw_modal_rendered', function(e, $modal, $container) {
+		setupScanningEffectLayers($modal, $container);
+	});
+
+	$(document).on('tsbifw_modal_initialized', function(e, $modal) {
+		setupScanningEffectLayers($modal);
+	});
+});

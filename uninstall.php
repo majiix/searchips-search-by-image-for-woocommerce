@@ -3,7 +3,8 @@
  * Searchips Search By Image Uninstall File.
  *
  * This file runs when the plugin is deleted via the WordPress Admin.
- * It deletes all plugin options, transients, post metadata, and logs if configured.
+ * It deletes all plugin options, transients, and post metadata
+ * if the user has enabled data deletion on uninstall.
  *
  * @package SearchipsSearchByImageForWooCommerce
  */
@@ -16,10 +17,12 @@ if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
 if ( 'yes' === get_option( 'tsbifw_delete_data_on_uninstall', 'no' ) ) {
 	global $wpdb;
 
-	// 1. Delete all custom options.
+	// 1. Delete all plugin options.
 	$tsbifw_options = array(
 		'tsbifw_api_key',
 		'tsbifw_api_gateway',
+		'tsbifw_api_key_openai',
+		'tsbifw_api_key_gemini',
 		'tsbifw_strategy',
 		'tsbifw_embeddings_model',
 		'tsbifw_similarity_threshold',
@@ -50,14 +53,16 @@ if ( 'yes' === get_option( 'tsbifw_delete_data_on_uninstall', 'no' ) ) {
 		delete_option( $tsbifw_option );
 	}
 
-	// 2. Clear transients.
+	// 2. Clear transients and object caches.
 	delete_transient( 'tsbifw_clean_logs_lock' );
 	delete_transient( 'tsbifw_cron_indexing_lock' );
 	delete_transient( 'tsbifw_indexed_image_ids' );
 	delete_transient( 'tsbifw_indexing_stats' );
+	delete_transient( 'tsbifw_catalog_descriptions' );
 	wp_cache_delete( 'tsbifw_indexing_stats', 'tsbifw_cache' );
+	wp_cache_delete( 'tsbifw_catalog_descriptions', 'tsbifw_cache' );
 
-	// Clear any cached models transients.
+	// Clear cached model transients and query tokens.
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 	$wpdb->query( "DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_tsbifw_models_%'" );
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
@@ -93,3 +98,7 @@ if ( 'yes' === get_option( 'tsbifw_delete_data_on_uninstall', 'no' ) ) {
 wp_clear_scheduled_hook( 'tsbifw_cron_indexing' );
 wp_clear_scheduled_hook( 'tsbifw_clear_index_cron' );
 
+// Clean up any pending Action Scheduler background indexing tasks.
+if ( function_exists( 'as_unschedule_all_actions' ) ) {
+	as_unschedule_all_actions( 'tsbifw_action_scheduler_index_product' );
+}

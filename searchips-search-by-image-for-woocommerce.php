@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name: Searchips Search By Image for WooCommerce
- * Description: Enable customers to search WooCommerce products using images powered by machine learning.
- * Version:     1.7.0
+ * Description: Enable customers to search WooCommerce products using images powered by machine learning and OpenRouter.
+ * Version:     1.8.0
  * Author:      micromax
  * Text Domain: searchips-search-by-image-for-woocommerce
  * Domain Path: /languages
@@ -22,7 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Define plugin constants.
-define( 'TSBIFW_VERSION', '1.7.0' );
+define( 'TSBIFW_VERSION', '1.8.0' );
 define( 'TSBIFW_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'TSBIFW_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 
@@ -61,6 +61,11 @@ function tsbifw_init() {
 		TSBIFW_Admin::instance();
 	}
 	TSBIFW_Search::instance();
+
+	// WP-CLI command integration.
+	if ( defined( 'WP_CLI' ) && WP_CLI ) {
+		require_once TSBIFW_PLUGIN_DIR . 'includes/class-tsbifw-cli.php';
+	}
 
 	// Public action listener for indexer execution.
 	add_action( 'tsbifw_index_product', 'tsbifw_index_product', 10, 2 );
@@ -110,7 +115,7 @@ function tsbifw_get_indexing_stats() {
 /**
  * Public procedural helper to retrieve the active AI provider gateway.
  *
- * @return string Gateway key identifier (e.g. 'openrouter', 'openai', 'gemini').
+ * @return string Gateway key identifier (e.g. 'openrouter').
  */
 function tsbifw_get_active_gateway() {
 	if ( class_exists( 'TSBIFW_API' ) ) {

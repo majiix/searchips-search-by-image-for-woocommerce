@@ -64,6 +64,15 @@ class TSBIFW_Indexer {
 
 		// Custom schedules filter.
 		add_filter( 'cron_schedules', array( $this, 'add_custom_cron_schedules' ) );
+
+		add_action( 'tsbifw_clear_product_indexed_meta', array( $this, 'on_clear_product_meta' ) );
+		add_action( 'tsbifw_clear_all_indexed_data', array( $this, 'on_clear_all_indexed_data_extra' ) );
+
+		// WooCommerce Products list bulk actions & Action Scheduler.
+		add_filter( 'bulk_actions-edit-product', array( $this, 'register_bulk_actions' ) );
+		add_filter( 'handle_bulk_actions-edit-product', array( $this, 'handle_bulk_actions' ), 10, 3 );
+		add_action( 'admin_notices', array( $this, 'bulk_action_admin_notice' ) );
+		add_action( 'tsbifw_action_scheduler_index_product', array( $this, 'handle_as_index_product' ), 10, 1 );
 	}
 
 	/**
@@ -159,7 +168,7 @@ class TSBIFW_Indexer {
 			$strategy = 'embeddings';
 		}
 
-		// If a custom search strategy is active (e.g. Pro Addon Strategy 2), delegate to add-on handler.
+		// If a custom search strategy is active (e.g. Strategy 2 Vision), delegate to strategy handler.
 		if ( 'embeddings' !== $strategy ) {
 			/**
 			 * Allow add-ons to index products using custom search strategies.
@@ -628,5 +637,218 @@ class TSBIFW_Indexer {
 			$this->get_indexed_image_ids();
 		}
 		return isset( $this->indexed_image_map[ (int) $attachment_id ] );
+	}
+
+	/**
+	 * Register available search strategies stub (Pro handles custom strategies).
+	 *
+	 * @param array $strategies Existing strategies.
+	 * @return array
+	 */
+	public function register_search_strategies( $strategies ) {
+		return $strategies;
+	}
+
+	/**
+	 * Index products using custom search strategy stub (available in Pro).
+	 *
+	 * @param null|bool|WP_Error $result           Default result.
+	 * @param int                $product_id       Product ID.
+	 * @param array              $target_images    List of image attachments to index.
+	 * @param string             $strategy         Active strategy.
+	 * @param bool               $skip_cache_clear Whether to skip cache clearing.
+	 * @return null|bool|WP_Error
+	 */
+	public function index_product_vision_strategy( $result, $product_id, $target_images, $strategy, $skip_cache_clear ) {
+		return $result;
+	}
+
+	/**
+	 * Check whether to skip indexing for a product (stub in free edition).
+	 *
+	 * @param bool  $skip          Current decision.
+	 * @param int   $product_id    Product ID.
+	 * @param array $target_images Target images list.
+	 * @param bool  $force         Whether re-indexing is forced.
+	 * @return bool
+	 */
+	public function filter_skip_product_indexing( $skip, $product_id, $target_images, $force ) {
+		return $skip;
+	}
+
+	/**
+	 * Calculate composite MD5 checksum for image attachments (stub in free edition).
+	 *
+	 * @param array $target_images Target images array.
+	 * @return string
+	 */
+	public function calculate_images_hash( array $target_images ) {
+		return '';
+	}
+
+	/**
+	 * Save image hash after product is successfully indexed (stub in free edition).
+	 *
+	 * @param int    $product_id    Product ID.
+	 * @param array  $target_images Processed target images.
+	 * @param string $strategy      Active strategy.
+	 */
+	public function on_after_product_indexed( $product_id, $target_images, $strategy = '' ) {
+		// Handled in Pro version.
+	}
+
+	/**
+	 * Allow variation thumbnail updates to trigger reindexing (stub in free edition).
+	 *
+	 * @param bool   $should_queue      Current queuing decision.
+	 * @param string $meta_key          Metadata key.
+	 * @param int    $object_id         Object ID.
+	 * @param int    $target_product_id Target parent product ID.
+	 * @return bool
+	 */
+	public function filter_should_queue_meta_update( $should_queue, $meta_key, $object_id, $target_product_id ) {
+		return $should_queue;
+	}
+
+	/**
+	 * Add variation image IDs to the indexed images list (stub in free edition).
+	 *
+	 * @param array $image_ids Array of indexed image IDs.
+	 * @return array
+	 */
+	public function filter_indexed_image_ids( $image_ids ) {
+		return $image_ids;
+	}
+
+	/**
+	 * Delete extra indexing metadata on product reset.
+	 *
+	 * @param int $product_id Product ID.
+	 */
+	public function on_clear_product_meta( $product_id ) {
+		delete_post_meta( (int) $product_id, '_tsbifw_images_hash' );
+		delete_post_meta( (int) $product_id, '_tsbifw_descriptions' );
+	}
+
+	/**
+	 * Delete extra metadata on complete data wipe.
+	 */
+	public function on_clear_all_indexed_data_extra() {
+		delete_metadata( 'post', 0, '_tsbifw_images_hash', '', true );
+		delete_metadata( 'post', 0, '_tsbifw_description', '', true );
+		delete_metadata( 'post', 0, '_tsbifw_descriptions', '', true );
+		wp_cache_delete( 'tsbifw_catalog_descriptions', 'tsbifw_cache' );
+		delete_transient( 'tsbifw_catalog_descriptions' );
+	}
+
+	/**
+	 * Register bulk action in WooCommerce Products table.
+	 *
+	 * @param array $bulk_actions Registered actions.
+	 * @return array
+	 */
+	public function register_bulk_actions( $bulk_actions ) {
+		$bulk_actions['tsbifw_bulk_index'] = __( 'Index with Searchips AI', 'searchips-search-by-image-for-woocommerce' );
+		return $bulk_actions;
+	}
+
+	/**
+	 * Callback executed by WooCommerce Action Scheduler for background indexing.
+	 *
+	 * @param int $product_id Product ID.
+	 */
+	public function handle_as_index_product( $product_id ) {
+		$this->index_product( (int) $product_id );
+	}
+
+	/**
+	 * Handle execution of the bulk indexing action.
+	 *
+	 * @param string $redirect_to Destination redirect URL.
+	 * @param string $action      Action name.
+	 * @param array  $post_ids    Selected product IDs.
+	 * @return string
+	 */
+	public function handle_bulk_actions( $redirect_to, $action, $post_ids ) {
+		if ( 'tsbifw_bulk_index' !== $action || empty( $post_ids ) ) {
+			return $redirect_to;
+		}
+
+		if ( ! current_user_can( 'manage_woocommerce' ) ) {
+			return $redirect_to;
+		}
+
+		$processed = 0;
+		$queued    = 0;
+
+		if ( function_exists( 'as_enqueue_async_action' ) ) {
+			foreach ( $post_ids as $id ) {
+				delete_post_meta( (int) $id, '_tsbifw_indexed_status' );
+				as_enqueue_async_action(
+					'tsbifw_action_scheduler_index_product',
+					array( 'product_id' => (int) $id ),
+					'tsbifw-indexing'
+				);
+				$queued++;
+			}
+			return add_query_arg( 'tsbifw_bulk_queued', $queued, $redirect_to );
+		}
+
+		$sync_slice   = array_slice( $post_ids, 0, 5 );
+		$queued_slice = array_slice( $post_ids, 5 );
+
+		foreach ( $sync_slice as $id ) {
+			$res = $this->index_product( (int) $id );
+			if ( ! is_wp_error( $res ) ) {
+				$processed++;
+			}
+		}
+
+		if ( ! empty( $queued_slice ) ) {
+			foreach ( $queued_slice as $id ) {
+				delete_post_meta( (int) $id, '_tsbifw_indexed_status' );
+				$queued++;
+			}
+			if ( ! wp_next_scheduled( 'tsbifw_cron_indexing' ) ) {
+				wp_schedule_single_event( time(), 'tsbifw_cron_indexing' );
+			}
+		}
+
+		$redirect_to = add_query_arg( 'tsbifw_bulk_count', $processed, $redirect_to );
+		if ( $queued > 0 ) {
+			$redirect_to = add_query_arg( 'tsbifw_bulk_queued', $queued, $redirect_to );
+		}
+
+		return $redirect_to;
+	}
+
+	/**
+	 * Render admin notice following a bulk indexing run.
+	 */
+	public function bulk_action_admin_notice() {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		if ( isset( $_GET['tsbifw_bulk_count'] ) ) {
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			$count  = intval( $_GET['tsbifw_bulk_count'] );
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			$queued = isset( $_GET['tsbifw_bulk_queued'] ) ? intval( $_GET['tsbifw_bulk_queued'] ) : 0;
+			?>
+			<div class="notice notice-success is-dismissible">
+				<p>
+					<?php
+					/* translators: %d: number of products processed */
+					echo esc_html( sprintf( _n( 'Searchips AI successfully indexed %d product.', 'Searchips AI successfully indexed %d products.', $count, 'searchips-search-by-image-for-woocommerce' ), $count ) );
+					if ( $queued > 0 ) {
+						echo ' ' . esc_html( sprintf(
+							/* translators: %d: number of products queued */
+							_n( '%d additional product queued for background indexing.', '%d additional products queued for background indexing.', $queued, 'searchips-search-by-image-for-woocommerce' ),
+							$queued
+						) );
+					}
+					?>
+				</p>
+			</div>
+			<?php
+		}
 	}
 }

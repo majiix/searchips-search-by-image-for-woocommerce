@@ -19,6 +19,13 @@ class TSBIFW_Search {
 	private static $instance = null;
 
 	/**
+	 * Matched variation metadata cached for active search token.
+	 *
+	 * @var array|null
+	 */
+	private $matched_variation_meta = null;
+
+	/**
 	 * Get class instance.
 	 *
 	 * @return TSBIFW_Search
@@ -44,6 +51,9 @@ class TSBIFW_Search {
 		add_action( 'pre_get_posts', array( $this, 'modify_search_query' ) );
 		add_filter( 'query_vars', array( $this, 'register_query_vars' ) );
 		add_filter( 'posts_search', array( $this, 'clear_search_keyword_sql' ), 10, 2 );
+
+		// Scanning effects registration.
+		add_filter( 'tsbifw_scanning_effects', array( $this, 'register_scanning_effects' ) );
 	}
 
 	/**
@@ -158,7 +168,6 @@ class TSBIFW_Search {
 			'tsbifw_frontend_params',
 			array(
 				'search_endpoint'      => esc_url_raw( rest_url( 'tsbifw/v1/search' ) ),
-				'track_endpoint'       => esc_url_raw( apply_filters( 'tsbifw_track_endpoint', '' ) ),
 				'current_vquery'       => $current_vquery,
 				'cropper_src'          => esc_url_raw( TSBIFW_PLUGIN_URL . 'assets/js/cropper.min.js' ),
 				'auto_inject'          => ( 'yes' === $enable_auto_inject ),
@@ -176,6 +185,8 @@ class TSBIFW_Search {
 					'select_another'     => esc_html__( 'Select Another', 'searchips-search-by-image-for-woocommerce' ),
 					// translators: %d: Max upload size in MB
 					'file_too_large'     => sprintf( esc_html__( 'Selected file is too large. Maximum allowed size is %dMB.', 'searchips-search-by-image-for-woocommerce' ), $max_mb ),
+					'take_photo'         => esc_html__( 'Take Photo', 'searchips-search-by-image-for-woocommerce' ),
+					'or_divider'         => esc_html__( 'or', 'searchips-search-by-image-for-woocommerce' ),
 				),
 			)
 		);
@@ -562,7 +573,7 @@ class TSBIFW_Search {
 				$scores = $this->calculate_vector_scores( $query_vector, $threshold, $match_meta );
 			} else {
 				/**
-				 * Filter to allow custom search strategies (e.g. Vision-to-Text Description Search in Pro Addon).
+				 * Filter to allow custom search strategies (e.g. Vision-to-Text Description Search).
 				 *
 				 * @param array|WP_Error|null $custom_scores Return array of scores (product_id => score) or WP_Error.
 				 * @param string              $strategy      Active strategy.
@@ -730,11 +741,6 @@ class TSBIFW_Search {
 				home_url( '/' )
 			);
 
-			// Record sandbox search in analytics if enabled.
-			if ( ! empty( $uploaded_file['tmp_name'] ) ) {
-				do_action( 'tsbifw_record_search', $sandbox_token, $uploaded_file['tmp_name'], $strategy . ' (test)', count( $formatted_results ) );
-			}
-
 			return rest_ensure_response(
 				array(
 					'products'     => $formatted_results,
@@ -760,11 +766,6 @@ class TSBIFW_Search {
 		);
 
 		set_transient( 'tsbifw_vquery_' . $token, $transient_payload, $cache_expiry );
-
-		// Record visual search query in analytics.
-		if ( ! empty( $uploaded_file['tmp_name'] ) ) {
-			do_action( 'tsbifw_record_search', $token, $uploaded_file['tmp_name'], $strategy, count( $product_ids ) );
-		}
 
 		$search_term = apply_filters( 'tsbifw_search_term', _x( 'image-search', 'default search term for visual search', 'searchips-search-by-image-for-woocommerce' ), $strategy, $matched_posts );
 
@@ -996,6 +997,79 @@ class TSBIFW_Search {
 			return $data;
 		}
 
-		return @unserialize( $data, array( 'allowed_classes' => false ) );
+		$unserialized = @unserialize( $data, array( 'allowed_classes' => false ) );
+		return ( false !== $unserialized || 'b:0;' === $data ) ? $unserialized : $data;
+	}
+
+	/**
+	 * Register all scanning effects.
+	 *
+	 * @param array $effects Registered effects map.
+	 * @return array
+	 */
+	public function register_scanning_effects( $effects ) {
+		$effects['reticle']  = esc_html__( 'AI Vision Reticle', 'searchips-search-by-image-for-woocommerce' );
+		$effects['radar']    = esc_html__( 'Sonar Radar Sweep', 'searchips-search-by-image-for-woocommerce' );
+		$effects['matrix']   = esc_html__( 'Digital Mesh Grid', 'searchips-search-by-image-for-woocommerce' );
+		$effects['ripple']   = esc_html__( 'Concentric Ripple', 'searchips-search-by-image-for-woocommerce' );
+		$effects['hologram'] = esc_html__( 'Luxury Hologram', 'searchips-search-by-image-for-woocommerce' );
+		return $effects;
+	}
+
+	/**
+	 * Apply algorithmic score bonus (stub in free edition).
+	 *
+	 * @param array $scores    Candidate scores map.
+	 * @param float $threshold Active threshold.
+	 * @return array
+	 */
+	public function filter_candidate_scores( $scores, $threshold ) {
+		return $scores;
+	}
+
+	/**
+	 * Retrieve active matched variation metadata for the current visual search query.
+	 *
+	 * @return array Matched metadata indexed by product_id.
+	 */
+	private function get_active_matched_meta() {
+		return array();
+	}
+
+	/**
+	 * Filter product catalog image to show the matched variation image (stub in free edition).
+	 *
+	 * @param string       $image       Product image HTML.
+	 * @param WC_Product   $product     Product object.
+	 * @param string|array $size        Image size.
+	 * @param array        $attr        Image attributes.
+	 * @param bool         $placeholder Placeholder flag.
+	 * @return string Modified image HTML.
+	 */
+	public function filter_product_image_for_matched_variation( $image, $product, $size = 'woocommerce_thumbnail', $attr = array(), $placeholder = true ) {
+		return $image;
+	}
+
+	/**
+	 * Filter product loop link to navigate to matched variation (stub in free edition).
+	 *
+	 * @param string     $link    Product permalink.
+	 * @param WC_Product $product Product object.
+	 * @return string Modified permalink.
+	 */
+	public function filter_product_link_for_matched_variation( $link, $product ) {
+		return $link;
+	}
+
+	/**
+	 * Filter test search result item for matched variations (stub in free edition).
+	 *
+	 * @param array      $item_data Result item data.
+	 * @param array      $match     Raw match item.
+	 * @param WC_Product $product   Product instance.
+	 * @return array
+	 */
+	public function filter_test_search_variation_item( $item_data, $match, $product ) {
+		return $item_data;
 	}
 }

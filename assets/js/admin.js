@@ -767,5 +767,6 @@ jQuery(document).ready(function($) {
 			}
 		});
 	});
-});
 
+
+});

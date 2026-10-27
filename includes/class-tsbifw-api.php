@@ -38,7 +38,7 @@ class TSBIFW_API {
 	/**
 	 * Get the currently active AI gateway.
 	 *
-	 * @return string Gateway identifier ('openrouter', 'openai', 'gemini', etc.).
+	 * @return string Gateway identifier ('openrouter').
 	 */
 	public function get_active_gateway() {
 
@@ -60,8 +60,56 @@ class TSBIFW_API {
 		if ( null === $gateway ) {
 			$gateway = $this->get_active_gateway();
 		}
+
 		$api_key = get_option( 'tsbifw_api_key', '' );
+
 		return apply_filters( 'tsbifw_gateway_api_key', $api_key, $gateway );
+	}
+
+	/**
+	 * Retrieve API endpoint URL based on gateway and action.
+	 *
+	 * @param string $gateway Gateway slug.
+	 * @param string $action  Action ('embeddings' or 'chat').
+	 * @return string
+	 */
+	private function get_endpoint_url( $gateway, $action ) {
+		$url = ( 'embeddings' === $action )
+			? 'https://openrouter.ai/api/v1/embeddings'
+			: 'https://openrouter.ai/api/v1/chat/completions';
+
+		return apply_filters( 'tsbifw_api_url', $url, $gateway, $action );
+	}
+
+	/**
+	 * Retrieve API request headers based on gateway and action.
+	 *
+	 * @param string $gateway Gateway slug.
+	 * @param string $action  Action.
+	 * @param string $api_key API key.
+	 * @return array
+	 */
+	private function get_request_headers( $gateway, $action, $api_key ) {
+		$headers = array(
+			'Authorization' => 'Bearer ' . $api_key,
+			'Content-Type'  => 'application/json',
+			'HTTP-Referer'  => get_home_url(),
+			'X-Title'       => 'Searchips WP',
+		);
+
+		return apply_filters( 'tsbifw_api_headers', $headers, $gateway, $action );
+	}
+
+	/**
+	 * Normalize model identifier.
+	 *
+	 * @param string $model   Model identifier.
+	 * @param string $gateway Active gateway.
+	 * @param string $action  Action.
+	 * @return string
+	 */
+	private function normalize_model( $model, $gateway, $action ) {
+		return apply_filters( 'tsbifw_api_model', $model, $gateway, $action );
 	}
 
 	/**
@@ -210,7 +258,7 @@ class TSBIFW_API {
 		if ( empty( $model ) ) {
 			$model = 'google/gemini-embedding-2';
 		}
-		$model = apply_filters( 'tsbifw_api_model', $model, $gateway, 'embeddings' );
+		$model = $this->normalize_model( $model, $gateway, 'embeddings' );
 
 		$body = array(
 			'model' => $model,
@@ -229,15 +277,8 @@ class TSBIFW_API {
 		);
 		$body = apply_filters( 'tsbifw_embeddings_request_body', $body, $gateway, $model, $base64_image );
 
-		$headers = array(
-			'Authorization' => 'Bearer ' . $api_key,
-			'Content-Type'  => 'application/json',
-			'HTTP-Referer'  => get_home_url(),
-			'X-Title'       => 'Searchips WP',
-		);
-		$headers = apply_filters( 'tsbifw_api_headers', $headers, $gateway, 'embeddings' );
-
-		$api_url = apply_filters( 'tsbifw_api_url', 'https://openrouter.ai/api/v1/embeddings', $gateway, 'embeddings' );
+		$headers = $this->get_request_headers( $gateway, 'embeddings', $api_key );
+		$api_url = $this->get_endpoint_url( $gateway, 'embeddings' );
 
 		TSBIFW_Logger::log(
 			sprintf( 'Sending vector embeddings request to %s for model: %s', ucfirst( $gateway ), $model ),
