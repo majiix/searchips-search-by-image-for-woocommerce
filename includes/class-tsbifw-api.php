@@ -67,52 +67,6 @@ class TSBIFW_API {
 	}
 
 	/**
-	 * Retrieve API endpoint URL based on gateway and action.
-	 *
-	 * @param string $gateway Gateway slug.
-	 * @param string $action  Action ('embeddings' or 'chat').
-	 * @return string
-	 */
-	private function get_endpoint_url( $gateway, $action ) {
-		$url = ( 'embeddings' === $action )
-			? 'https://openrouter.ai/api/v1/embeddings'
-			: 'https://openrouter.ai/api/v1/chat/completions';
-
-		return apply_filters( 'tsbifw_api_url', $url, $gateway, $action );
-	}
-
-	/**
-	 * Retrieve API request headers based on gateway and action.
-	 *
-	 * @param string $gateway Gateway slug.
-	 * @param string $action  Action.
-	 * @param string $api_key API key.
-	 * @return array
-	 */
-	private function get_request_headers( $gateway, $action, $api_key ) {
-		$headers = array(
-			'Authorization' => 'Bearer ' . $api_key,
-			'Content-Type'  => 'application/json',
-			'HTTP-Referer'  => get_home_url(),
-			'X-Title'       => 'Searchips WP',
-		);
-
-		return apply_filters( 'tsbifw_api_headers', $headers, $gateway, $action );
-	}
-
-	/**
-	 * Normalize model identifier.
-	 *
-	 * @param string $model   Model identifier.
-	 * @param string $gateway Active gateway.
-	 * @param string $action  Action.
-	 * @return string
-	 */
-	private function normalize_model( $model, $gateway, $action ) {
-		return apply_filters( 'tsbifw_api_model', $model, $gateway, $action );
-	}
-
-	/**
 	 * Prepare image for API transmission by resizing it and converting to base64.
 	 *
 	 * @param int $attachment_id Attachment ID of the image.
@@ -258,7 +212,7 @@ class TSBIFW_API {
 		if ( empty( $model ) ) {
 			$model = 'google/gemini-embedding-2';
 		}
-		$model = $this->normalize_model( $model, $gateway, 'embeddings' );
+		$model = apply_filters( 'tsbifw_api_model', $model, $gateway, 'embeddings' );
 
 		$body = array(
 			'model' => $model,
@@ -277,8 +231,18 @@ class TSBIFW_API {
 		);
 		$body = apply_filters( 'tsbifw_embeddings_request_body', $body, $gateway, $model, $base64_image );
 
-		$headers = $this->get_request_headers( $gateway, 'embeddings', $api_key );
-		$api_url = $this->get_endpoint_url( $gateway, 'embeddings' );
+		$headers = apply_filters(
+			'tsbifw_api_headers',
+			array(
+				'Authorization' => 'Bearer ' . $api_key,
+				'Content-Type'  => 'application/json',
+				'HTTP-Referer'  => get_home_url(),
+				'X-Title'       => 'Searchips WP',
+			),
+			$gateway,
+			'embeddings'
+		);
+		$api_url = apply_filters( 'tsbifw_api_url', 'https://openrouter.ai/api/v1/embeddings', $gateway, 'embeddings' );
 
 		TSBIFW_Logger::log(
 			sprintf( 'Sending vector embeddings request to %s for model: %s', ucfirst( $gateway ), $model ),

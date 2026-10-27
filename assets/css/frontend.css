@@ -141,7 +141,7 @@
 	flex: 1;
 }
 
-/* Modal Action Area & Mobile Camera Button */
+/* Modal Action Area */
 .tsbifw-modal-actions-area {
 	display: flex;
 	flex-direction: column;

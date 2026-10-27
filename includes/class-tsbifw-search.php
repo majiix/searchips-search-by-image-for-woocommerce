@@ -19,13 +19,6 @@ class TSBIFW_Search {
 	private static $instance = null;
 
 	/**
-	 * Matched variation metadata cached for active search token.
-	 *
-	 * @var array|null
-	 */
-	private $matched_variation_meta = null;
-
-	/**
 	 * Get class instance.
 	 *
 	 * @return TSBIFW_Search
@@ -185,8 +178,6 @@ class TSBIFW_Search {
 					'select_another'     => esc_html__( 'Select Another', 'searchips-search-by-image-for-woocommerce' ),
 					// translators: %d: Max upload size in MB
 					'file_too_large'     => sprintf( esc_html__( 'Selected file is too large. Maximum allowed size is %dMB.', 'searchips-search-by-image-for-woocommerce' ), $max_mb ),
-					'take_photo'         => esc_html__( 'Take Photo', 'searchips-search-by-image-for-woocommerce' ),
-					'or_divider'         => esc_html__( 'or', 'searchips-search-by-image-for-woocommerce' ),
 				),
 			)
 		);
@@ -508,11 +499,6 @@ class TSBIFW_Search {
 			);
 		}
 
-		$strategy   = get_option( 'tsbifw_strategy', 'embeddings' );
-		$strategies = apply_filters( 'tsbifw_search_strategies', array( 'embeddings' => esc_html__( 'Strategy 1: Image Embeddings', 'searchips-search-by-image-for-woocommerce' ) ) );
-		if ( ! isset( $strategies[ $strategy ] ) ) {
-			$strategy = 'embeddings';
-		}
 		$limit = (int) get_option( 'posts_per_page', 10 );
 		if ( $limit <= 0 ) {
 			$limit = 10;
@@ -525,7 +511,6 @@ class TSBIFW_Search {
 			array(
 				'filename' => $uploaded_file['name'],
 				'size'     => $uploaded_file['size'],
-				'strategy' => $strategy,
 			),
 			$sandbox
 		);
@@ -553,9 +538,8 @@ class TSBIFW_Search {
 				$threshold = (int) $exclude_percent / 100;
 			}
 
-			if ( 'embeddings' === $strategy ) {
-				// Get query vector.
-				$query_vector = $api->get_embeddings( $base64 );
+			// Get query vector.
+			$query_vector = $api->get_embeddings( $base64 );
 				if ( is_wp_error( $query_vector ) ) {
 					if ( ! $sandbox ) {
 						return new WP_Error(
@@ -571,62 +555,38 @@ class TSBIFW_Search {
 
 				// Calculate similarity scores in cursor batches to prevent memory and packet limits.
 				$scores = $this->calculate_vector_scores( $query_vector, $threshold, $match_meta );
-			} else {
-				/**
-				 * Filter to allow custom search strategies (e.g. Vision-to-Text Description Search).
-				 *
-				 * @param array|WP_Error|null $custom_scores Return array of scores (product_id => score) or WP_Error.
-				 * @param string              $strategy      Active strategy.
-				 * @param string              $base64        Base64 query image.
-				 * @param float               $threshold     Calculated similarity threshold.
-				 * @param array               &$match_meta   Reference array for matched image/variation IDs.
-				 * @param bool                $sandbox       Whether sandbox mode is active.
-				 */
-				$custom_scores = apply_filters_ref_array( 'tsbifw_custom_strategy_search_scores', array( null, $strategy, $base64, $threshold, &$match_meta, $sandbox ) );
-				if ( is_wp_error( $custom_scores ) ) {
-					return $custom_scores;
-				}
-				$scores = is_array( $custom_scores ) ? $custom_scores : array();
-			}
 
-			if ( ! empty( $scores ) ) {
-				// Sort scores descending.
-				arsort( $scores );
+				if ( ! empty( $scores ) ) {
+					// Sort scores descending.
+					arsort( $scores );
 
-				// Pre-prime post, postmeta, and taxonomy caches for candidates to prevent N+1 queries.
-				$candidate_ids = array_slice( array_keys( $scores ), 0, max( $limit * 3, 50 ) );
-				if ( function_exists( '_prime_post_caches' ) ) {
-					_prime_post_caches( $candidate_ids, true, true );
-				}
-
-				$resolved_products = array();
-				foreach ( $scores as $product_id => $score ) {
-					$product = wc_get_product( $product_id );
-					if ( ! $this->is_product_viewable_and_visible( $product, $include_hidden ) ) {
-						continue;
+					// Pre-prime post, postmeta, and taxonomy caches for candidates to prevent N+1 queries.
+					$candidate_ids = array_slice( array_keys( $scores ), 0, max( $limit * 3, 50 ) );
+					if ( function_exists( '_prime_post_caches' ) ) {
+						_prime_post_caches( $candidate_ids, true, true );
 					}
 
-					$matched_posts[] = array(
-						'id'           => $product_id,
-						'score'        => $score,
-						'image_id'     => isset( $match_meta[ $product_id ]['image_id'] ) ? $match_meta[ $product_id ]['image_id'] : 0,
-						'variation_id' => isset( $match_meta[ $product_id ]['variation_id'] ) ? $match_meta[ $product_id ]['variation_id'] : 0,
-					);
-					if ( $sandbox && $product ) {
-						$resolved_products[ $product_id ] = $product;
-					}
+					$resolved_products = array();
+					foreach ( $scores as $product_id => $score ) {
+						$product = wc_get_product( $product_id );
+						if ( ! $this->is_product_viewable_and_visible( $product, $include_hidden ) ) {
+							continue;
+						}
 
-					if ( count( $matched_posts ) >= $limit ) {
-						break;
+						$matched_posts[] = array(
+							'id'       => $product_id,
+							'score'    => $score,
+							'image_id' => isset( $match_meta[ $product_id ]['image_id'] ) ? $match_meta[ $product_id ]['image_id'] : 0,
+						);
+						if ( $sandbox && $product ) {
+							$resolved_products[ $product_id ] = $product;
+						}
+
+						if ( count( $matched_posts ) >= $limit ) {
+							break;
+						}
 					}
 				}
-			} elseif ( 'embeddings' !== $strategy ) {
-				// Allow add-ons to provide fallback results if direct score matching returned empty.
-				$custom_fallback = apply_filters( 'tsbifw_custom_strategy_fallback_posts', array(), $strategy, $limit, $include_hidden );
-				if ( is_array( $custom_fallback ) && ! empty( $custom_fallback ) ) {
-					$matched_posts = $custom_fallback;
-				}
-			}
 		} catch ( Throwable $e ) {
 			TSBIFW_Logger::log( 'Search request encountered an exception: ' . $e->getMessage(), array( 'trace' => $e->getTraceAsString() ), true );
 			return new WP_Error(
@@ -677,7 +637,6 @@ class TSBIFW_Search {
 
 				$item_data = array(
 					'id'                 => $product_id,
-					'variation_id'       => 0,
 					'title'              => wp_strip_all_tags( $product->get_name() ),
 					'permalink'          => esc_url( $product->get_permalink() ),
 					'image'              => esc_url( $image_url ),
@@ -730,7 +689,7 @@ class TSBIFW_Search {
 			);
 			set_transient( 'tsbifw_vquery_' . $sandbox_token, $transient_payload, $cache_expiry );
 
-			$search_term = apply_filters( 'tsbifw_search_term', _x( 'image-search', 'default search term for visual search', 'searchips-search-by-image-for-woocommerce' ), $strategy, $matched_posts );
+			$search_term = apply_filters( 'tsbifw_search_term', _x( 'image-search', 'default search term for visual search', 'searchips-search-by-image-for-woocommerce' ), 'embeddings', $matched_posts );
 
 			$redirect_url = add_query_arg(
 				array(
@@ -767,7 +726,7 @@ class TSBIFW_Search {
 
 		set_transient( 'tsbifw_vquery_' . $token, $transient_payload, $cache_expiry );
 
-		$search_term = apply_filters( 'tsbifw_search_term', _x( 'image-search', 'default search term for visual search', 'searchips-search-by-image-for-woocommerce' ), $strategy, $matched_posts );
+		$search_term = apply_filters( 'tsbifw_search_term', _x( 'image-search', 'default search term for visual search', 'searchips-search-by-image-for-woocommerce' ), 'embeddings', $matched_posts );
 
 		$redirect_url = add_query_arg(
 			array(
@@ -868,7 +827,7 @@ class TSBIFW_Search {
 	 *
 	 * @param array $query_vector Query embedding vector.
 	 * @param float $threshold    Minimum similarity threshold.
-	 * @param array $match_meta   Optional by-reference array populated with best matching image_id and variation_id per product.
+	 * @param array $match_meta   Optional by-reference array populated with best matching image_id per product.
 	 * @return array Map of product ID => similarity score.
 	 */
 	private function calculate_vector_scores( $query_vector, $threshold, &$match_meta = array() ) {
@@ -891,32 +850,21 @@ class TSBIFW_Search {
 		foreach ( $catalog_vectors as $post_id => $vector_list ) {
 			$max_score   = 0.0;
 			$best_img_id = 0;
-			$best_var_id = 0;
 			foreach ( $vector_list as $img_data ) {
 				if ( isset( $img_data['vector'] ) && is_array( $img_data['vector'] ) ) {
 					$score = $this->cosine_similarity_fast( $query_vector, $norm_query, $img_data['vector'] );
 					if ( $score > $max_score ) {
 						$max_score   = $score;
 						$best_img_id = isset( $img_data['id'] ) ? (int) $img_data['id'] : 0;
-						$best_var_id = isset( $img_data['variation_id'] ) ? (int) $img_data['variation_id'] : 0;
 					}
 				}
 			}
 
-			if ( $max_score > 0.0 ) {
+			if ( $max_score >= $threshold ) {
 				$scores[ $post_id ]     = $max_score;
 				$match_meta[ $post_id ] = array(
-					'image_id'     => $best_img_id,
-					'variation_id' => $best_var_id,
+					'image_id' => $best_img_id,
 				);
-			}
-		}
-
-		$scores = apply_filters( 'tsbifw_candidate_scores', $scores, $threshold );
-		foreach ( $scores as $post_id => $score ) {
-			if ( $score < $threshold ) {
-				unset( $scores[ $post_id ] );
-				unset( $match_meta[ $post_id ] );
 			}
 		}
 
@@ -1014,62 +962,5 @@ class TSBIFW_Search {
 		$effects['ripple']   = esc_html__( 'Concentric Ripple', 'searchips-search-by-image-for-woocommerce' );
 		$effects['hologram'] = esc_html__( 'Luxury Hologram', 'searchips-search-by-image-for-woocommerce' );
 		return $effects;
-	}
-
-	/**
-	 * Apply algorithmic score bonus (stub in free edition).
-	 *
-	 * @param array $scores    Candidate scores map.
-	 * @param float $threshold Active threshold.
-	 * @return array
-	 */
-	public function filter_candidate_scores( $scores, $threshold ) {
-		return $scores;
-	}
-
-	/**
-	 * Retrieve active matched variation metadata for the current visual search query.
-	 *
-	 * @return array Matched metadata indexed by product_id.
-	 */
-	private function get_active_matched_meta() {
-		return array();
-	}
-
-	/**
-	 * Filter product catalog image to show the matched variation image (stub in free edition).
-	 *
-	 * @param string       $image       Product image HTML.
-	 * @param WC_Product   $product     Product object.
-	 * @param string|array $size        Image size.
-	 * @param array        $attr        Image attributes.
-	 * @param bool         $placeholder Placeholder flag.
-	 * @return string Modified image HTML.
-	 */
-	public function filter_product_image_for_matched_variation( $image, $product, $size = 'woocommerce_thumbnail', $attr = array(), $placeholder = true ) {
-		return $image;
-	}
-
-	/**
-	 * Filter product loop link to navigate to matched variation (stub in free edition).
-	 *
-	 * @param string     $link    Product permalink.
-	 * @param WC_Product $product Product object.
-	 * @return string Modified permalink.
-	 */
-	public function filter_product_link_for_matched_variation( $link, $product ) {
-		return $link;
-	}
-
-	/**
-	 * Filter test search result item for matched variations (stub in free edition).
-	 *
-	 * @param array      $item_data Result item data.
-	 * @param array      $match     Raw match item.
-	 * @param WC_Product $product   Product instance.
-	 * @return array
-	 */
-	public function filter_test_search_variation_item( $item_data, $match, $product ) {
-		return $item_data;
 	}
 }

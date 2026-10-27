@@ -2,7 +2,7 @@
 Contributors: micromax2
 Tags: woocommerce, search, image search, search by image, vector search
 Requires at least: 5.6
-Tested up to: 7.1
+Tested up to: 6.7
 Requires PHP: 7.4
 WC requires at least: 5.0
 WC tested up to: 11.1
@@ -14,7 +14,7 @@ Enable customers to search WooCommerce products using images powered by machine 
 
 == Description ==
 
-Searchips Search By Image for WooCommerce brings intelligent, state-of-the-art visual search to your online store. Shoppers can upload an image or snap a photo directly on mobile devices to find matching and visually similar products in seconds.
+Searchips Search By Image for WooCommerce brings intelligent, state-of-the-art visual search to your online store. Shoppers can upload photos from their device or mobile image library to find matching and visually similar products in seconds.
 
 The plugin is 100% free and open-source: unlimited catalog indexing, high-accuracy multimodal vector search, 6 futuristic scanning animations, and full WP-CLI command integration.
 

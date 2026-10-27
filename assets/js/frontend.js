@@ -94,7 +94,6 @@ jQuery(document).ready(function($) {
 					'</div>' +
 					'<div class="tsbifw-modal-body">' +
 						'<div class="tsbifw-modal-actions-area">' +
-							'<div class="tsbifw-modal-extra-actions"></div>' +
 							'<div class="tsbifw-drag-zone">' +
 								'<svg class="tsbifw-drag-icon" viewBox="0 0 24 24" width="48" height="48" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">' +
 									'<rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>' +
@@ -151,13 +150,6 @@ jQuery(document).ready(function($) {
 		$(document).on('keydown', function(e) {
 			if (e.key === 'Escape' && $('.tsbifw-modal-overlay').hasClass('active')) {
 				closeModal();
-			}
-		});
-
-		// Allow external extensions/actions to feed selected files into the modal
-		$(document).on('tsbifw_select_file', function(e, file) {
-			if (file) {
-				handleFileSelection(file);
 			}
 		});
 
@@ -473,9 +465,5 @@ jQuery(document).ready(function($) {
 
 	$(document).on('tsbifw_modal_rendered', function(e, $modal, $container) {
 		setupScanningEffectLayers($modal, $container);
-	});
-
-	$(document).on('tsbifw_modal_initialized', function(e, $modal) {
-		setupScanningEffectLayers($modal);
 	});
 });

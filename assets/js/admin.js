@@ -66,39 +66,14 @@ jQuery(document).ready(function($) {
 		});
 	}
 
-	// Strategy selector visibility toggle
-	var initialStrategy = $('#tsbifw_strategy').val();
-	$('#tsbifw_strategy').on('change', function() {
-		var selected = $(this).val();
-		$('.tsbifw-strategy-field').hide();
-		$('.tsbifw-strategy-field-' + selected).show();
-		if (selected === 'embeddings') {
-			$('.embeddings-field').show();
-		}
-		$(document).trigger('tsbifw_strategy_toggled', [selected]);
-
-		// Warn the user to clear index and re-index.
-		if (selected !== initialStrategy) {
-			if ($('#tsbifw-strategy-warning').length === 0) {
-				$('<p id="tsbifw-strategy-warning" class="tsbifw-error-text" style="margin-top: 10px; font-weight: 600;">' +
-					tsbifw_admin_params.strings.strategy_warning +
-				  '</p>').insertAfter('#tsbifw_strategy');
-			}
-		} else {
-			$('#tsbifw-strategy-warning').remove();
-		}
-	});
-
-	// Gateway selector visibility toggle
+	// Gateway selector guidance
 	function updateGatewayGuidance() {
 		var gw = $('#tsbifw_api_gateway').val();
-		var strategy = $('#tsbifw_strategy').val();
-
 		var labels = (tsbifw_admin_params && tsbifw_admin_params.gateway_labels) || {};
 		var gwName = labels[gw] || 'OpenRouter';
 
 		$('#tsbifw-embeddings-model-desc').text('Select the embedding model ID for ' + gwName + '.');
-		$(document).trigger('tsbifw_gateway_guidance_updated', [gw, strategy, gwName]);
+		$(document).trigger('tsbifw_gateway_guidance_updated', [gw, 'embeddings', gwName]);
 	}
 
 	$('#tsbifw_api_gateway').on('change', function() {
@@ -109,14 +84,10 @@ jQuery(document).ready(function($) {
 		loadModelsForGateway(gw);
 	});
 
-	$('#tsbifw_strategy').on('change', function() {
-		updateGatewayGuidance();
-	});
-
 	updateGatewayGuidance();
 
 	// Password visibility toggle
-	$(document).on('click', '.tsbifw-toggle-pw, #tsbifw-toggle-api-key', function(e) {
+	$(document).on('click', '.tsbifw-toggle-pw', function(e) {
 		e.preventDefault();
 		var targetId = $(this).data('target') || 'tsbifw_api_key';
 		var input = $('#' + targetId);
@@ -428,24 +399,6 @@ jQuery(document).ready(function($) {
 	if ($('#tsbifw-admin-drag-zone').length) {
 		var $adminDragZone = $('#tsbifw-admin-drag-zone');
 		var $adminFileInput = $('#tsbifw-admin-file-input');
-		var $adminCameraInput = $('#tsbifw-admin-camera-input');
-
-		$('#tsbifw-admin-camera-btn').on('click', function(e) {
-			e.preventDefault();
-			if ($adminCameraInput.length) {
-				$adminCameraInput[0].click();
-			}
-		});
-
-		$adminCameraInput.on('click', function(e) {
-			e.stopPropagation();
-		});
-
-		$adminCameraInput.on('change', function() {
-			if (this.files && this.files[0]) {
-				handleAdminFileSelection(this.files[0]);
-			}
-		});
 
 		$adminDragZone.on('click', function() {
 			if ($adminFileInput.length) {
@@ -556,7 +509,6 @@ jQuery(document).ready(function($) {
 	function resetAdminSearchUI() {
 		stopAdminStatusRotation();
 		$('#tsbifw-admin-file-input').val('');
-		$('#tsbifw-admin-camera-input').val('');
 		var previewImg = document.getElementById('tsbifw-admin-preview-image');
 		if (previewImg) {
 			previewImg.setAttribute('src', '');

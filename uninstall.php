@@ -21,9 +21,6 @@ if ( 'yes' === get_option( 'tsbifw_delete_data_on_uninstall', 'no' ) ) {
 	$tsbifw_options = array(
 		'tsbifw_api_key',
 		'tsbifw_api_gateway',
-		'tsbifw_api_key_openai',
-		'tsbifw_api_key_gemini',
-		'tsbifw_strategy',
 		'tsbifw_embeddings_model',
 		'tsbifw_similarity_threshold',
 		'tsbifw_exclude_below_percent',
@@ -58,9 +55,7 @@ if ( 'yes' === get_option( 'tsbifw_delete_data_on_uninstall', 'no' ) ) {
 	delete_transient( 'tsbifw_cron_indexing_lock' );
 	delete_transient( 'tsbifw_indexed_image_ids' );
 	delete_transient( 'tsbifw_indexing_stats' );
-	delete_transient( 'tsbifw_catalog_descriptions' );
 	wp_cache_delete( 'tsbifw_indexing_stats', 'tsbifw_cache' );
-	wp_cache_delete( 'tsbifw_catalog_descriptions', 'tsbifw_cache' );
 
 	// Clear cached model transients and query tokens.
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching

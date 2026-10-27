@@ -32,7 +32,7 @@ if ( ! class_exists( 'TSBIFW_CLI' ) ) {
 				WP_CLI::error( 'Searchips core plugin is not loaded.' );
 			}
 
-			$allowed_gateways = apply_filters( 'tsbifw_allowed_gateways', array( 'openrouter', 'openai', 'gemini' ) );
+			$allowed_gateways = apply_filters( 'tsbifw_allowed_gateways', array( 'openrouter' ) );
 			$gateway          = get_option( 'tsbifw_api_gateway', 'openrouter' );
 			if ( ! in_array( $gateway, $allowed_gateways, true ) ) {
 				$gateway = 'openrouter';
@@ -139,7 +139,7 @@ if ( ! class_exists( 'TSBIFW_CLI' ) ) {
 		}
 
 		/**
-		 * Clear all indexed image vectors, descriptions, and caches.
+		 * Clear all indexed image vectors and caches.
 		 *
 		 * ## EXAMPLES
 		 *
@@ -148,13 +148,13 @@ if ( ! class_exists( 'TSBIFW_CLI' ) ) {
 		 * @when after_wp_load
 		 */
 		public function clear( $args, $assoc_args ) {
-			if ( ! has_action( 'tsbifw_clear_all_indexed_data' ) ) {
+			if ( ! class_exists( 'TSBIFW_Indexer' ) ) {
 				WP_CLI::error( 'Searchips Indexer module not found.' );
 			}
 
-			WP_CLI::confirm( 'Are you sure you want to clear all product vectors and indexed descriptions?' );
+			WP_CLI::confirm( 'Are you sure you want to clear all product vector embeddings?' );
 
-			do_action( 'tsbifw_clear_all_indexed_data' );
+			TSBIFW_Indexer::instance()->clear_all_indexed_data();
 			wp_cache_delete( 'tsbifw_indexing_stats', 'tsbifw_cache' );
 
 			WP_CLI::success( 'All Searchips indexed data has been successfully cleared.' );

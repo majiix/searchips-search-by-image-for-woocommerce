@@ -64,10 +64,6 @@ msgstr ""
 msgid "Drag and drop an image here or click to browse (Max size: %dMB)"
 msgstr ""
 
-#: includes/class-tsbifw-admin.php:130
-msgid "Attention: You have changed the Search Strategy. You should Clear / Reset the index and perform a complete re-indexing for matches to work correctly."
-msgstr ""
-
 #: includes/class-tsbifw-admin.php:131
 #: includes/class-tsbifw-admin.php:815
 #: includes/class-tsbifw-search.php:206
@@ -77,10 +73,6 @@ msgstr ""
 #: includes/class-tsbifw-admin.php:133
 #: includes/class-tsbifw-search.php:209
 msgid "Selected file is too large. Maximum allowed size is %dMB."
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:134
-msgid "Deselect All"
 msgstr ""
 
 #: includes/class-tsbifw-admin.php:146
@@ -120,11 +112,6 @@ msgstr ""
 msgid "OpenRouter"
 msgstr ""
 
-#: includes/class-tsbifw-admin.php:344
-#: includes/class-tsbifw-admin.php:1627
-msgid "Strategy 1: Multimodal Vector Embeddings (Recommended)"
-msgstr ""
-
 #: includes/class-tsbifw-admin.php:358
 msgid "AI Provider Gateway"
 msgstr ""
@@ -139,14 +126,6 @@ msgstr ""
 
 #: includes/class-tsbifw-admin.php:381
 msgid "Enter your OpenRouter API key to communicate with embeddings models."
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:388
-msgid "Search Strategy"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:397
-msgid "Select the underlying strategy for product indexing and searching."
 msgstr ""
 
 #: includes/class-tsbifw-admin.php:404
@@ -618,14 +597,6 @@ msgstr ""
 msgid "Loose matching. Returns products with similar color schemes, shapes, or silhouettes."
 msgstr ""
 
-#: includes/class-tsbifw-admin.php:987
-msgid "Search Strategies"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:990
-msgid "Strategy 1: Vector Embeddings"
-msgstr ""
-
 #: includes/class-tsbifw-admin.php:991
 msgid "Encodes products and uploaded search photos into numerical vectors, calculating similarity using normalized dot-product algebra. Fast, accurate, and recommended."
 msgstr ""
@@ -695,10 +666,6 @@ msgstr ""
 msgid "All Indexed Statuses"
 msgstr ""
 
-#: includes/class-tsbifw-admin.php:1447
-msgid "Search strategy changed from %1$s to %2$s. Scheduled background cron job to clear all existing index data."
-msgstr ""
-
 #: includes/class-tsbifw-admin.php:1464
 msgid "OpenRouter API Key is required for image search and indexing to function."
 msgstr ""
@@ -719,116 +686,8 @@ msgstr ""
 msgid "Maximum upload size must be a positive number."
 msgstr ""
 
-#: includes/class-tsbifw-admin.php:1751
-msgid "OpenAI API Key"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:1759
-msgid "Enter your private OpenAI API Key."
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:1764
-msgid "Google Gemini API Key"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:1772
-msgid "Enter your Google AI Studio Gemini API Key."
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:1788
-msgid "Note: OpenAI direct API does not provide a multimodal image embedding endpoint. For OpenAI Direct, Strategy 2 (Vision-to-Text Description Search via GPT-4o) is recommended for visual image search."
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:1789
-msgid "Switch to Strategy 2"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:1804
-msgid "Vision Model ID"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:1809
-msgid "Select the vision model ID for your chosen gateway."
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:1814
-msgid "Sync Descriptions to Product Tags?"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:1817
-msgid "No (Store in Custom Postmeta Only)"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:1818
-msgid "Yes (Append to WooCommerce Product Tags)"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:1820
-msgid "If enabled, descriptors are attached to standard product tags, allowing seamless standard theme/search filtering."
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:1835
-msgid "Product Variation Images"
-msgstr ""
-
 #: includes/class-tsbifw-admin.php:1852
 msgid "Smart Image Hashing (MD5)"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:1856
-msgid "Skip re-indexing if product image MD5 hash has not changed on save"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:1858
-msgid "Calculates attachment MD5 checksums to prevent redundant API calls when modifying non-visual product details."
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:1863
-msgid "Excluded Product Categories"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:1874
-msgid "Hold Ctrl (or Cmd on Mac) to select multiple categories to exclude from visual indexing."
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:1890
-msgid "Algorithmic Similarity Boost"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:1894
-msgid "Enable similarity boost for featured and on-sale products"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:1898
-msgid "Boost Bonus Percentage: +"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:1904
-msgid "Boost Featured Products"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:1908
-msgid "Boost On-Sale Products"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:1911
-msgid "Increases match confidence scores for promotional items to improve conversion rates."
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:1924
-msgid "Mobile Camera Capture Button"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:1927
-msgid "Disabled"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:1928
-msgid "Enabled (Direct camera snap on smartphone browsers)"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:1930
-msgid "Displays a dedicated camera snap button next to the image upload field for mobile devices."
 msgstr ""
 
 #: includes/class-tsbifw-admin.php:1944
@@ -876,60 +735,8 @@ msgstr ""
 msgid "Iridescent chromatic prism light shimmer with diamond glint particles."
 msgstr ""
 
-#: includes/class-tsbifw-admin.php:2029
-msgid "OpenAI (Direct)"
-msgstr ""
-
 #: includes/class-tsbifw-admin.php:2034
 msgid "Visit the %s page."
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:2038
-msgid "Click \"Create new secret key\" and label your key."
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:2039
-msgid "Copy the secret key into the OpenAI API Key input."
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:2042
-msgid "Google Gemini (Direct)"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:2047
-msgid "Visit %s and log in with your Google account."
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:2051
-msgid "Click \"Create API key\" and select your Google Cloud project."
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:2052
-msgid "Copy the API key into the Google Gemini API Key input."
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:2062
-msgid "Vision Model"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:2063
-msgid "Used by Strategy 2 to write textual descriptions from photos. Gemini 2.5 Flash is recommended for its speed and accuracy."
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:2072
-msgid "Strategy 2: Vision-to-Text"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:2073
-msgid "Generates high-quality textual descriptions of images on-the-fly and processes them as keyword tags to query standard store search pages."
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:2133
-msgid "OpenAI Direct"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:2134
-msgid "Google Gemini Direct"
 msgstr ""
 
 #: includes/class-tsbifw-admin.php:2178
@@ -1003,10 +810,6 @@ msgstr ""
 msgid "Failed to extract embedding vector from API response."
 msgstr ""
 
-#: includes/class-tsbifw-api.php:477
-msgid "Failed to extract text description from API response."
-msgstr ""
-
 #: includes/class-tsbifw-api.php:579
 msgid "Failed to retrieve models from OpenRouter."
 msgstr ""
@@ -1019,11 +822,6 @@ msgstr ""
 msgid "Invalid product ID."
 msgstr ""
 
-#: includes/class-tsbifw-indexer.php:193
-#: includes/class-tsbifw-search.php:534
-msgid "Strategy 1: Image Embeddings"
-msgstr ""
-
 #: includes/class-tsbifw-indexer.php:322
 msgid "Product image metadata changed (%1$s) for product ID %2$d. Queued for background indexing."
 msgstr ""
@@ -1034,14 +832,6 @@ msgstr ""
 
 #: includes/class-tsbifw-indexer.php:538
 msgid "All product embeddings and indexing metadata cleared successfully."
-msgstr ""
-
-#: includes/class-tsbifw-indexer.php:676
-msgid "Strategy 2: Vision-to-Text Description Search"
-msgstr ""
-
-#: includes/class-tsbifw-indexer.php:800
-msgid "Skipped: Product belongs to an excluded category."
 msgstr ""
 
 #: includes/class-tsbifw-indexer.php:964
@@ -1125,4 +915,25 @@ msgstr ""
 
 #: searchips-search-by-image-for-woocommerce.php:175
 msgid "Searchips Search By Image for WooCommerce requires WooCommerce to be installed and active."
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:330
+msgid "Search Engine"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:332
+msgid "Multimodal Vector Embeddings"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:335
+msgid "Visual search is powered by native multimodal vector embeddings. Product images are mapped into high-dimensional vector representations for instant, precise similarity matching."
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:1747
+#: includes/class-tsbifw-admin.php:1834
+msgid "Upgrade to Pro"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:1749
+msgid "PRO EDITION"
 msgstr ""

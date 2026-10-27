@@ -65,9 +65,6 @@ class TSBIFW_Indexer {
 		// Custom schedules filter.
 		add_filter( 'cron_schedules', array( $this, 'add_custom_cron_schedules' ) );
 
-		add_action( 'tsbifw_clear_product_indexed_meta', array( $this, 'on_clear_product_meta' ) );
-		add_action( 'tsbifw_clear_all_indexed_data', array( $this, 'on_clear_all_indexed_data_extra' ) );
-
 		// WooCommerce Products list bulk actions & Action Scheduler.
 		add_filter( 'bulk_actions-edit-product', array( $this, 'register_bulk_actions' ) );
 		add_filter( 'handle_bulk_actions-edit-product', array( $this, 'handle_bulk_actions' ), 10, 3 );
@@ -93,9 +90,8 @@ class TSBIFW_Indexer {
 
 		if ( $index_featured && $featured_id ) {
 			$target_images[] = array(
-				'id'           => $featured_id,
-				'type'         => 'featured',
-				'variation_id' => 0,
+				'id'   => $featured_id,
+				'type' => 'featured',
 			);
 			$tracked_ids[]   = (int) $featured_id;
 		}
@@ -104,9 +100,8 @@ class TSBIFW_Indexer {
 				$gid = (int) $gallery_id;
 				if ( ! in_array( $gid, $tracked_ids, true ) ) {
 					$target_images[] = array(
-						'id'           => $gid,
-						'type'         => 'gallery',
-						'variation_id' => 0,
+						'id'   => $gid,
+						'type' => 'gallery',
 					);
 					$tracked_ids[]   = $gid;
 				}
@@ -126,7 +121,7 @@ class TSBIFW_Indexer {
 	 * Indexes a single product using the active strategy.
 	 *
 	 * @param int  $product_id       Product ID.
-	 * @param bool $force            Whether to force re-indexing even if image hash is unchanged.
+	 * @param bool $force            Whether to force re-indexing.
 	 * @param bool $skip_cache_clear Whether to defer cache invalidation (useful in batch loops).
 	 * @return bool|WP_Error True if success, WP_Error if failure.
 	 */
@@ -147,7 +142,6 @@ class TSBIFW_Indexer {
 			update_post_meta( $product_id, '_tsbifw_indexed_status', 'skipped' );
 			delete_post_meta( $product_id, '_tsbifw_vectors' );
 			delete_post_meta( $product_id, '_tsbifw_index_error' );
-			do_action( 'tsbifw_clear_product_indexed_meta', $product_id );
 			if ( ! $skip_cache_clear ) {
 				$this->clear_cache();
 			}
@@ -162,30 +156,6 @@ class TSBIFW_Indexer {
 			return true;
 		}
 
-		$strategy   = get_option( 'tsbifw_strategy', 'embeddings' );
-		$strategies = apply_filters( 'tsbifw_search_strategies', array( 'embeddings' => esc_html__( 'Strategy 1: Image Embeddings', 'searchips-search-by-image-for-woocommerce' ) ) );
-		if ( ! isset( $strategies[ $strategy ] ) ) {
-			$strategy = 'embeddings';
-		}
-
-		// If a custom search strategy is active (e.g. Strategy 2 Vision), delegate to strategy handler.
-		if ( 'embeddings' !== $strategy ) {
-			/**
-			 * Allow add-ons to index products using custom search strategies.
-			 *
-			 * @param null|bool|WP_Error $result           Result from custom strategy indexer.
-			 * @param int                $product_id       Product ID.
-			 * @param array              $target_images    List of image attachments to index.
-			 * @param string             $strategy         Active strategy identifier.
-			 * @param bool               $skip_cache_clear Whether to skip transient cache clearing.
-			 */
-			$custom_result = apply_filters( 'tsbifw_index_product_custom_strategy', null, $product_id, $target_images, $strategy, $skip_cache_clear );
-			if ( null !== $custom_result ) {
-				return $custom_result;
-			}
-			return false;
-		}
-
 		$api = TSBIFW_API::instance();
 
 		$vectors        = array();
@@ -193,7 +163,6 @@ class TSBIFW_Indexer {
 
 		foreach ( $target_images as $image ) {
 			$img_id = (int) $image['id'];
-			$var_id = isset( $image['variation_id'] ) ? (int) $image['variation_id'] : 0;
 
 			if ( isset( $cached_vectors[ $img_id ] ) ) {
 				$vector = $cached_vectors[ $img_id ];
@@ -206,24 +175,21 @@ class TSBIFW_Indexer {
 					}
 					update_post_meta( $product_id, '_tsbifw_indexed_status', 'error' );
 					update_post_meta( $product_id, '_tsbifw_index_error', $base64->get_error_message() );
-					do_action( 'tsbifw_clear_product_indexed_meta', $product_id );
 					return $base64;
 				}
 				$vector = $api->get_embeddings( $base64 );
 				if ( is_wp_error( $vector ) ) {
 					update_post_meta( $product_id, '_tsbifw_indexed_status', 'error' );
 					update_post_meta( $product_id, '_tsbifw_index_error', $vector->get_error_message() );
-					do_action( 'tsbifw_clear_product_indexed_meta', $product_id );
 					return $vector;
 				}
 				$cached_vectors[ $img_id ] = $vector;
 			}
 
 			$vectors[] = array(
-				'id'           => $img_id,
-				'type'         => $image['type'],
-				'variation_id' => $var_id,
-				'vector'       => $vector,
+				'id'     => $img_id,
+				'type'   => $image['type'],
+				'vector' => $vector,
 			);
 		}
 
@@ -231,7 +197,6 @@ class TSBIFW_Indexer {
 			update_post_meta( $product_id, '_tsbifw_indexed_status', 'skipped' );
 			delete_post_meta( $product_id, '_tsbifw_vectors' );
 			delete_post_meta( $product_id, '_tsbifw_index_error' );
-			do_action( 'tsbifw_clear_product_indexed_meta', $product_id );
 			if ( ! $skip_cache_clear ) {
 				$this->clear_cache();
 			}
@@ -245,7 +210,7 @@ class TSBIFW_Indexer {
 			$this->clear_cache();
 		}
 
-		do_action( 'tsbifw_after_product_indexed', $product_id, $target_images, $strategy );
+		do_action( 'tsbifw_after_product_indexed', $product_id, $target_images, 'embeddings' );
 
 		return true;
 	}
@@ -255,18 +220,10 @@ class TSBIFW_Indexer {
 			return;
 		}
 
-		$post_type         = get_post_type( $object_id );
-		$target_product_id = $object_id;
-
-		if ( 'product_variation' === $post_type ) {
-			$parent_id = wp_get_post_parent_id( $object_id );
-			if ( ! $parent_id || 'product' !== get_post_type( $parent_id ) ) {
-				return;
-			}
-			$target_product_id = $parent_id;
-		} elseif ( 'product' !== $post_type ) {
+		if ( 'product' !== get_post_type( $object_id ) ) {
 			return;
 		}
+		$target_product_id = $object_id;
 
 		$index_featured = ( get_option( 'tsbifw_index_featured', 'yes' ) === 'yes' );
 		$index_gallery  = ( get_option( 'tsbifw_index_gallery', 'no' ) === 'yes' );
@@ -297,7 +254,6 @@ class TSBIFW_Indexer {
 			delete_post_meta( $target_product_id, '_tsbifw_indexed_status' );
 			delete_post_meta( $target_product_id, '_tsbifw_vectors' );
 			delete_post_meta( $target_product_id, '_tsbifw_index_error' );
-			do_action( 'tsbifw_clear_product_indexed_meta', $target_product_id );
 			$this->clear_cache();
 
 			$allow_instant = ( 'yes' === get_option( 'tsbifw_auto_index_on_save', 'no' ) );
@@ -312,18 +268,10 @@ class TSBIFW_Indexer {
 			return;
 		}
 
-		$post_type         = get_post_type( $object_id );
-		$target_product_id = $object_id;
-
-		if ( 'product_variation' === $post_type ) {
-			$parent_id = wp_get_post_parent_id( $object_id );
-			if ( ! $parent_id || 'product' !== get_post_type( $parent_id ) ) {
-				return;
-			}
-			$target_product_id = $parent_id;
-		} elseif ( 'product' !== $post_type ) {
+		if ( 'product' !== get_post_type( $object_id ) ) {
 			return;
 		}
+		$target_product_id = $object_id;
 
 		$index_featured = ( get_option( 'tsbifw_index_featured', 'yes' ) === 'yes' );
 		$index_gallery  = ( get_option( 'tsbifw_index_gallery', 'no' ) === 'yes' );
@@ -354,7 +302,6 @@ class TSBIFW_Indexer {
 			delete_post_meta( $target_product_id, '_tsbifw_indexed_status' );
 			delete_post_meta( $target_product_id, '_tsbifw_vectors' );
 			delete_post_meta( $target_product_id, '_tsbifw_index_error' );
-			do_action( 'tsbifw_clear_product_indexed_meta', $target_product_id );
 			$this->clear_cache();
 		}
 	}
@@ -490,7 +437,6 @@ class TSBIFW_Indexer {
 			delete_post_meta( $post_id, '_tsbifw_vectors' );
 			delete_post_meta( $post_id, '_tsbifw_indexed_status' );
 			delete_post_meta( $post_id, '_tsbifw_index_error' );
-			do_action( 'tsbifw_clear_product_indexed_meta', $post_id );
 			$this->clear_cache();
 		}
 	}
@@ -503,8 +449,6 @@ class TSBIFW_Indexer {
 		delete_metadata( 'post', 0, '_tsbifw_vectors', '', true );
 		delete_metadata( 'post', 0, '_tsbifw_indexed_status', '', true );
 		delete_metadata( 'post', 0, '_tsbifw_index_error', '', true );
-
-		do_action( 'tsbifw_clear_all_indexed_data' );
 
 		$this->clear_cache();
 
@@ -637,108 +581,6 @@ class TSBIFW_Indexer {
 			$this->get_indexed_image_ids();
 		}
 		return isset( $this->indexed_image_map[ (int) $attachment_id ] );
-	}
-
-	/**
-	 * Register available search strategies stub (Pro handles custom strategies).
-	 *
-	 * @param array $strategies Existing strategies.
-	 * @return array
-	 */
-	public function register_search_strategies( $strategies ) {
-		return $strategies;
-	}
-
-	/**
-	 * Index products using custom search strategy stub (available in Pro).
-	 *
-	 * @param null|bool|WP_Error $result           Default result.
-	 * @param int                $product_id       Product ID.
-	 * @param array              $target_images    List of image attachments to index.
-	 * @param string             $strategy         Active strategy.
-	 * @param bool               $skip_cache_clear Whether to skip cache clearing.
-	 * @return null|bool|WP_Error
-	 */
-	public function index_product_vision_strategy( $result, $product_id, $target_images, $strategy, $skip_cache_clear ) {
-		return $result;
-	}
-
-	/**
-	 * Check whether to skip indexing for a product (stub in free edition).
-	 *
-	 * @param bool  $skip          Current decision.
-	 * @param int   $product_id    Product ID.
-	 * @param array $target_images Target images list.
-	 * @param bool  $force         Whether re-indexing is forced.
-	 * @return bool
-	 */
-	public function filter_skip_product_indexing( $skip, $product_id, $target_images, $force ) {
-		return $skip;
-	}
-
-	/**
-	 * Calculate composite MD5 checksum for image attachments (stub in free edition).
-	 *
-	 * @param array $target_images Target images array.
-	 * @return string
-	 */
-	public function calculate_images_hash( array $target_images ) {
-		return '';
-	}
-
-	/**
-	 * Save image hash after product is successfully indexed (stub in free edition).
-	 *
-	 * @param int    $product_id    Product ID.
-	 * @param array  $target_images Processed target images.
-	 * @param string $strategy      Active strategy.
-	 */
-	public function on_after_product_indexed( $product_id, $target_images, $strategy = '' ) {
-		// Handled in Pro version.
-	}
-
-	/**
-	 * Allow variation thumbnail updates to trigger reindexing (stub in free edition).
-	 *
-	 * @param bool   $should_queue      Current queuing decision.
-	 * @param string $meta_key          Metadata key.
-	 * @param int    $object_id         Object ID.
-	 * @param int    $target_product_id Target parent product ID.
-	 * @return bool
-	 */
-	public function filter_should_queue_meta_update( $should_queue, $meta_key, $object_id, $target_product_id ) {
-		return $should_queue;
-	}
-
-	/**
-	 * Add variation image IDs to the indexed images list (stub in free edition).
-	 *
-	 * @param array $image_ids Array of indexed image IDs.
-	 * @return array
-	 */
-	public function filter_indexed_image_ids( $image_ids ) {
-		return $image_ids;
-	}
-
-	/**
-	 * Delete extra indexing metadata on product reset.
-	 *
-	 * @param int $product_id Product ID.
-	 */
-	public function on_clear_product_meta( $product_id ) {
-		delete_post_meta( (int) $product_id, '_tsbifw_images_hash' );
-		delete_post_meta( (int) $product_id, '_tsbifw_descriptions' );
-	}
-
-	/**
-	 * Delete extra metadata on complete data wipe.
-	 */
-	public function on_clear_all_indexed_data_extra() {
-		delete_metadata( 'post', 0, '_tsbifw_images_hash', '', true );
-		delete_metadata( 'post', 0, '_tsbifw_description', '', true );
-		delete_metadata( 'post', 0, '_tsbifw_descriptions', '', true );
-		wp_cache_delete( 'tsbifw_catalog_descriptions', 'tsbifw_cache' );
-		delete_transient( 'tsbifw_catalog_descriptions' );
 	}
 
 	/**
