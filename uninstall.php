@@ -4,13 +4,25 @@
  *
  * This file runs when the plugin is deleted via the WordPress Admin.
  * It deletes all plugin options, transients, and post metadata
- * if the user has enabled data deletion on uninstall.
+ * if the user has explicitly enabled data deletion on uninstall.
  *
  * @package SearchipsSearchByImageForWooCommerce
  */
 
 if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
 	exit;
+}
+
+/**
+ * Filter whether shared plugin data should be deleted upon uninstall.
+ *
+ * Allows standalone sibling forks or site administrators to protect
+ * shared options and vector embeddings when Free is uninstalled.
+ *
+ * @param bool $allow_deletion Whether to proceed with data deletion. Default true.
+ */
+if ( ! apply_filters( 'tsbifw_allow_uninstall_data_deletion', true ) ) {
+	return;
 }
 
 // Only delete data if the user explicitly enabled the uninstall data deletion option.
@@ -22,7 +34,6 @@ if ( 'yes' === get_option( 'tsbifw_delete_data_on_uninstall', 'no' ) ) {
 		'tsbifw_api_key',
 		'tsbifw_api_gateway',
 		'tsbifw_embeddings_model',
-		'tsbifw_similarity_threshold',
 		'tsbifw_exclude_below_percent',
 		'tsbifw_max_upload_size',
 		'tsbifw_search_cache_expiry',

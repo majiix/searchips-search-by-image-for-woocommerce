@@ -2,7 +2,7 @@
 Contributors: micromax2
 Tags: woocommerce, search, image search, search by image, vector search
 Requires at least: 5.6
-Tested up to: 6.7
+Tested up to: 7.1
 Requires PHP: 7.4
 WC requires at least: 5.0
 WC tested up to: 11.1

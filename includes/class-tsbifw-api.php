@@ -280,7 +280,7 @@ class TSBIFW_API {
 		if ( 200 !== $response_code ) {
 			$error_data   = json_decode( $response_body, true );
 			$api_err_code = isset( $error_data['error']['code'] ) ? $error_data['error']['code'] : $response_code;
-			$err_msg      = isset( $error_data['error']['message'] ) ? $error_data['error']['message'] : esc_html__( 'Unknown API error.', 'searchips-search-by-image-for-woocommerce' );
+			$err_msg      = isset( $error_data['error']['message'] ) ? $error_data['error']['message'] : ( isset( $error_data['error'] ) && is_string( $error_data['error'] ) ? $error_data['error'] : esc_html__( 'Unknown API error.', 'searchips-search-by-image-for-woocommerce' ) );
 			$log_msg      = sprintf( '%1$s Embeddings HTTP Error: %2$d (API Code: %3$s)', ucfirst( $gateway ), $response_code, $api_err_code );
 			TSBIFW_Logger::log( $log_msg, array( 'response' => $error_data ) );
 			return new WP_Error(

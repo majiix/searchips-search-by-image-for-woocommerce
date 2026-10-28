@@ -36,7 +36,9 @@ class TSBIFW_Admin {
 	private function __construct() {
 		add_action( 'admin_menu', array( $this, 'add_settings_page' ) );
 		add_action( 'admin_init', array( $this, 'register_settings' ) );
+		add_action( 'add_option_tsbifw_enable_cron_indexing', array( $this, 'check_cron_scheduling' ) );
 		add_action( 'update_option_tsbifw_enable_cron_indexing', array( $this, 'check_cron_scheduling' ) );
+		add_action( 'add_option_tsbifw_cron_interval', array( $this, 'check_cron_scheduling' ) );
 		add_action( 'update_option_tsbifw_cron_interval', array( $this, 'check_cron_scheduling' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_assets' ) );
 
@@ -227,11 +229,7 @@ class TSBIFW_Admin {
 		$api_key        = TSBIFW_API::instance()->get_api_key();
 		$openrouter_key = get_option( 'tsbifw_api_key', '' );
 
-		$exclude_below_percent = get_option( 'tsbifw_exclude_below_percent', '' );
-		if ( '' === $exclude_below_percent ) {
-			$similarity_threshold = get_option( 'tsbifw_similarity_threshold', '0.40' );
-			$exclude_below_percent = round( (float) $similarity_threshold * 100 );
-		}
+		$exclude_below_percent = (int) get_option( 'tsbifw_exclude_below_percent', 40 );
 
 		$scanning_effect = get_option( 'tsbifw_scanning_effect', 'laser' );
 		$scanning_color  = get_option( 'tsbifw_scanning_color', '#6366f1' );
@@ -287,19 +285,25 @@ class TSBIFW_Admin {
 									<tr>
 										<th scope="row"><label for="tsbifw_api_gateway"><?php esc_html_e( 'AI Provider Gateway', 'searchips-search-by-image-for-woocommerce' ); ?></label></th>
 										<td>
-											<select name="tsbifw_api_gateway" id="tsbifw_api_gateway">
-												<?php foreach ( $gateways as $g_key => $g_label ) : ?>
-													<option value="<?php echo esc_attr( $g_key ); ?>" <?php selected( $active_gateway, $g_key ); ?>>
-														<?php echo esc_html( $g_label ); ?>
-													</option>
-												<?php endforeach; ?>
-											</select>
-											<p class="description"><?php esc_html_e( 'Select the AI provider to handle image embeddings.', 'searchips-search-by-image-for-woocommerce' ); ?></p>
-
+											<?php if ( count( $gateways ) > 1 ) : ?>
+												<select name="tsbifw_api_gateway" id="tsbifw_api_gateway">
+													<?php foreach ( $gateways as $g_key => $g_label ) : ?>
+														<option value="<?php echo esc_attr( $g_key ); ?>" <?php selected( $active_gateway, $g_key ); ?>>
+															<?php echo esc_html( $g_label ); ?>
+														</option>
+													<?php endforeach; ?>
+												</select>
+											<?php else : ?>
+												<span class="tsbifw-gateway-badge" style="display: inline-block; padding: 5px 12px; background: #e2e8f0; color: #1e293b; font-weight: 600; font-size: 13px; border-radius: 4px; border: 1px solid #cbd5e1;">
+													<?php esc_html_e( 'OpenRouter API', 'searchips-search-by-image-for-woocommerce' ); ?>
+												</span>
+												<input type="hidden" name="tsbifw_api_gateway" id="tsbifw_api_gateway" value="<?php echo esc_attr( $active_gateway ); ?>" />
+											<?php endif; ?>
+											<p class="description"><?php esc_html_e( 'Visual search embeddings are powered via OpenRouter.', 'searchips-search-by-image-for-woocommerce' ); ?></p>
 										</td>
 									</tr>
 
-									<tr class="tsbifw-gateway-field gateway-openrouter" style="<?php echo 'openrouter' === $active_gateway ? '' : 'display:none;'; ?>">
+									<tr>
 										<th scope="row"><label for="tsbifw_api_key"><?php esc_html_e( 'OpenRouter API Key', 'searchips-search-by-image-for-woocommerce' ); ?></label></th>
 										<td>
 											<div class="tsbifw-password-wrapper" style="position: relative; display: inline-block; max-width: 25em; width: 100%;">
@@ -368,7 +372,7 @@ class TSBIFW_Admin {
 										</td>
 									</tr>
 
-									<tr class="tsbifw-strategy-field embeddings-field">
+									<tr>
 										<th scope="row"><label for="tsbifw_embeddings_model"><?php esc_html_e( 'Embeddings Model ID', 'searchips-search-by-image-for-woocommerce' ); ?></label></th>
 										<td>
 											<div class="tsbifw-skeleton-loader" id="tsbifw-embeddings-model-skeleton"></div>
@@ -1109,8 +1113,6 @@ class TSBIFW_Admin {
 		if ( empty( $embedding_models ) ) {
 			$embedding_models = array(
 				array( 'id' => 'google/gemini-embedding-2', 'name' => 'Google: Gemini Embedding 2' ),
-				array( 'id' => 'openai/text-embedding-3-small', 'name' => 'OpenAI: Text Embedding 3 (Small)' ),
-				array( 'id' => 'openai/text-embedding-3-large', 'name' => 'OpenAI: Text Embedding 3 (Large)' ),
 			);
 		}
 

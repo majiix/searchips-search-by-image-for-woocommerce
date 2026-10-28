@@ -90,9 +90,11 @@ if ( ! class_exists( 'TSBIFW_CLI' ) ) {
 				'post_status'    => 'publish',
 				'posts_per_page' => ( $limit > 0 ) ? $limit : -1,
 				'fields'         => 'ids',
+				'no_found_rows'  => true,
 			);
 
 			if ( ! $reindex_all ) {
+				// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query
 				$query_args['meta_query'] = array(
 					array(
 						'key'     => '_tsbifw_indexed_status',
@@ -120,10 +122,12 @@ if ( ! class_exists( 'TSBIFW_CLI' ) ) {
 			foreach ( $product_ids as $id ) {
 				if ( function_exists( 'tsbifw_index_product' ) ) {
 					$res = tsbifw_index_product( (int) $id, $force );
+				} elseif ( class_exists( 'TSBIFW_Indexer' ) ) {
+					$res = TSBIFW_Indexer::instance()->index_product( (int) $id, $force );
 				} else {
-					$res = do_action( 'tsbifw_index_product', (int) $id, $force );
+					$res = false;
 				}
-				if ( is_wp_error( $res ) ) {
+				if ( is_wp_error( $res ) || false === $res ) {
 					$errors++;
 				} else {
 					$success++;

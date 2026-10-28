@@ -78,8 +78,6 @@ jQuery(document).ready(function($) {
 
 	$('#tsbifw_api_gateway').on('change', function() {
 		var gw = $(this).val();
-		$('.tsbifw-gateway-field').hide();
-		$('.gateway-' + gw).show();
 		updateGatewayGuidance();
 		loadModelsForGateway(gw);
 	});

@@ -9,16 +9,21 @@ The plugin provides vector embedding similarity matching, an in-admin test searc
 ### Design Decisions & Assumptions:
 - Search Strategy: Visual search engine is permanently set to native Multimodal Vector Embeddings. Configurable strategy inputs have been removed from the Free settings UI in favor of an informational overview, and residual option keys (`tsbifw_strategy`) have been purged from `uninstall.php`.
 - Backend Processing: Pure Multimodal Vector Search engine. Removed Strategy 2 vision description generation, caching, and text-based scoring logic completely from the Free codebase.
-- Data Handling & Uninstall: The uninstaller cleans up active Free plugin options, transients, and vectors when user opts into data deletion, while avoiding wiping Pro-exclusive keys (`tsbifw_api_key_openai`, `tsbifw_api_key_gemini`, `tsbifw_catalog_descriptions`). Legacy single-vector metadata (`_tsbifw_vector`) is retained in `uninstall.php` and `TSBIFW_Indexer::clear_all_indexed_data()` to ensure thorough database cleanup for stores upgraded from v1.0.
+- AI Provider Gateway UI: When only a single gateway is registered (`OpenRouter API`), the settings UI renders a clean, static badge (`.tsbifw-badge-gateway`) along with a hidden input (`tsbifw_api_gateway`), eliminating redundant 1-item dropdown selectors while maintaining seamless option storage compatibility.
+- Translation Catalog Hygiene: The translation template (`languages/searchips-search-by-image-for-woocommerce.pot`) is strictly purged of orphaned Pro strings (`Take Photo`, `or drag and drop below`, `Smart Image Hashing (MD5)`, `Visit the %s page.`, `or`). All string references point strictly to active Free codebase line numbers.
+- Readme Header Alignment: Maintained `Tested up to: 7.1` per user direction to declare forward compatibility with upcoming WordPress releases.
+- Data Handling & Uninstall: The uninstaller operates in pure standalone mode without hardcoded Pro sibling checks. Before performing any cleanup, Free checks the `tsbifw_allow_uninstall_data_deletion` filter hook (defaulting to true). If the filter returns false (e.g. when Pro is active), `uninstall.php` immediately halts to safeguard shared data, options, vectors, and cron jobs. When deletion is allowed and the user has explicitly opted into data deletion (`tsbifw_delete_data_on_uninstall` === 'yes'), Free performs clean removal of active options, transients, and vectors (`_tsbifw_vector`, `_tsbifw_vectors`, `_tsbifw_indexed_status`, `_tsbifw_index_error`). By default, data deletion is disabled ('no') to safeguard store configuration. Scheduled cron jobs and Action Scheduler queues are cleaned up on deletion when data deletion is permitted.
+- Threshold & Option Standardization: Similarity thresholding is standardized exclusively around `tsbifw_exclude_below_percent` (0% to 100%, default 40%). Obsolete float keys (`tsbifw_similarity_threshold`) have been completely purged from the codebase.
+- UI and Markup Hygiene: Table rows and CSS rules are stripped of Pro-derived classes (`.tsbifw-strategy-field`, `.embeddings-field`, `.tsbifw-gateway-field`, `.gateway-openrouter`). OpenRouter fallback models strictly contain multimodal embedding options (`google/gemini-embedding-2`).
 - Post-Type & Image Targets: Free indexing strictly targets parent products (`product` post type). Save hooks (`on_meta_update`, `on_meta_delete`) guard against non-product types without residual `product_variation` branches.
 - Test Search & Camera Features: Camera capture is exclusively a Pro capability. The admin Test Search tab provides drag-and-drop and file upload with zero camera input controls. In the frontend search modal, DOM placeholders (`.tsbifw-modal-extra-actions`) and orphaned listeners (`tsbifw_select_file`) have been removed.
 - Pro Upsell Card: Displayed at the top of the sidebar across settings tabs, labeled as "PRO EDITION" with an "Upgrade to Pro" action button, presenting genuine Pro-only features (Visual Search Analytics, Variation Images, Smart Image Hashing, Direct OpenAI & Gemini Gateways, Mobile Camera Instant Capture, and Similarity Boost) with a direct link to `https://violo.ir/?p=707`. Any features already available in Free (such as scanning animation effects) are strictly excluded from the card.
-- Mutual Exclusion & Fork Safety: Runtime guard `TSBIFW_INITIALIZED` prevents double initialization if both editions are active. All constants are guarded with `defined()` and procedural functions with `function_exists()`.
+- Mutual Exclusion & Fork Safety: Runtime guard `TSBIFW_INITIALIZED` prevents double initialization between Free and Pro editions regardless of load order. All constants are guarded with `defined()` and procedural functions with `function_exists()`.
 
 ## Tech Stack
 
 - **PHP**: 7.4+ (Tested up to PHP 8.3)
-- **WordPress**: 5.6+ (Tested up to 6.7)
+- **WordPress**: 5.6+ (Tested up to 7.1)
 - **WooCommerce**: 5.0+ (Tested up to 11.1)
 - **Database**: MySQL / MariaDB (standard WooCommerce and WordPress tables)
 - **JavaScript**: Vanilla ES6+ and jQuery
@@ -48,12 +53,12 @@ The plugin is structured into modular components:
 - `includes/class-tsbifw-indexer.php`: Handles product image indexing (parent featured and gallery images), batch queue priming, custom cron intervals, WooCommerce product list bulk actions, and Action Scheduler async workers.
 - `includes/class-tsbifw-admin.php`: Registers admin settings pages, asset enqueueing, AJAX endpoints for batch indexing, test sandbox, gateway options, preview stages for all 6 scanning effects, and the Pro Upgrade sidebar card (`render_sidebar_pro_upsell_card()`).
 - `includes/class-tsbifw-search.php`: Manages frontend search shortcodes, on-demand lazy loading of Cropper.js, REST API search route (`tsbifw/v1/search`), rate limiting, and vector similarity calculations.
-- `includes/class-tsbifw-cli.php`: Integrates WP-CLI commands (`wp searchips status`, `wp searchips index`, `wp searchips clear`).
+- `includes/class-tsbifw-cli.php`: Integrates WP-CLI commands (`wp searchips status`, `wp searchips index`, `wp searchips clear`) with direct procedural indexer execution and class fallback.
 - `assets/css/admin.css`: Admin styles for settings dashboard, preview mockup stages, scanning effect keyframe animations, and Pro upsell sidebar card.
 - `assets/css/frontend.css`: Frontend styles for search camera trigger button, modal dialog, and 6 visual scanning animation effects.
 - `assets/js/admin.js`: Backend settings UI management, dynamic model fetching, and preview triggers.
 - `assets/js/frontend.js`: Frontend modal management, Cropper.js integration, and dynamic scanning effect layer injection.
-- `uninstall.php`: Comprehensive uninstaller removing active plugin options, transients, post metadata (`_tsbifw_vector`, `_tsbifw_vectors`), cron hooks, and Action Scheduler actions upon plugin deletion (leaving Pro-specific options and descriptions untouched).
+- `uninstall.php`: Comprehensive standalone uninstaller that performs clean removal of active options, transients, and vectors when permitted by the `tsbifw_allow_uninstall_data_deletion` filter and user opts into data deletion (`tsbifw_delete_data_on_uninstall` === 'yes'). Halts immediately without touching data or cron queues when a sibling plugin (such as Pro) filters data deletion. Clears scheduled cron hooks and Action Scheduler actions upon deletion when permitted.
 
 ## Current Features
 
@@ -84,4 +89,7 @@ rtk php -l includes/class-tsbifw-cli.php
 
 # Verify JavaScript syntax
 rtk node -c assets/js/admin.js assets/js/frontend.js
+
+# Verify POT catalog cleanliness (zero residual Pro strings)
+rtk git grep -n -E "(Take Photo|Visit the %s page|or drag and drop below)" languages/
 ```

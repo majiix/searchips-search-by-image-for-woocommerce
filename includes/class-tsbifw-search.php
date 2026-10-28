@@ -531,12 +531,8 @@ class TSBIFW_Search {
 				return $base64;
 			}
 
-			$exclude_percent = get_option( 'tsbifw_exclude_below_percent', '' );
-			if ( '' === $exclude_percent ) {
-				$threshold = (float) get_option( 'tsbifw_similarity_threshold', 0.40 );
-			} else {
-				$threshold = (int) $exclude_percent / 100;
-			}
+			$exclude_percent = (int) get_option( 'tsbifw_exclude_below_percent', 40 );
+			$threshold       = (float) ( $exclude_percent / 100.0 );
 
 			// Get query vector.
 			$query_vector = $api->get_embeddings( $base64 );
@@ -631,7 +627,7 @@ class TSBIFW_Search {
 				}
 
 				$image_id  = ! empty( $match['image_id'] ) ? (int) $match['image_id'] : (int) $product->get_image_id();
-				$image_url = $image_id ? wp_get_attachment_image_url( $image_id, 'medium' ) : wc_placeholder_img_src();
+				$image_url = ( $image_id ? wp_get_attachment_image_url( $image_id, 'medium' ) : '' ) ?: wc_placeholder_img_src();
 
 				$score_percentage = null !== $match['score'] ? round( $match['score'] * 100 ) . '%' : null;
 

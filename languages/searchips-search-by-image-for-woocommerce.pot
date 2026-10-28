@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Searchips Search By Image for WooCommerce 1.8.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-26 19:30+0000\n"
+"POT-Creation-Date: 2026-10-27 21:34+0000\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -15,925 +15,960 @@ msgstr ""
 "X-Poedit-Basepath: ..\n"
 "X-Poedit-SourceCharset: UTF-8\n"
 
-#: includes/class-tsbifw-admin.php:119
-#: includes/class-tsbifw-search.php:204
-msgid "Searching..."
+#: searchips-search-by-image-for-woocommerce.php:172
+msgid "Core API module is not loaded."
 msgstr ""
 
-#: includes/class-tsbifw-admin.php:120
-msgid "No matching products found."
+#: searchips-search-by-image-for-woocommerce.php:197
+msgid "Searchips Search By Image for WooCommerce requires WooCommerce to be installed and active."
 msgstr ""
 
-#: includes/class-tsbifw-admin.php:121
-#: includes/class-tsbifw-search.php:205
-#: includes/class-tsbifw-search.php:585
-#: includes/class-tsbifw-search.php:656
-#: includes/class-tsbifw-search.php:1072
-msgid "Search failed. Please try again."
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:122
-msgid "View Product"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:123
-msgid "Add to Cart"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:124
-msgid "Match:"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:125
-#: includes/class-tsbifw-admin.php:767
-#: includes/class-tsbifw-search.php:210
-msgid "Take Photo"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:126
-#: includes/class-tsbifw-admin.php:825
-msgid "View in Store Archive"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:127
-msgid "Hidden from Catalog"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:129
-#: includes/class-tsbifw-search.php:203
-msgid "Drag and drop an image here or click to browse (Max size: %dMB)"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:131
-#: includes/class-tsbifw-admin.php:815
-#: includes/class-tsbifw-search.php:206
-msgid "Start Search"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:133
-#: includes/class-tsbifw-search.php:209
-msgid "Selected file is too large. Maximum allowed size is %dMB."
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:146
-#: includes/class-tsbifw-admin.php:147
-#: includes/class-tsbifw-search.php:201
-#: includes/class-tsbifw-search.php:351
-msgid "Search by Image"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:301
-msgid "WooCommerce Search by Image Settings"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:306
-msgid "General Settings"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:309
-msgid "Styling"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:312
-msgid "Product Indexer"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:315
-msgid "Test Search"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:318
-msgid "System Logs"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:334
-#: includes/class-tsbifw-admin.php:931
-#: includes/class-tsbifw-admin.php:2132
-msgid "OpenRouter"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:358
-msgid "AI Provider Gateway"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:367
-msgid "Select the AI provider to handle image embeddings."
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:373
-msgid "OpenRouter API Key"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:381
-msgid "Enter your OpenRouter API key to communicate with embeddings models."
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:404
-msgid "Images to Index"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:409
-msgid "Product Featured Image"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:414
-msgid "Product Gallery Images"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:419
-msgid "Select which images will be processed and indexed by the AI models."
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:426
-msgid "Auto-Index on Save"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:430
-msgid "Automatically index new products or image updates on publish/save"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:432
-msgid "Immediately generates embeddings when a product is saved or updated."
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:438
-msgid "Media Library Integration"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:442
-msgid "Display Indexed Status column and filters in Media Library"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:444
-msgid "Shows an \"Indexed Status\" badge and filter dropdown in the WordPress Media Library list view. Disable to reduce database queries on stores with massive media collections."
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:451
-msgid "Embeddings Model ID"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:456
-msgid "Select the embedding model ID for your chosen gateway."
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:462
-msgid "Exclude Products Below Match Percentage"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:465
-msgid "Exclude products from search results if their similarity match falls below this percentage. Recommended: 35% - 50%."
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:473
-msgid "Maximum Upload Size (MB)"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:476
-msgid "Set the maximum file size for uploaded images in the frontend search overlay to prevent server memory exhaustion. Default: 2MB."
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:481
-msgid "Search Cache Expiry"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:485
-msgid "5 Minutes"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:486
-msgid "10 Minutes"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:487
-msgid "30 Minutes"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:488
-msgid "1 Hour"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:489
-msgid "2 Hours"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:490
-msgid "24 Hours"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:493
-msgid "Choose how long the visual search queries and matching product IDs are stored temporarily on the server."
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:499
-msgid "Auto-Inject Camera Icon?"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:502
-msgid "Yes (Inject into theme search forms automatically)"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:503
-msgid "No (Render using [tsbifw_search_bar] shortcode manually)"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:505
-msgid "Attempts to locate WooCommerce product search forms and insert a camera upload icon."
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:512
-msgid "Enable Background Cron Indexing?"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:515
-msgid "Automatically index new products and handle failed items in the background via WordPress Cron, without keeping the settings page open."
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:520
-msgid "Cron Run Interval"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:533
-#: includes/class-tsbifw-indexer.php:496
-msgid "Every Minute"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:534
-#: includes/class-tsbifw-indexer.php:500
-msgid "Every 5 Minutes"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:535
-#: includes/class-tsbifw-indexer.php:504
-msgid "Every 15 Minutes"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:536
-msgid "Hourly"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:537
-msgid "Twice Daily"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:538
-msgid "Daily"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:541
-msgid "Choose how frequently the background cron task should execute product indexing runs."
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:547
-msgid "Cron Batch Size"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:551
-msgid "Number of products to process in each background interval. Keep appropriate for your server resources."
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:559
-msgid "Danger Zone"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:563
-msgid "Delete all plugin data on uninstall"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:564
-msgid "If checked, all product vectors, search logs, and settings will be permanently deleted from the database when you delete this plugin."
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:586
-msgid "Camera Icon Left Position"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:589
-msgid "CSS left position offset for the camera icon (e.g. 14px or auto)."
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:594
-msgid "Camera Icon Right Position"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:597
-msgid "CSS right position offset for the camera icon (e.g. 14px or auto)."
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:602
-msgid "Camera Icon Size"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:605
-msgid "CSS size (width and height) for the camera icon (e.g. 20px, 24px, etc.)."
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:610
-msgid "Camera Icon Background Color"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:613
-msgid "CSS background color value for the camera icon (e.g. transparent, #ffffff, or rgba(255,255,255,0.8))."
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:620
-msgid "Search Loading & Scanning Animation"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:622
-msgid "Choose the visual scanning animation displayed to shoppers while visual AI analyzes an uploaded photo. Click any effect card below to preview the live animation."
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:634
-msgid "Laser Sweep"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:636
-msgid "Classic glowing neon laser line sweeping continuously up and down across the preview."
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:644
-msgid "Scanner Glow Accent Color"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:648
-msgid "Custom accent color for lasers, reticles, radar sweeps, and glowing pulses (default: #6366f1)."
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:658
-msgid "Live Scanner Preview"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:659
-msgid "Pause or play animation"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:659
-msgid "Pause"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:678
-msgid "Scanning visual features..."
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:693
-msgid "Product Indexer Status"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:694
-msgid "To enable image search, all WooCommerce products must have their featured images processed and indexed by the OpenRouter models."
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:699
-msgid "Total Products"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:703
-msgid "Successfully Indexed"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:707
-msgid "Skipped (No Image)"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:711
-msgid "Errors / Failed"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:720
-msgid "processed"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:727
-msgid "Start / Resume Indexing"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:730
-msgid "Pause Indexing"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:733
-msgid "Stop Indexing"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:736
-msgid "Clear / Reset Index"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:740
-msgid "Please configure your OpenRouter API key on the General Settings tab before running the indexer."
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:747
-msgid "Indexing Output Logs"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:748
-#: includes/class-tsbifw-admin.php:874
-msgid "Copy Logs"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:755
-msgid "Test Image Search similarity"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:756
-msgid "Upload an image below to test search matching. The search will output matching WooCommerce products with their similarity scores."
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:761
-msgid "Please configure your OpenRouter API key on the General Settings tab before using the test search."
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:769
-msgid "or drag and drop below"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:773
-msgid "Include hidden catalog products (diagnostic)"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:784
-msgid "Drag and drop an image here or click to browse"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:816
-#: includes/class-tsbifw-search.php:207
-msgid "Select Another"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:841
-msgid "Enable Logging?"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:844
-msgid "If enabled, settings updates, API calls, requests, and search queries will be saved to the database."
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:849
-msgid "Log Retention Period"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:853
-msgid "1 Day"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:854
-msgid "3 Days"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:855
-msgid "7 Days"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:856
-msgid "14 Days"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:857
-msgid "30 Days"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:858
-msgid "Indefinitely (Keep all logs)"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:861
-msgid "Choose how long logs should be kept in the database before being automatically cleared."
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:866
-msgid "Save Log Settings"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:872
-msgid "Recorded Logs"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:875
-msgid "Clear Logs"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:883
-msgid "No logs recorded yet."
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:891
-msgid "Timestamp"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:892
-msgid "Message"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:893
-msgid "Context / Metadata"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:928
-msgid "API Key Setup Guide"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:936
-msgid "Visit the %s website and sign in."
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:940
-msgid "Navigate to Keys and click \"Create Key\"."
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:941
-msgid "Copy the key into the OpenRouter API Key input."
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:949
-msgid "Model Selection Help"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:952
-msgid "Embeddings Model"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:953
-msgid "Used to convert product images into mathematical vectors. Gemini Embedding 2 is the recommended default."
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:961
-msgid "Shortcode Usage"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:964
-msgid "To display the image search bar anywhere on your store front-end (e.g. pages, posts, or widgets), insert the following shortcode:"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:966
-msgid "This shortcode outputs a complete, responsive product search form equipped with the camera upload icon."
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:973
-msgid "Similarity Options Guide"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:976
-msgid "Match Percentage Threshold"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:977
-msgid "This controls the strictness of the similarity matching algorithm:"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:979
-msgid "Higher (e.g., 55% - 70%)"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:979
-msgid "Very strict matches. Only shows products that look almost identical to the query image."
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:980
-msgid "Lower (e.g., 30% - 40%)"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:980
-msgid "Loose matching. Returns products with similar color schemes, shapes, or silhouettes."
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:991
-msgid "Encodes products and uploaded search photos into numerical vectors, calculating similarity using normalized dot-product algebra. Fast, accurate, and recommended."
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:1068
-#: includes/class-tsbifw-admin.php:1165
-#: includes/class-tsbifw-admin.php:1189
-#: includes/class-tsbifw-admin.php:1324
-msgid "Unauthorized access."
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:1102
-msgid "All products indexed successfully."
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:1122
-msgid "Failed to index \"%1$s\": %2$s"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:1131
-msgid "Skipped \"%s\" (No featured image found)"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:1137
-msgid "Successfully indexed \"%s\""
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:1177
-msgid "All indexed metadata has been successfully cleared."
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:1250
-msgid "Rescheduled background indexing cron event from %1$s to %2$s."
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:1256
-msgid "Scheduled %s background indexing cron event."
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:1283
-msgid "Setting updated: %s changed."
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:1307
-msgid "Setting added: %s set."
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:1331
-msgid "All system logs have been successfully cleared."
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:1343
-msgid "Indexed Status"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:1364
-#: includes/class-tsbifw-admin.php:1382
-msgid "Indexed"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:1366
-#: includes/class-tsbifw-admin.php:1383
-msgid "Not Indexed"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:1381
-msgid "All Indexed Statuses"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:1464
-msgid "OpenRouter API Key is required for image search and indexing to function."
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:1486
-msgid "Match percentage threshold must be between 0 and 100."
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:1531
-msgid "Cron batch size must be a positive number."
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:1703
-msgid "Laser Line (Default)"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:1730
-msgid "Maximum upload size must be a positive number."
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:1852
-msgid "Smart Image Hashing (MD5)"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:1944
-#: includes/class-tsbifw-search.php:1043
-msgid "AI Vision Reticle"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:1945
-msgid "Military-grade target locking brackets with crosshairs and tag metadata."
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:1949
-#: includes/class-tsbifw-search.php:1044
-msgid "Sonar Radar Sweep"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:1950
-msgid "Circular sonar sweep with expanding concentric rings and target dots."
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:1954
-#: includes/class-tsbifw-search.php:1045
-msgid "Digital Mesh Grid"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:1955
-msgid "Tron-style 3D perspective grid wireframe with streaming coordinate dots."
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:1959
-#: includes/class-tsbifw-search.php:1046
-msgid "Concentric Ripple"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:1960
-msgid "Smooth organic water-ripple wave pulse propagating from photo center."
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:1964
-#: includes/class-tsbifw-search.php:1047
-msgid "Luxury Hologram"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:1965
-msgid "Iridescent chromatic prism light shimmer with diamond glint particles."
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:2034
-msgid "Visit the %s page."
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:2178
-msgid "When visitors use the Search by Image feature, their uploaded image or photo is sent securely to OpenRouter API (https://openrouter.ai) to calculate a mathematical vector embedding for product similarity matching."
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:2179
-msgid "Uploaded search images are processed in transit and are not permanently retained or linked to personal account data by the search system."
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:2183
-msgid "Searchips Search By Image for WooCommerce"
-msgstr ""
-
-#: includes/class-tsbifw-search.php:441
-msgid "Forbidden: invalid security token."
-msgstr ""
-
-#: includes/class-tsbifw-api.php:160
+#: includes/class-tsbifw-api.php:78
 msgid "Image file path not found or does not exist on disk."
 msgstr ""
 
-#: includes/class-tsbifw-api.php:183
+#: includes/class-tsbifw-api.php:101
 msgid "Image file is empty (0 bytes)."
 msgstr ""
 
-#: includes/class-tsbifw-api.php:197
+#: includes/class-tsbifw-api.php:115
 msgid "Uploaded file not found on disk."
 msgstr ""
 
-#: includes/class-tsbifw-api.php:202
+#: includes/class-tsbifw-api.php:120
 msgid "Uploaded file is empty (0 bytes)."
 msgstr ""
 
-#: includes/class-tsbifw-api.php:217
+#: includes/class-tsbifw-api.php:135
 msgid "Uploaded image is too large (%1$.2f MB). Maximum allowed size is %2$d MB."
 msgstr ""
 
-#: includes/class-tsbifw-api.php:227
+#: includes/class-tsbifw-api.php:145
 msgid "Unable to read image dimensions or invalid image file."
 msgstr ""
 
-#: includes/class-tsbifw-api.php:230
+#: includes/class-tsbifw-api.php:148
 msgid "Image dimensions exceed the allowed limit (max 6000x6000px)."
 msgstr ""
 
-#: includes/class-tsbifw-api.php:256
+#: includes/class-tsbifw-api.php:174
 msgid "Could not create temporary file for image processing."
 msgstr ""
 
-#: includes/class-tsbifw-api.php:273
+#: includes/class-tsbifw-api.php:191
 msgid "Failed to read image content."
 msgstr ""
 
-#: includes/class-tsbifw-api.php:290
-#: includes/class-tsbifw-api.php:392
+#: includes/class-tsbifw-api.php:208
 msgid "%s API Key is missing. Please configure it in WooCommerce settings."
 msgstr ""
 
-#: includes/class-tsbifw-api.php:355
-#: includes/class-tsbifw-api.php:462
+#: includes/class-tsbifw-api.php:283
 msgid "Unknown API error."
 msgstr ""
 
-#: includes/class-tsbifw-api.php:362
-#: includes/class-tsbifw-api.php:467
+#: includes/class-tsbifw-api.php:290
 msgid "%1$s API Error [Code %2$s]: %3$s"
 msgstr ""
 
-#: includes/class-tsbifw-api.php:373
+#: includes/class-tsbifw-api.php:301
 msgid "Failed to extract embedding vector from API response."
 msgstr ""
 
-#: includes/class-tsbifw-api.php:579
+#: includes/class-tsbifw-api.php:349
 msgid "Failed to retrieve models from OpenRouter."
 msgstr ""
 
-#: includes/class-tsbifw-api.php:585
+#: includes/class-tsbifw-api.php:355
 msgid "Invalid models list format from OpenRouter."
 msgstr ""
 
-#: includes/class-tsbifw-indexer.php:168
+#: includes/class-tsbifw-indexer.php:136
 msgid "Invalid product ID."
 msgstr ""
 
-#: includes/class-tsbifw-indexer.php:322
+#: includes/class-tsbifw-indexer.php:252
 msgid "Product image metadata changed (%1$s) for product ID %2$d. Queued for background indexing."
 msgstr ""
 
-#: includes/class-tsbifw-indexer.php:379
+#: includes/class-tsbifw-indexer.php:300
 msgid "Product image metadata deleted (%1$s) for product ID %2$d. Queued for background indexing."
 msgstr ""
 
-#: includes/class-tsbifw-indexer.php:538
+#: includes/class-tsbifw-indexer.php:416
+#: includes/class-tsbifw-admin.php:453
+msgid "Every Minute"
+msgstr ""
+
+#: includes/class-tsbifw-indexer.php:420
+#: includes/class-tsbifw-admin.php:454
+msgid "Every 5 Minutes"
+msgstr ""
+
+#: includes/class-tsbifw-indexer.php:424
+#: includes/class-tsbifw-admin.php:455
+msgid "Every 15 Minutes"
+msgstr ""
+
+#: includes/class-tsbifw-indexer.php:455
 msgid "All product embeddings and indexing metadata cleared successfully."
 msgstr ""
 
-#: includes/class-tsbifw-indexer.php:964
+#: includes/class-tsbifw-indexer.php:593
 msgid "Index with Searchips AI"
 msgstr ""
 
-#: includes/class-tsbifw-indexer.php:1053
+#: includes/class-tsbifw-indexer.php:682
 msgid "Searchips AI successfully indexed %d product."
 msgid_plural "Searchips AI successfully indexed %d products."
 msgstr[0] ""
 msgstr[1] ""
 
-#: includes/class-tsbifw-indexer.php:1057
+#: includes/class-tsbifw-indexer.php:686
 msgid "%d additional product queued for background indexing."
 msgid_plural "%d additional products queued for background indexing."
 msgstr[0] ""
 msgstr[1] ""
 
+#: includes/class-tsbifw-admin.php:105
+#: includes/class-tsbifw-search.php:175
+msgid "Searching..."
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:106
+msgid "No matching products found."
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:107
+#: includes/class-tsbifw-search.php:176
+#: includes/class-tsbifw-search.php:543
+#: includes/class-tsbifw-search.php:590
+msgid "Search failed. Please try again."
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:108
+msgid "View Product"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:109
+msgid "Add to Cart"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:110
+msgid "Match:"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:111
+#: includes/class-tsbifw-admin.php:736
+msgid "View in Store Archive"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:112
+msgid "Hidden from Catalog"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:114
+#: includes/class-tsbifw-search.php:174
+msgid "Drag and drop an image here or click to browse (Max size: %dMB)"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:115
+#: includes/class-tsbifw-admin.php:726
+#: includes/class-tsbifw-search.php:177
+msgid "Start Search"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:117
 #: includes/class-tsbifw-search.php:180
+msgid "Selected file is too large. Maximum allowed size is %dMB."
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:129
+#: includes/class-tsbifw-admin.php:130
+#: includes/class-tsbifw-search.php:172
+#: includes/class-tsbifw-search.php:320
+msgid "Search by Image"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:238
+msgid "WooCommerce Search by Image Settings"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:243
+msgid "General Settings"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:246
+msgid "Styling"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:249
+msgid "Product Indexer"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:252
+msgid "Test Search"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:255
+msgid "System Logs"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:270
+#: includes/class-tsbifw-admin.php:840
+msgid "OpenRouter"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:286
+msgid "AI Provider Gateway"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:298
+msgid "OpenRouter API"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:302
+msgid "Visual search embeddings are powered via OpenRouter."
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:307
+msgid "OpenRouter API Key"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:315
+msgid "Enter your OpenRouter API key to communicate with embeddings models."
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:320
+msgid "Search Engine"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:323
+#: includes/class-tsbifw-admin.php:897
+msgid "Multimodal Vector Embeddings"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:326
+msgid "Visual search is powered by native multimodal vector embeddings. Product images are mapped into high-dimensional vector representations for instant, precise similarity matching."
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:332
+msgid "Images to Index"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:337
+msgid "Product Featured Image"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:342
+msgid "Product Gallery Images"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:346
+msgid "Select which images will be processed and indexed by the AI models."
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:353
+msgid "Auto-Index on Save"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:357
+msgid "Automatically index new products or image updates on publish/save"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:359
+msgid "Immediately generates embeddings when a product is saved or updated."
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:365
+msgid "Media Library Integration"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:369
+msgid "Display Indexed Status column and filters in Media Library"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:371
+msgid "Shows an \"Indexed Status\" badge and filter dropdown in the WordPress Media Library list view. Disable to reduce database queries on stores with massive media collections."
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:376
+msgid "Embeddings Model ID"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:381
+msgid "Select the embedding model ID for your chosen gateway."
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:386
+msgid "Exclude Products Below Match Percentage"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:389
+msgid "Exclude products from search results if their similarity match falls below this percentage. Recommended: 35% - 50%."
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:395
+msgid "Maximum Upload Size (MB)"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:398
+msgid "Set the maximum file size for uploaded images in the frontend search overlay to prevent server memory exhaustion. Default: 2MB."
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:403
+msgid "Search Cache Expiry"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:407
+msgid "5 Minutes"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:408
+msgid "10 Minutes"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:409
+msgid "30 Minutes"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:410
+msgid "1 Hour"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:411
+msgid "2 Hours"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:412
+msgid "24 Hours"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:415
+msgid "Choose how long the visual search queries and matching product IDs are stored temporarily on the server."
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:421
+msgid "Auto-Inject Camera Icon?"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:424
+msgid "Yes (Inject into theme search forms automatically)"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:425
+msgid "No (Render using [tsbifw_search_bar] shortcode manually)"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:427
+msgid "Attempts to locate WooCommerce product search forms and insert a camera upload icon."
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:432
+msgid "Enable Background Cron Indexing?"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:435
+msgid "Automatically index new products and handle failed items in the background via WordPress Cron, without keeping the settings page open."
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:440
+msgid "Cron Run Interval"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:456
+msgid "Hourly"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:457
+msgid "Twice Daily"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:458
+msgid "Daily"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:461
+msgid "Choose how frequently the background cron task should execute product indexing runs."
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:467
+msgid "Cron Batch Size"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:471
+msgid "Number of products to process in each background interval. Keep appropriate for your server resources."
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:478
+msgid "Danger Zone"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:482
+msgid "Delete all plugin data on uninstall"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:483
+msgid "If checked, all product vectors, search logs, and settings will be permanently deleted from the database when you delete this plugin."
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:505
+msgid "Camera Icon Left Position"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:508
+msgid "CSS left position offset for the camera icon (e.g. 14px or auto)."
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:513
+msgid "Camera Icon Right Position"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:516
+msgid "CSS right position offset for the camera icon (e.g. 14px or auto)."
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:521
+msgid "Camera Icon Size"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:524
+msgid "CSS size (width and height) for the camera icon (e.g. 20px, 24px, etc.)."
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:529
+msgid "Camera Icon Background Color"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:532
+msgid "CSS background color value for the camera icon (e.g. transparent, #ffffff, or rgba(255,255,255,0.8))."
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:539
+msgid "Search Loading & Scanning Animation"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:541
+msgid "Choose the visual scanning animation displayed to shoppers while visual AI analyzes an uploaded photo. Click any effect card below to preview the live animation."
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:553
+msgid "Laser Sweep"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:555
+msgid "Classic glowing neon laser line sweeping continuously up and down across the preview."
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:563
+msgid "Scanner Glow Accent Color"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:567
+msgid "Custom accent color for lasers, reticles, radar sweeps, and glowing pulses (default: #6366f1)."
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:577
+msgid "Live Scanner Preview"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:578
+msgid "Pause or play animation"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:578
+msgid "Pause"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:597
+msgid "Scanning visual features..."
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:612
+msgid "Product Indexer Status"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:613
+msgid "To enable image search, all WooCommerce products must have their featured images processed and indexed by the OpenRouter models."
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:618
+msgid "Total Products"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:622
+msgid "Successfully Indexed"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:626
+msgid "Skipped (No Image)"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:630
+msgid "Errors / Failed"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:639
+msgid "processed"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:646
+msgid "Start / Resume Indexing"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:649
+msgid "Pause Indexing"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:652
+msgid "Stop Indexing"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:655
+msgid "Clear / Reset Index"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:659
+msgid "Please configure your OpenRouter API key on the General Settings tab before running the indexer."
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:666
+msgid "Indexing Output Logs"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:667
+#: includes/class-tsbifw-admin.php:785
+msgid "Copy Logs"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:674
+msgid "Test Image Search similarity"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:675
+msgid "Upload an image below to test search matching. The search will output matching WooCommerce products with their similarity scores."
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:680
+msgid "Please configure your OpenRouter API key on the General Settings tab before using the test search."
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:685
+msgid "Include hidden catalog products (diagnostic)"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:695
+msgid "Drag and drop an image here or click to browse"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:727
+#: includes/class-tsbifw-search.php:178
+msgid "Select Another"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:752
+msgid "Enable Logging?"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:755
+msgid "If enabled, settings updates, API calls, requests, and search queries will be saved to the database."
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:760
+msgid "Log Retention Period"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:764
+msgid "1 Day"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:765
+msgid "3 Days"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:766
+msgid "7 Days"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:767
+msgid "14 Days"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:768
+msgid "30 Days"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:769
+msgid "Indefinitely (Keep all logs)"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:772
+msgid "Choose how long logs should be kept in the database before being automatically cleared."
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:777
+msgid "Save Log Settings"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:783
+msgid "Recorded Logs"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:786
+msgid "Clear Logs"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:794
+msgid "No logs recorded yet."
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:802
+msgid "Timestamp"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:803
+msgid "Message"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:804
+msgid "Context / Metadata"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:837
+msgid "API Key Setup Guide"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:845
+msgid "Visit the %s website and sign in."
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:849
+msgid "Navigate to Keys and click \"Create Key\"."
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:850
+msgid "Copy the key into the OpenRouter API Key input."
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:857
+msgid "Model Selection Help"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:860
+msgid "Embeddings Model"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:861
+msgid "Used to convert product images into mathematical vectors. Gemini Embedding 2 is the recommended default."
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:868
+msgid "Shortcode Usage"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:871
+msgid "To display the image search bar anywhere on your store front-end (e.g. pages, posts, or widgets), insert the following shortcode:"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:873
+msgid "This shortcode outputs a complete, responsive product search form equipped with the camera upload icon."
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:880
+msgid "Similarity Options Guide"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:883
+msgid "Match Percentage Threshold"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:884
+msgid "This controls the strictness of the similarity matching algorithm:"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:886
+msgid "Higher (e.g., 55% - 70%)"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:886
+msgid "Very strict matches. Only shows products that look almost identical to the query image."
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:887
+msgid "Lower (e.g., 30% - 40%)"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:887
+msgid "Loose matching. Returns products with similar color schemes, shapes, or silhouettes."
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:894
+msgid "Search Engine Info"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:898
+msgid "Encodes products and uploaded search photos into numerical vectors, calculating similarity using normalized dot-product algebra. Fast, accurate, and recommended."
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:974
+#: includes/class-tsbifw-admin.php:1071
+#: includes/class-tsbifw-admin.php:1095
+#: includes/class-tsbifw-admin.php:1228
+msgid "Unauthorized access."
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:1008
+msgid "All products indexed successfully."
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:1028
+msgid "Failed to index \"%1$s\": %2$s"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:1037
+msgid "Skipped \"%s\" (No featured image found)"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:1043
+msgid "Successfully indexed \"%s\""
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:1083
+msgid "All indexed metadata has been successfully cleared."
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:1154
+msgid "Rescheduled background indexing cron event from %1$s to %2$s."
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:1160
+msgid "Scheduled %s background indexing cron event."
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:1187
+msgid "Setting updated: %s changed."
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:1211
+msgid "Setting added: %s set."
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:1235
+msgid "All system logs have been successfully cleared."
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:1247
+msgid "Indexed Status"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:1268
+#: includes/class-tsbifw-admin.php:1286
+msgid "Indexed"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:1270
+#: includes/class-tsbifw-admin.php:1287
+msgid "Not Indexed"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:1285
+msgid "All Indexed Statuses"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:1350
+msgid "OpenRouter API Key is required for image search and indexing to function."
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:1372
+msgid "Match percentage threshold must be between 0 and 100."
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:1417
+msgid "Cron batch size must be a positive number."
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:1571
+msgid "Laser Line (Default)"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:1598
+msgid "Maximum upload size must be a positive number."
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:1617
+#: includes/class-tsbifw-search.php:955
+msgid "AI Vision Reticle"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:1618
+msgid "Military-grade target locking brackets with crosshairs and tag metadata."
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:1622
+#: includes/class-tsbifw-search.php:956
+msgid "Sonar Radar Sweep"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:1623
+msgid "Circular sonar sweep with expanding concentric rings and target dots."
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:1627
+#: includes/class-tsbifw-search.php:957
+msgid "Digital Mesh Grid"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:1628
+msgid "Tron-style 3D perspective grid wireframe with streaming coordinate dots."
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:1632
+#: includes/class-tsbifw-search.php:958
+msgid "Concentric Ripple"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:1633
+msgid "Smooth organic water-ripple wave pulse propagating from photo center."
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:1637
+#: includes/class-tsbifw-search.php:959
+msgid "Luxury Hologram"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:1638
+msgid "Iridescent chromatic prism light shimmer with diamond glint particles."
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:1709
+#: includes/class-tsbifw-admin.php:1796
+msgid "Upgrade to Pro"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:1711
+msgid "PRO EDITION"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:1715
+msgid "Unlock advanced enterprise tools to convert shoppers and maximize visual search performance:"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:1730
+msgid "Visual Search Analytics:"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:1731
+msgid "Track queries, CTR & zero-result demand"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:1742
+msgid "Variation Images Indexing:"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:1743
+msgid "Match specific color & style variants"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:1755
+msgid "Smart Image Hashing (MD5):"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:1756
+msgid "Skip unchanged images to slash API bills"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:1766
+msgid "Direct OpenAI & Gemini:"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:1767
+msgid "Connect directly without middleware fees"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:1778
+msgid "Mobile Camera Instant Capture:"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:1779
+msgid "Let shoppers snap live photos on phones"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:1790
+msgid "Similarity Score Boost:"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:1791
+msgid "Boost on-sale & featured products"
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:1813
+msgid "When visitors use the Search by Image feature, their uploaded image or photo is sent securely to OpenRouter API (https://openrouter.ai) to calculate a mathematical vector embedding for product similarity matching."
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:1814
+msgid "Uploaded search images are processed in transit and are not permanently retained or linked to personal account data by the search system."
+msgstr ""
+
+#: includes/class-tsbifw-admin.php:1818
+msgid "Searchips Search By Image for WooCommerce"
+msgstr ""
+
+#: includes/class-tsbifw-search.php:153
 msgid "Laser line"
 msgstr ""
 
-#: includes/class-tsbifw-search.php:211
-msgid "or"
-msgstr ""
-
-#: includes/class-tsbifw-search.php:273
-#: includes/class-tsbifw-search.php:755
-#: includes/class-tsbifw-search.php:802
+#: includes/class-tsbifw-search.php:242
+#: includes/class-tsbifw-search.php:688
+#: includes/class-tsbifw-search.php:725
 msgctxt "default search term for visual search"
 msgid "image-search"
 msgstr ""
 
-#: includes/class-tsbifw-search.php:348
+#: includes/class-tsbifw-search.php:317
 msgid "Search for:"
 msgstr ""
 
-#: includes/class-tsbifw-search.php:350
+#: includes/class-tsbifw-search.php:319
 msgid "Search products&hellip;"
 msgstr ""
 
-#: includes/class-tsbifw-search.php:355
+#: includes/class-tsbifw-search.php:324
 msgid "Search"
 msgstr ""
 
-#: includes/class-tsbifw-search.php:415
+#: includes/class-tsbifw-search.php:384
 msgid "Forbidden: administrator access required."
 msgstr ""
 
-#: includes/class-tsbifw-search.php:454
+#: includes/class-tsbifw-search.php:410
+msgid "Forbidden: invalid security token."
+msgstr ""
+
+#: includes/class-tsbifw-search.php:423
 msgid "Too many search requests. Please wait a minute and try again."
 msgstr ""
 
-#: includes/class-tsbifw-search.php:473
+#: includes/class-tsbifw-search.php:442
 msgid "No image file uploaded in the request."
 msgstr ""
 
-#: includes/class-tsbifw-search.php:482
+#: includes/class-tsbifw-search.php:451
 msgid "Invalid uploaded file."
 msgstr ""
 
-#: includes/class-tsbifw-search.php:498
+#: includes/class-tsbifw-search.php:467
 msgid "Uploaded image is invalid or exceeds the maximum allowed size (%1$d MB)."
 msgstr ""
 
-#: includes/class-tsbifw-search.php:518
+#: includes/class-tsbifw-search.php:487
 msgid "Unsupported image format. Please upload a valid JPEG, PNG, or WEBP image."
 msgstr ""
 
-#: includes/class-tsbifw-search.php:528
+#: includes/class-tsbifw-search.php:497
 msgid "Invalid image or image dimensions exceed the allowed limit (max 6000x6000px)."
 msgstr ""
 
-#: includes/class-tsbifw-search.php:668
+#: includes/class-tsbifw-search.php:602
 msgid "Forbidden."
 msgstr ""
 
-#: searchips-search-by-image-for-woocommerce.php:152
-msgid "Core API module is not loaded."
-msgstr ""
-
-#: searchips-search-by-image-for-woocommerce.php:175
-msgid "Searchips Search By Image for WooCommerce requires WooCommerce to be installed and active."
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:330
-msgid "Search Engine"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:332
-msgid "Multimodal Vector Embeddings"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:335
-msgid "Visual search is powered by native multimodal vector embeddings. Product images are mapped into high-dimensional vector representations for instant, precise similarity matching."
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:1747
-#: includes/class-tsbifw-admin.php:1834
-msgid "Upgrade to Pro"
-msgstr ""
-
-#: includes/class-tsbifw-admin.php:1749
-msgid "PRO EDITION"
-msgstr ""
