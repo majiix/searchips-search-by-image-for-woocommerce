@@ -411,17 +411,19 @@ class TSBIFW_Indexer {
 	 * @return array
 	 */
 	public function add_custom_cron_schedules( $schedules ) {
+		$is_init = did_action( 'init' );
+
 		$schedules['tsbifw_every_minute'] = array(
 			'interval' => 60,
-			'display'  => esc_html__( 'Every Minute', 'searchips-search-by-image-for-woocommerce' ),
+			'display'  => $is_init ? esc_html__( 'Every Minute', 'searchips-search-by-image-for-woocommerce' ) : 'Every Minute',
 		);
 		$schedules['tsbifw_every_5_minutes'] = array(
 			'interval' => 300,
-			'display'  => esc_html__( 'Every 5 Minutes', 'searchips-search-by-image-for-woocommerce' ),
+			'display'  => $is_init ? esc_html__( 'Every 5 Minutes', 'searchips-search-by-image-for-woocommerce' ) : 'Every 5 Minutes',
 		);
 		$schedules['tsbifw_every_15_minutes'] = array(
 			'interval' => 900,
-			'display'  => esc_html__( 'Every 15 Minutes', 'searchips-search-by-image-for-woocommerce' ),
+			'display'  => $is_init ? esc_html__( 'Every 15 Minutes', 'searchips-search-by-image-for-woocommerce' ) : 'Every 15 Minutes',
 		);
 
 		return $schedules;

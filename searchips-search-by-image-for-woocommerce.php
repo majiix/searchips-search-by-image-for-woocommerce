@@ -93,6 +93,18 @@ if ( ! function_exists( 'tsbifw_init' ) ) {
 add_action( 'plugins_loaded', 'tsbifw_init' );
 
 /**
+ * Load plugin textdomain for translations.
+ */
+function tsbifw_load_textdomain() {
+	load_plugin_textdomain(
+		'searchips-search-by-image-for-woocommerce',
+		false,
+		dirname( plugin_basename( __FILE__ ) ) . '/languages'
+	);
+}
+add_action( 'init', 'tsbifw_load_textdomain' );
+
+/**
  * Public procedural helper to index a product image for visual search.
  *
  * @param int  $product_id Product ID.
