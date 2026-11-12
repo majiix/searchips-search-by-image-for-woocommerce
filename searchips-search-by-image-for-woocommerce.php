@@ -2,14 +2,14 @@
 /**
  * Plugin Name: Searchips Search By Image for WooCommerce
  * Description: Enable customers to search WooCommerce products using images powered by machine learning and OpenRouter.
- * Version:     1.8.0
+ * Version:     1.8.1
  * Author:      micromax
  * Text Domain: searchips-search-by-image-for-woocommerce
  * Domain Path: /languages
  * Requires at least: 5.6
  * Requires PHP: 7.4
  * WC requires at least: 5.0
- * WC tested up to: 11.1
+ * WC tested up to: 11.3
  * Requires Plugins: woocommerce
  * License:     GPL-2.0+
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -28,7 +28,7 @@ define( 'TSBIFW_INITIALIZED', true );
 
 // Define plugin constants.
 if ( ! defined( 'TSBIFW_VERSION' ) ) {
-	define( 'TSBIFW_VERSION', '1.8.0' );
+	define( 'TSBIFW_VERSION', '1.8.1' );
 }
 if ( ! defined( 'TSBIFW_PLUGIN_DIR' ) ) {
 	define( 'TSBIFW_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );

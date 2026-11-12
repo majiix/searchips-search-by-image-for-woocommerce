@@ -5,8 +5,8 @@ Requires at least: 5.6
 Tested up to: 7.1
 Requires PHP: 7.4
 WC requires at least: 5.0
-WC tested up to: 11.1
-Stable tag: 1.8.0
+WC tested up to: 11.3
+Stable tag: 1.8.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -104,6 +104,9 @@ No, the indexer automatically detects and skips empty, missing, or corrupt image
 Search results inherit your site's WordPress Reading Settings ("Blog pages show at most X posts" under Settings -> Reading), ensuring consistent archive page pagination.
 
 == Changelog ==
+
+= 1.8.1 =
+* Verified compatibility with WooCommerce 11.3.
 
 = 1.8.0 =
 * Complete Free Unification: Cleaned up and streamlined standalone free plugin with zero upgrade notices.

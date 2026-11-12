@@ -2,7 +2,7 @@
 
 ## Overview
 
-Searchips Search By Image for WooCommerce (version 1.8.0) is a visual search engine for WooCommerce stores. It enables shoppers to search for matching products using photos and images powered by Multimodal Vector Embeddings via OpenRouter.
+Searchips Search By Image for WooCommerce (version 1.8.1) is a visual search engine for WooCommerce stores. It enables shoppers to search for matching products using photos and images powered by Multimodal Vector Embeddings via OpenRouter.
 
 The plugin provides vector embedding similarity matching, an in-admin test search sandbox, batch indexing with Action Scheduler async support, 6 futuristic scanning animation effects, comprehensive WP-CLI commands, and a dedicated Pro Upgrade sidebar card linking to the standalone Pro edition.
 
@@ -25,7 +25,7 @@ The plugin provides vector embedding similarity matching, an in-admin test searc
 
 - **PHP**: 7.4+ (Tested up to PHP 8.3)
 - **WordPress**: 5.6+ (Tested up to 7.1)
-- **WooCommerce**: 5.0+ (Tested up to 11.1)
+- **WooCommerce**: 5.0+ (Tested up to 11.3)
 - **Database**: MySQL / MariaDB (standard WooCommerce and WordPress tables)
 - **JavaScript**: Vanilla ES6+ and jQuery
 - **CSS**: Custom vanilla CSS with responsive layout support
