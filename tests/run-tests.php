@@ -153,10 +153,10 @@ function tsbifw_reset_state( $options = array() ) {
 
 $api = TSBIFW_API::instance();
 
-// 1. Registry contains all 10 gateways.
-$configs       = $api->get_gateway_configs();
-$expected_slugs = array( 'openrouter', 'openai', 'gemini', 'jina', 'voyage', 'cohere', 'groq', 'avalai', 'gapgpt', 'custom' );
-tsbifw_assert_same( $expected_slugs, array_keys( $configs ), 'Gateway registry exposes all 10 gateways' );
+// 1. Registry contains all 26 gateways.
+$configs        = $api->get_gateway_configs();
+$expected_slugs = array( 'openrouter', 'openai', 'gemini', 'jina', 'voyage', 'cohere', 'groq', 'avalai', 'gapgpt', 'nvidia', 'mistral', 'together', 'fireworks', 'twelvelabs', 'xai', 'dashscope', 'cloudflare', 'arvancloud', 'metisai', 'liara', 'heroai', 'talkbot', 'cupai', 'hooshang', 'hormouz', 'custom' );
+tsbifw_assert_same( $expected_slugs, array_keys( $configs ), 'Gateway registry exposes all 26 gateways' );
 
 // 2. Custom base URL validation (typical, edge, failure).
 tsbifw_assert_same( 'https://api.metisai.ir/v1', TSBIFW_API::sanitize_custom_base_url( 'https://api.metisai.ir/v1' ), 'Custom URL accepts valid HTTPS endpoint' );
@@ -334,6 +334,72 @@ $GLOBALS['tsbifw_test_http_queue'][] = array(
 );
 $unauth_conn = $api->test_connection( 'openai', 'sk-invalid' );
 tsbifw_assert_true( is_wp_error( $unauth_conn ) && strpos( $unauth_conn->get_error_message(), 'Incorrect API key provided' ) !== false, 'test_connection extracts HTTP 401 error message' );
+
+// 11. Expanded international & regional gateway protocols.
+$nv_payload = $api->build_embeddings_payload( 'nvidia_nim', 'nvidia/llama-nemotron-embed-vl-1b-v2', $sample_b64, 'query' );
+tsbifw_assert_same( 'query', $nv_payload['input_type'], 'NVIDIA Nemotron VL sets input_type=query on search' );
+tsbifw_assert_same( array( '<img src="' . $sample_b64 . '" />' ), $nv_payload['input'], 'NVIDIA NIM wraps base64 image in img tag' );
+
+$tl_payload = $api->build_embeddings_payload( 'twelvelabs', 'marengo3.5', $sample_b64, 'document' );
+tsbifw_assert_same( 'AAAA', $tl_payload['multi_input']['media_sources'][0]['base_64_string'], 'TwelveLabs strips data URI prefix in base_64_string' );
+tsbifw_assert_same( array( 0.5, 0.6 ), $api->extract_embedding_vector( 'twelvelabs', array( 'image_embedding' => array( 'segments' => array( array( 'embedding' => array( 0.5, 0.6 ) ) ) ) ) ), 'TwelveLabs extractor reads image_embedding.segments[0].embedding' );
+
+tsbifw_reset_state(
+	array(
+		'tsbifw_api_gateway'        => 'arvancloud',
+		'tsbifw_api_key_arvancloud' => 'apikey arv-secret-123',
+		'tsbifw_vision_model'       => 'gpt-4o-mini',
+	)
+);
+$GLOBALS['tsbifw_test_http_queue'][] = array(
+	'response' => array( 'code' => 200 ),
+	'body'     => json_encode( array( 'choices' => array( array( 'message' => array( 'content' => 'black leather jacket' ) ) ) ) ),
+);
+$arv_desc = $api->get_vision_description( $sample_b64 );
+tsbifw_assert_same( 'black leather jacket', $arv_desc, 'ArvanCloud get_vision_description succeeds' );
+tsbifw_assert_same( 'https://api.arvancloudai.ir/v1/chat/completions', $GLOBALS['tsbifw_test_http_calls'][0]['url'], 'ArvanCloud calls api.arvancloudai.ir/v1/chat/completions' );
+tsbifw_assert_same( 'apikey arv-secret-123', $GLOBALS['tsbifw_test_http_calls'][0]['args']['headers']['Authorization'], 'ArvanCloud uses apikey Authorization prefix without duplicating' );
+
+tsbifw_reset_state(
+	array(
+		'tsbifw_api_gateway'        => 'cloudflare',
+		'tsbifw_api_key_cloudflare' => 'cf-token',
+	)
+);
+$cf_missing_acct = $api->get_vision_description( $sample_b64 );
+tsbifw_assert_true( is_wp_error( $cf_missing_acct ) && 'tsbifw_missing_account_id' === $cf_missing_acct->get_error_code(), 'Cloudflare returns tsbifw_missing_account_id when Account ID missing' );
+
+tsbifw_assert_same( 'cfacct123', TSBIFW_API::sanitize_cloudflare_account_id( ' cfacct123/../ ' ), 'Cloudflare Account ID sanitizer strips invalid path characters' );
+$GLOBALS['tsbifw_test_http_queue'][] = array(
+	'response' => array( 'code' => 200 ),
+	'body'     => json_encode( array( 'success' => true ) ),
+);
+$cf_conn = $api->test_connection( 'cloudflare', 'cf-token', null, 'cfacct123' );
+tsbifw_assert_true( is_array( $cf_conn ) && 'cloudflare' === $cf_conn['gateway'], 'Cloudflare test_connection succeeds with Account ID' );
+tsbifw_assert_same( 'https://api.cloudflare.com/client/v4/accounts/cfacct123/ai/models/search?per_page=1', $GLOBALS['tsbifw_test_http_calls'][0]['url'], 'Cloudflare test_connection hits account models/search' );
+
+tsbifw_reset_state(
+	array(
+		'tsbifw_api_gateway' => 'xai',
+		'tsbifw_api_key_xai' => 'xai-key',
+	)
+);
+$xai_emb = $api->get_embeddings( $sample_b64 );
+tsbifw_assert_true( is_wp_error( $xai_emb ) && 'tsbifw_unsupported_strategy' === $xai_emb->get_error_code(), 'xAI rejects Strategy 1 embeddings cleanly' );
+
+tsbifw_reset_state(
+	array(
+		'tsbifw_api_gateway'      => 'hormouz',
+		'tsbifw_api_key_hormouz'  => 'hmz-key',
+	)
+);
+$GLOBALS['tsbifw_test_http_queue'][] = array(
+	'response' => array( 'code' => 200 ),
+	'body'     => json_encode( array( 'data' => array() ) ),
+);
+$hmz_conn = $api->test_connection( 'hormouz', 'hmz-key' );
+tsbifw_assert_true( is_array( $hmz_conn ) && 'hormouz' === $hmz_conn['gateway'], 'Hormouz test_connection succeeds on 200' );
+tsbifw_assert_same( 'https://api.hormouz.net/v1/models', $GLOBALS['tsbifw_test_http_calls'][0]['url'], 'Hormouz test_connection hits api.hormouz.net/v1/models' );
 
 echo "\nTotal: {$total}, Failures: {$failures}\n";
 exit( $failures > 0 ? 1 : 0 );

@@ -10,17 +10,17 @@ Stable tag: 2.0.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Enable customers to search WooCommerce products using images powered by OpenRouter, OpenAI, Google Gemini, Jina AI, Voyage AI, Cohere, Groq, AvalAI, GapGPT, and Custom OpenAI-Compatible AI providers.
+Enable customers to search WooCommerce products using images powered by 26 AI providers (OpenRouter, OpenAI, Gemini, Jina AI, Voyage AI, Cohere, Groq, AvalAI, GapGPT, NVIDIA NIM, Mistral AI, Together AI, Fireworks AI, TwelveLabs, xAI, Alibaba DashScope, Cloudflare Workers AI, ArvanCloud AI, MetisAI, Liara AI, HeroAI, TalkBot, CupAI, Hooshang, Hormouz, and Custom Ollama/OpenAI-Compatible endpoints).
 
 == Description ==
 
 Searchips Search By Image for WooCommerce brings intelligent visual search to your online store. Shoppers can upload photos from their device or mobile photo library to find matching and visually similar products in seconds.
 
-Built around a unified 10-provider AI gateway architecture, the plugin supports both **Strategy 1 (Multimodal Vector Embeddings, plus 2-step Vision-to-Vector support)** and **Strategy 2 (Vision-to-Text Description Search)** alongside unlimited featured-image catalog indexing, 6 futuristic scanning animations, inline provider connection testing, interactive image cropping, and full WP-CLI command integration.
+Built around a unified 26-provider AI gateway architecture, the plugin supports both **Strategy 1 (Multimodal Vector Embeddings, plus 2-step Vision-to-Vector support)** and **Strategy 2 (Vision-to-Text Description Search)** alongside unlimited featured-image catalog indexing, 6 futuristic scanning animations, inline provider connection testing, interactive image cropping, and full WP-CLI command integration.
 
 The plugin supports two search strategies:
-1. **Multimodal Vector Embeddings (Strategy 1):** Generates high-dimensional mathematical vectors for products and query photos (including native `embedContent` support for Google Gemini Direct and AvalAI, multimodal endpoints for Jina AI, Voyage AI, and Cohere, OpenRouter embeddings, and 2-step Vision-to-Vector pipelines for OpenAI Direct, GapGPT, and Custom endpoints), calculating cosine similarity for direct visual matching.
-2. **Vision-to-Text Description Search (Strategy 2):** Uses multimodal vision models (such as Gemini 2.5 Flash, GPT-4o Mini, or Llama 4 Vision) to generate descriptive keyword phrases and match products via tokenized Jaccard similarity, with optional sync to WooCommerce product tags.
+1. **Multimodal Vector Embeddings (Strategy 1):** Generates high-dimensional mathematical vectors for products and query photos (including native `embedContent` support for Google Gemini Direct and AvalAI, `nvidia_nim` for NVIDIA NIM, `v1.3/embed-v2` for TwelveLabs Marengo, multimodal endpoints for Jina AI, Voyage AI, and Cohere, OpenRouter embeddings, and 2-step Vision-to-Vector pipelines for OpenAI Direct, Mistral AI, Together AI, Fireworks AI, ArvanCloud AI, MetisAI, Liara AI, HeroAI, TalkBot, CupAI, Hooshang, Hormouz, GapGPT, and Custom endpoints), calculating cosine similarity for direct visual matching.
+2. **Vision-to-Text Description Search (Strategy 2):** Uses multimodal vision models (such as Gemini 2.5 Flash, GPT-4o Mini, Pixtral, Llama 4 Vision, Grok Vision, Qwen-VL, or Cloudflare Llama 3.2 Vision) to generate descriptive keyword phrases and match products via tokenized Jaccard similarity, with optional sync to WooCommerce product tags.
 
 == External Services ==
 
@@ -29,13 +29,29 @@ Depending on the AI Provider Gateway you choose in WooCommerce -> Search by Imag
 1. **OpenRouter** (`https://openrouter.ai`) - Terms: `https://openrouter.ai/terms`, Privacy: `https://openrouter.ai/privacy`
 2. **OpenAI Direct** (`https://api.openai.com`) - Terms: `https://openai.com/policies/terms-of-use`, Privacy: `https://openai.com/policies/privacy-policy`
 3. **Google Gemini Direct** (`https://generativelanguage.googleapis.com`) - Terms: `https://ai.google.dev/terms`, Privacy: `https://policies.google.com/privacy`
-4. **Jina AI** (`https://api.jina.ai`) - Website & Terms: `https://jina.ai/`
-5. **Voyage AI** (`https://api.voyageai.com`) - Website & Terms: `https://www.voyageai.com/`
+4. **Jina AI** (`https://api.jina.ai`) - Website: `https://jina.ai/`
+5. **Voyage AI** (`https://api.voyageai.com`) - Website: `https://www.voyageai.com/`
 6. **Cohere** (`https://api.cohere.com`) - Terms: `https://cohere.com/terms-of-use`, Privacy: `https://cohere.com/privacy`
 7. **Groq** (`https://api.groq.com`) - Terms: `https://groq.com/terms-of-use/`, Privacy: `https://groq.com/privacy-policy/`
 8. **AvalAI** (`https://api.avalai.ir`) - Website: `https://avalai.ir/`
 9. **GapGPT** (`https://api.gapgpt.app`) - Website: `https://gapgpt.app/`
-10. **Custom OpenAI-Compatible Endpoint** (such as Liara AI, MetisAI, Together AI, or self-hosted Ollama) - Sends requests only to the HTTPS (or localhost) Base URL you explicitly configure.
+10. **NVIDIA NIM** (`https://integrate.api.nvidia.com`) - Website: `https://build.nvidia.com/`
+11. **Mistral AI** (`https://api.mistral.ai`) - Terms: `https://mistral.ai/terms/`
+12. **Together AI** (`https://api.together.xyz`) - Website: `https://www.together.ai/`
+13. **Fireworks AI** (`https://api.fireworks.ai`) - Website: `https://fireworks.ai/`
+14. **TwelveLabs** (`https://api.twelvelabs.io`) - Website: `https://www.twelvelabs.io/`
+15. **xAI (Grok)** (`https://api.x.ai`) - Website: `https://x.ai/`
+16. **Alibaba Cloud Model Studio (Qwen DashScope)** (`https://dashscope-intl.aliyuncs.com`) - Website: `https://www.alibabacloud.com/`
+17. **Cloudflare Workers AI** (`https://api.cloudflare.com`) - Website: `https://www.cloudflare.com/`
+18. **ArvanCloud AI** (`https://api.arvancloudai.ir`) - Website: `https://www.arvancloud.ir/`
+19. **MetisAI** (`https://api.metisai.ir`) - Website: `https://metisai.ir/`
+20. **Liara AI** (`https://ai.liara.ir`) - Website: `https://liara.ir/`
+21. **HeroAI** (`https://api.heroai.ir`) - Website: `https://heroai.ir/`
+22. **TalkBot** (`https://api.talkbot.ir`) - Website: `https://talkbot.ir/`
+23. **CupAI** (`https://api.cupai.ir`) - Website: `https://cupai.ir/`
+24. **Hooshang** (`https://hushang.cloud`) - Website: `https://hushang.cloud/`
+25. **Hormouz** (`https://api.hormouz.net`) - Website: `https://api.hormouz.net/`
+26. **Custom OpenAI-Compatible Endpoint / Self-Hosted Ollama** - Sends requests only to the HTTPS (or localhost Ollama) Base URL you explicitly configure.
 
 == Copyright and Third-Party Assets ==
 
@@ -56,11 +72,11 @@ This plugin bundles and relies on the following third-party software:
 
 == Features ==
 
-* **10 AI Provider Gateways & Custom Endpoints**: Connect to OpenRouter, OpenAI Direct, Google Gemini Direct, Jina AI, Voyage AI, Cohere, Groq, AvalAI, GapGPT, or any Custom OpenAI-Compatible endpoint (with presets for Liara AI, MetisAI, Together AI, and local Ollama).
+* **26 AI Provider Gateways & Custom Endpoints**: Connect to OpenRouter, OpenAI Direct, Google Gemini Direct, Jina AI, Voyage AI, Cohere, Groq, AvalAI, GapGPT, NVIDIA NIM, Mistral AI, Together AI, Fireworks AI, TwelveLabs, xAI (Grok), Alibaba Cloud Model Studio (Qwen DashScope), Cloudflare Workers AI, ArvanCloud AI, MetisAI, Liara AI, HeroAI, TalkBot, CupAI, Hooshang, Hormouz, or Custom Ollama / OpenAI-Compatible endpoints.
 * **Dual AI Search Strategies**: Choose between Strategy 1 (Multimodal Vector Embeddings, with automatic 2-step Vision-to-Vector support on vision-only gateways) and Strategy 2 (Vision-to-Text Description Search with optional tag syncing).
 * **Inline AJAX Connection Tester**: Click the mini "Test Connection" button beside the provider selector to validate API keys, Base URLs, and round-trip latency before saving.
 * **Persistent Re-index Safety Notice**: Automatically shows a non-dismissible reminder across settings tabs when Strategy 1 provider, endpoint, or model changes require clearing and re-indexing your catalog.
-* **Dedicated Help & Setup Guide Tab**: Step-by-step setup instructions for all 10 gateways plus Model Selection Help inside the settings dashboard.
+* **Dedicated Help & Setup Guide Tab**: Step-by-step setup instructions for all 26 gateways plus Model Selection Help inside the settings dashboard.
 * **6 Futuristic Scanning Animations**: Laser Sweep, AI Vision Reticle, Sonar Radar Sweep, Digital Mesh Grid, Concentric Ripple, and Luxury Hologram Shimmer with live interactive preview stage.
 * **WooCommerce Bulk Actions & Action Scheduler**: Index single or multiple products from the standard WooCommerce Products list with async background processing.
 * **WP-CLI Command Integration**: Manage indexing and status directly from the command line (`wp searchips status`, `wp searchips index`, `wp searchips clear`).
@@ -103,7 +119,7 @@ Navigate to the "System Logs" tab to toggle logging, adjust retention days, copy
 == Frequently Asked Questions ==
 
 = What AI providers are supported? =
-You can connect to OpenRouter, OpenAI Direct, Google Gemini Direct, Jina AI, Voyage AI, Cohere, Groq, AvalAI, GapGPT, or any Custom OpenAI-Compatible endpoint (including Liara AI, MetisAI, Together AI, and local Ollama).
+You can connect to OpenRouter, OpenAI Direct, Google Gemini Direct, Jina AI, Voyage AI, Cohere, Groq, AvalAI, GapGPT, NVIDIA NIM, Mistral AI, Together AI, Fireworks AI, TwelveLabs (Marengo), xAI (Grok), Alibaba Cloud (Qwen DashScope), Cloudflare Workers AI, ArvanCloud AI, MetisAI, Liara AI, HeroAI, TalkBot, CupAI, Hooshang, Hormouz, or any Custom Ollama / OpenAI-Compatible endpoint.
 
 = How do the two search strategies differ? =
 * **Strategy 1 (Multimodal Vector Embeddings)** encodes product and query images into numerical vectors and compares cosine similarity for visual matching (shape, color, layout, pattern). Providers without native image embeddings (OpenAI Direct, GapGPT, Custom) run an automatic 2-step Vision-to-Vector pipeline.
@@ -121,11 +137,11 @@ Search results inherit your site's WordPress Reading Settings ("Blog pages show 
 == Changelog ==
 
 = 2.0.0 =
-* Expanded AI gateway support to 10 providers: OpenRouter, OpenAI Direct, Google Gemini Direct, Jina AI, Voyage AI, Cohere, Groq, AvalAI, GapGPT, and Custom OpenAI-Compatible (with Liara AI, MetisAI, Together AI, and Ollama presets).
+* Expanded AI gateway support to 26 providers: OpenRouter, OpenAI Direct, Google Gemini Direct, Jina AI, Voyage AI, Cohere, Groq, AvalAI, GapGPT, NVIDIA NIM, Mistral AI, Together AI, Fireworks AI, TwelveLabs, xAI (Grok), Alibaba Cloud (Qwen DashScope), Cloudflare Workers AI, ArvanCloud AI, MetisAI, Liara AI, HeroAI, TalkBot, CupAI, Hooshang, Hormouz, and Custom OpenAI-Compatible (Ollama / Custom).
 * Brought Direct OpenAI, Google Gemini Direct, Strategy 2 (Vision-to-Text Description Search), and 2-step Vision-to-Vector embeddings into the Free edition.
-* Fixed Gemini Direct and AvalAI multimodal image embeddings via native `v1beta/models/{model}:embedContent` with context-aware `taskType` (`RETRIEVAL_DOCUMENT` / `RETRIEVAL_QUERY`).
+* Fixed Gemini Direct and AvalAI multimodal image embeddings via native `v1beta/models/{model}:embedContent` with context-aware `taskType` (`RETRIEVAL_DOCUMENT` / `RETRIEVAL_QUERY`), plus native `nvidia_nim`, TwelveLabs `v1.3/embed-v2`, ArvanCloud `apikey` header, and Cloudflare Account ID support.
 * Added inline AJAX **Test Connection** mini button beside the AI Provider Gateway dropdown.
-* Added a dedicated **Help & Setup Guide** tab containing step-by-step instructions for all 10 providers and Model Selection Help.
+* Added a dedicated **Help & Setup Guide** tab containing step-by-step instructions for all 26 gateways and Model Selection Help.
 * Added persistent non-dismissible **Clear & Re-index** warning notice when Strategy 1 provider, endpoint, or model changes affect existing indexed data.
 * Focused Free indexing options on Featured Images, 5m/10m Search Cache Expiry, and 5m+ Cron intervals, and updated the Pro edition comparison sidebar.
 

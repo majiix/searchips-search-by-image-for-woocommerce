@@ -123,6 +123,7 @@ jQuery(document).ready(function($) {
 		var apiKeyOpt = caps.api_key_option || '';
 		var apiKey = apiKeyOpt ? ($('#' + apiKeyOpt).val() || '') : '';
 		var customBaseUrl = ('custom' === gw) ? ($('#tsbifw_custom_base_url').val() || '') : '';
+		var cfAccountId = ('cloudflare' === gw) ? ($('#tsbifw_cloudflare_account_id').val() || '') : '';
 		var strings = tsbifw_admin_params.strings || {};
 
 		$btn.prop('disabled', true);
@@ -137,7 +138,8 @@ jQuery(document).ready(function($) {
 				security: tsbifw_admin_params.nonce,
 				gateway: gw,
 				api_key: apiKey,
-				custom_base_url: customBaseUrl
+				custom_base_url: customBaseUrl,
+				cloudflare_account_id: cfAccountId
 			},
 			success: function(response) {
 				if (response.success && response.data && response.data.message) {

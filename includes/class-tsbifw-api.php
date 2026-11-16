@@ -123,8 +123,152 @@ class TSBIFW_API {
 				'default_embeddings_model' => 'text-embedding-3-small',
 				'default_vision_model'     => 'gpt-4o-mini',
 			),
+			'nvidia'     => array(
+				'label'                    => 'NVIDIA NIM',
+				'api_key_option'           => 'tsbifw_api_key_nvidia',
+				'supports_strategy_1'      => true,
+				'supports_strategy_2'      => true,
+				'embedding_protocol'       => 'nvidia_nim',
+				'default_embeddings_model' => 'nvidia/llama-nemotron-embed-vl-1b-v2',
+				'default_vision_model'     => 'meta/llama-3.2-11b-vision-instruct',
+			),
+			'mistral'    => array(
+				'label'                    => 'Mistral AI',
+				'api_key_option'           => 'tsbifw_api_key_mistral',
+				'supports_strategy_1'      => true,
+				'supports_strategy_2'      => true,
+				'embedding_protocol'       => 'openai_vision_to_vector',
+				'default_embeddings_model' => 'mistral-embed',
+				'default_vision_model'     => 'pixtral-12b-2409',
+			),
+			'together'   => array(
+				'label'                    => 'Together AI',
+				'api_key_option'           => 'tsbifw_api_key_together',
+				'supports_strategy_1'      => true,
+				'supports_strategy_2'      => true,
+				'embedding_protocol'       => 'openai_vision_to_vector',
+				'default_embeddings_model' => 'BAAI/bge-base-en-v1.5',
+				'default_vision_model'     => 'meta-llama/Llama-3.2-11B-Vision-Instruct-Turbo',
+			),
+			'fireworks'  => array(
+				'label'                    => 'Fireworks AI',
+				'api_key_option'           => 'tsbifw_api_key_fireworks',
+				'supports_strategy_1'      => true,
+				'supports_strategy_2'      => true,
+				'embedding_protocol'       => 'openai_vision_to_vector',
+				'default_embeddings_model' => 'nomic-ai/nomic-embed-text-v1.5',
+				'default_vision_model'     => 'accounts/fireworks/models/llama-v3p2-11b-vision-instruct',
+			),
+			'twelvelabs' => array(
+				'label'                    => 'TwelveLabs (Marengo)',
+				'api_key_option'           => 'tsbifw_api_key_twelvelabs',
+				'supports_strategy_1'      => true,
+				'supports_strategy_2'      => false,
+				'embedding_protocol'       => 'twelvelabs',
+				'default_embeddings_model' => 'marengo3.5',
+				'default_vision_model'     => '',
+			),
+			'xai'        => array(
+				'label'                    => 'xAI (Grok)',
+				'api_key_option'           => 'tsbifw_api_key_xai',
+				'supports_strategy_1'      => false,
+				'supports_strategy_2'      => true,
+				'embedding_protocol'       => 'none',
+				'default_embeddings_model' => '',
+				'default_vision_model'     => 'grok-2-vision-1212',
+			),
+			'dashscope'  => array(
+				'label'                    => 'Alibaba Cloud (Qwen DashScope)',
+				'api_key_option'           => 'tsbifw_api_key_dashscope',
+				'supports_strategy_1'      => false,
+				'supports_strategy_2'      => true,
+				'embedding_protocol'       => 'none',
+				'default_embeddings_model' => '',
+				'default_vision_model'     => 'qwen-vl-max',
+			),
+			'cloudflare' => array(
+				'label'                    => 'Cloudflare Workers AI',
+				'api_key_option'           => 'tsbifw_api_key_cloudflare',
+				'supports_strategy_1'      => false,
+				'supports_strategy_2'      => true,
+				'embedding_protocol'       => 'none',
+				'default_embeddings_model' => '',
+				'default_vision_model'     => '@cf/meta/llama-3.2-11b-vision-instruct',
+			),
+			'arvancloud' => array(
+				'label'                    => 'ArvanCloud AI',
+				'api_key_option'           => 'tsbifw_api_key_arvancloud',
+				'supports_strategy_1'      => true,
+				'supports_strategy_2'      => true,
+				'embedding_protocol'       => 'openai_vision_to_vector',
+				'default_embeddings_model' => 'text-embedding-3-large',
+				'default_vision_model'     => 'gpt-4o-mini',
+			),
+			'metisai'    => array(
+				'label'                    => 'MetisAI',
+				'api_key_option'           => 'tsbifw_api_key_metisai',
+				'supports_strategy_1'      => true,
+				'supports_strategy_2'      => true,
+				'embedding_protocol'       => 'openai_vision_to_vector',
+				'default_embeddings_model' => 'text-embedding-3-small',
+				'default_vision_model'     => 'gpt-4o-mini',
+			),
+			'liara'      => array(
+				'label'                    => 'Liara AI',
+				'api_key_option'           => 'tsbifw_api_key_liara',
+				'supports_strategy_1'      => true,
+				'supports_strategy_2'      => true,
+				'embedding_protocol'       => 'openai_vision_to_vector',
+				'default_embeddings_model' => 'openai/text-embedding-3-small',
+				'default_vision_model'     => 'openai/gpt-4o-mini',
+			),
+			'heroai'     => array(
+				'label'                    => 'HeroAI',
+				'api_key_option'           => 'tsbifw_api_key_heroai',
+				'supports_strategy_1'      => true,
+				'supports_strategy_2'      => true,
+				'embedding_protocol'       => 'openai_vision_to_vector',
+				'default_embeddings_model' => 'text-embedding-3-small',
+				'default_vision_model'     => 'gpt-4o-mini',
+			),
+			'talkbot'    => array(
+				'label'                    => 'TalkBot',
+				'api_key_option'           => 'tsbifw_api_key_talkbot',
+				'supports_strategy_1'      => true,
+				'supports_strategy_2'      => true,
+				'embedding_protocol'       => 'openai_vision_to_vector',
+				'default_embeddings_model' => 'text-embedding-3-small',
+				'default_vision_model'     => 'gpt-4o-mini',
+			),
+			'cupai'      => array(
+				'label'                    => 'CupAI',
+				'api_key_option'           => 'tsbifw_api_key_cupai',
+				'supports_strategy_1'      => true,
+				'supports_strategy_2'      => true,
+				'embedding_protocol'       => 'openai_vision_to_vector',
+				'default_embeddings_model' => 'text-embedding-3-small',
+				'default_vision_model'     => 'gpt-4o-mini',
+			),
+			'hooshang'   => array(
+				'label'                    => 'Hooshang',
+				'api_key_option'           => 'tsbifw_api_key_hooshang',
+				'supports_strategy_1'      => true,
+				'supports_strategy_2'      => true,
+				'embedding_protocol'       => 'openai_vision_to_vector',
+				'default_embeddings_model' => 'text-embedding-3-small',
+				'default_vision_model'     => 'gpt-4o-mini',
+			),
+			'hormouz'    => array(
+				'label'                    => 'Hormouz',
+				'api_key_option'           => 'tsbifw_api_key_hormouz',
+				'supports_strategy_1'      => true,
+				'supports_strategy_2'      => true,
+				'embedding_protocol'       => 'openai_vision_to_vector',
+				'default_embeddings_model' => 'text-embedding-3-small',
+				'default_vision_model'     => 'gpt-4o-mini',
+			),
 			'custom'     => array(
-				'label'                    => 'Custom OpenAI-Compatible (Liara / MetisAI / Ollama)',
+				'label'                    => 'Custom OpenAI-Compatible (Ollama / Custom)',
 				'api_key_option'           => 'tsbifw_api_key_custom',
 				'supports_strategy_1'      => true,
 				'supports_strategy_2'      => true,
@@ -245,23 +389,61 @@ class TSBIFW_API {
 		return self::sanitize_custom_base_url( get_option( 'tsbifw_custom_base_url', '' ) );
 	}
 
+	/**
+	 * Validate a Cloudflare Account ID (alphanumeric, hyphen, underscore only).
+	 *
+	 * @param string $raw_id Raw Account ID.
+	 * @return string
+	 */
+	public static function sanitize_cloudflare_account_id( $raw_id ) {
+		return preg_replace( '/[^a-zA-Z0-9_-]/', '', trim( (string) $raw_id ) );
+	}
+
+	/**
+	 * Retrieve the validated Cloudflare Account ID option.
+	 *
+	 * @return string
+	 */
+	public function get_cloudflare_account_id() {
+		return self::sanitize_cloudflare_account_id( get_option( 'tsbifw_cloudflare_account_id', '' ) );
+	}
+
 	private function is_loopback_host( $url ) {
 		$host = strtolower( trim( (string) wp_parse_url( $url, PHP_URL_HOST ), '[]' ) );
 		return in_array( $host, array( 'localhost', '127.0.0.1', '::1' ), true );
 	}
 
 	private function get_endpoint_url( $gateway, $action, $model = '' ) {
-		$url = '';
-		if ( 'openrouter' === $gateway ) {
-			$url = ( 'embeddings' === $action ) ? 'https://openrouter.ai/api/v1/embeddings' : 'https://openrouter.ai/api/v1/chat/completions';
-		} elseif ( 'openai' === $gateway ) {
-			$url = ( 'embeddings' === $action ) ? 'https://api.openai.com/v1/embeddings' : 'https://api.openai.com/v1/chat/completions';
+		$url        = '';
+		$is_emb     = ( 'embeddings' === $action );
+		$openai_map = array(
+			'openrouter' => 'https://openrouter.ai/api/v1',
+			'openai'     => 'https://api.openai.com/v1',
+			'gapgpt'     => 'https://api.gapgpt.app/v1',
+			'nvidia'     => 'https://integrate.api.nvidia.com/v1',
+			'mistral'    => 'https://api.mistral.ai/v1',
+			'together'   => 'https://api.together.xyz/v1',
+			'fireworks'  => 'https://api.fireworks.ai/inference/v1',
+			'xai'        => 'https://api.x.ai/v1',
+			'dashscope'  => 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1',
+			'arvancloud' => 'https://api.arvancloudai.ir/v1',
+			'metisai'    => 'https://api.metisai.ir/openai/v1',
+			'liara'      => 'https://ai.liara.ir/v1',
+			'heroai'     => 'https://api.heroai.ir/v1',
+			'talkbot'    => 'https://api.talkbot.ir/v1',
+			'cupai'      => 'https://api.cupai.ir/v1',
+			'hooshang'   => 'https://hushang.cloud/v1',
+			'hormouz'    => 'https://api.hormouz.net/v1',
+		);
+
+		if ( isset( $openai_map[ $gateway ] ) ) {
+			$url = $openai_map[ $gateway ] . ( $is_emb ? '/embeddings' : '/chat/completions' );
 		} elseif ( 'gemini' === $gateway ) {
-			$url = ( 'embeddings' === $action )
+			$url = $is_emb
 				? 'https://generativelanguage.googleapis.com/v1beta/models/' . rawurlencode( $model ) . ':embedContent'
 				: 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions';
 		} elseif ( 'avalai' === $gateway ) {
-			$url = ( 'embeddings' === $action )
+			$url = $is_emb
 				? 'https://api.avalai.ir/v1beta/models/' . rawurlencode( $model ) . ':embedContent'
 				: 'https://api.avalai.ir/v1/chat/completions';
 		} elseif ( 'jina' === $gateway ) {
@@ -272,12 +454,17 @@ class TSBIFW_API {
 			$url = 'https://api.cohere.com/v2/embed';
 		} elseif ( 'groq' === $gateway ) {
 			$url = 'https://api.groq.com/openai/v1/chat/completions';
-		} elseif ( 'gapgpt' === $gateway ) {
-			$url = ( 'embeddings' === $action ) ? 'https://api.gapgpt.app/v1/embeddings' : 'https://api.gapgpt.app/v1/chat/completions';
+		} elseif ( 'twelvelabs' === $gateway ) {
+			$url = 'https://api.twelvelabs.io/v1.3/embed-v2';
+		} elseif ( 'cloudflare' === $gateway ) {
+			$acct = $this->get_cloudflare_account_id();
+			if ( '' !== $acct ) {
+				$url = 'https://api.cloudflare.com/client/v4/accounts/' . rawurlencode( $acct ) . '/ai/v1/chat/completions';
+			}
 		} elseif ( 'custom' === $gateway ) {
 			$base = $this->get_custom_base_url();
 			if ( '' !== $base ) {
-				$url = ( 'embeddings' === $action ) ? $base . '/embeddings' : $base . '/chat/completions';
+				$url = $base . ( $is_emb ? '/embeddings' : '/chat/completions' );
 			}
 		}
 
@@ -297,6 +484,10 @@ class TSBIFW_API {
 		} elseif ( 'avalai' === $gateway && 'embeddings' === $action ) {
 			$headers['x-goog-api-key'] = $api_key;
 			$headers['Authorization']  = 'Bearer ' . $api_key;
+		} elseif ( 'twelvelabs' === $gateway ) {
+			$headers['x-api-key'] = $api_key;
+		} elseif ( 'arvancloud' === $gateway ) {
+			$headers['Authorization'] = 'apikey ' . preg_replace( '/^apikey\s+/i', '', $api_key );
 		} elseif ( 'openrouter' === $gateway ) {
 			$headers['Authorization'] = 'Bearer ' . $api_key;
 			$headers['HTTP-Referer']  = get_home_url();
@@ -320,7 +511,8 @@ class TSBIFW_API {
 			}
 		}
 
-		if ( in_array( $gateway, array( 'openai', 'gemini', 'avalai', 'gapgpt' ), true ) && strpos( $model, '/' ) !== false ) {
+		$bare_gateways = array( 'openai', 'gemini', 'avalai', 'gapgpt', 'arvancloud', 'metisai', 'heroai', 'talkbot', 'cupai', 'hooshang', 'hormouz' );
+		if ( in_array( $gateway, $bare_gateways, true ) && strpos( $model, '/' ) !== false ) {
 			$parts = explode( '/', $model );
 			$model = end( $parts );
 		}
@@ -353,11 +545,32 @@ class TSBIFW_API {
 			if ( 'gemini' === $gateway || 'avalai' === $gateway ) {
 				return strpos( $lower, 'gemini' ) !== false;
 			}
-			if ( in_array( $gateway, array( 'openai', 'gapgpt' ), true ) ) {
-				return strpos( $lower, 'jina' ) === false && strpos( $lower, 'voyage' ) === false && strpos( $lower, 'gemini' ) === false && strpos( $lower, 'embed-v' ) === false;
+			if ( 'nvidia' === $gateway ) {
+				return strpos( $lower, 'nvidia/' ) === 0 || strpos( $lower, 'nvclip' ) !== false || strpos( $lower, 'nemotron' ) !== false;
 			}
-		} elseif ( 'groq' === $gateway ) {
-			return strpos( $lower, 'llama' ) !== false || strpos( $lower, 'vision' ) !== false;
+			if ( 'twelvelabs' === $gateway ) {
+				return strpos( $lower, 'marengo' ) !== false;
+			}
+			if ( 'mistral' === $gateway ) {
+				return strpos( $lower, 'mistral' ) !== false;
+			}
+			$openai_like = array( 'openai', 'gapgpt', 'arvancloud', 'metisai', 'liara', 'heroai', 'talkbot', 'cupai', 'hooshang', 'hormouz' );
+			if ( in_array( $gateway, $openai_like, true ) ) {
+				return strpos( $lower, 'jina' ) === false && strpos( $lower, 'voyage' ) === false && strpos( $lower, 'gemini' ) === false && strpos( $lower, 'embed-v' ) === false && strpos( $lower, 'marengo' ) === false;
+			}
+		} else {
+			if ( 'groq' === $gateway ) {
+				return strpos( $lower, 'llama' ) !== false || strpos( $lower, 'vision' ) !== false;
+			}
+			if ( 'xai' === $gateway ) {
+				return strpos( $lower, 'grok' ) !== false;
+			}
+			if ( 'dashscope' === $gateway ) {
+				return strpos( $lower, 'qwen' ) !== false;
+			}
+			if ( 'cloudflare' === $gateway ) {
+				return strpos( $lower, '@cf/' ) === 0;
+			}
 		}
 
 		return true;
@@ -609,6 +822,35 @@ class TSBIFW_API {
 			);
 		}
 
+		if ( 'nvidia_nim' === $protocol ) {
+			$payload = array(
+				'model'           => $model,
+				'input'           => array( '<img src="' . $base64_image . '" />' ),
+				'encoding_format' => 'float',
+			);
+			$lower   = strtolower( $model );
+			if ( false !== strpos( $lower, 'nemotron' ) || false !== strpos( $lower, '-vl' ) ) {
+				$payload['input_type'] = $is_query ? 'query' : 'passage';
+			}
+			return $payload;
+		}
+
+		if ( 'twelvelabs' === $protocol ) {
+			$raw_data = preg_replace( '#^data:image/[^;]+;base64,#i', '', $base64_image );
+			return array(
+				'input_type'  => 'multi_input',
+				'model_name'  => $model,
+				'multi_input' => array(
+					'media_sources' => array(
+						array(
+							'media_type'     => 'image',
+							'base_64_string' => $raw_data,
+						),
+					),
+				),
+			);
+		}
+
 		return array(
 			'model' => $model,
 			'input' => array(
@@ -640,6 +882,14 @@ class TSBIFW_API {
 		}
 		if ( 'cohere' === $protocol && isset( $data['embeddings']['float'][0] ) && is_array( $data['embeddings']['float'][0] ) ) {
 			return $data['embeddings']['float'][0];
+		}
+		if ( 'twelvelabs' === $protocol ) {
+			if ( isset( $data['image_embedding']['segments'][0]['embedding'] ) && is_array( $data['image_embedding']['segments'][0]['embedding'] ) ) {
+				return $data['image_embedding']['segments'][0]['embedding'];
+			}
+			if ( isset( $data['image_embedding']['segments'][0]['embeddings_float'] ) && is_array( $data['image_embedding']['segments'][0]['embeddings_float'] ) ) {
+				return $data['image_embedding']['segments'][0]['embeddings_float'];
+			}
 		}
 		if ( isset( $data['data'][0]['embedding'] ) && is_array( $data['data'][0]['embedding'] ) ) {
 			return $data['data'][0]['embedding'];
@@ -728,6 +978,10 @@ class TSBIFW_API {
 
 		if ( 'custom' === $gateway && '' === $this->get_custom_base_url() ) {
 			return new WP_Error( 'tsbifw_missing_base_url', esc_html__( 'Custom OpenAI-Compatible Base URL is missing or invalid. Please configure a valid HTTPS (or localhost) URL in settings.', 'searchips-search-by-image-for-woocommerce' ) );
+		}
+
+		if ( 'cloudflare' === $gateway && '' === $this->get_cloudflare_account_id() ) {
+			return new WP_Error( 'tsbifw_missing_account_id', esc_html__( 'Cloudflare Account ID is missing. Please configure it in WooCommerce settings.', 'searchips-search-by-image-for-woocommerce' ) );
 		}
 
 		$raw_model = '' !== $override_model ? $override_model : get_option( 'tsbifw_vision_model', $config['default_vision_model'] );
@@ -845,7 +1099,7 @@ class TSBIFW_API {
 	 * @param string|null $custom_base_url Optional unsaved custom base URL override.
 	 * @return array|WP_Error Latency and status payload on success, or WP_Error on failure.
 	 */
-	public function test_connection( $gateway, $api_key = null, $custom_base_url = null ) {
+	public function test_connection( $gateway, $api_key = null, $custom_base_url = null, $account_id = null ) {
 		$gateway = sanitize_key( (string) $gateway );
 		$configs = $this->get_gateway_configs();
 		if ( ! isset( $configs[ $gateway ] ) ) {
@@ -862,6 +1116,15 @@ class TSBIFW_API {
 			}
 		}
 
+		$cf_account_id = '';
+		if ( 'cloudflare' === $gateway ) {
+			$raw_acct      = ( null !== $account_id ) ? (string) $account_id : (string) get_option( 'tsbifw_cloudflare_account_id', '' );
+			$cf_account_id = self::sanitize_cloudflare_account_id( $raw_acct );
+			if ( '' === $cf_account_id ) {
+				return new WP_Error( 'tsbifw_missing_account_id', esc_html__( 'Cloudflare Account ID is missing. Please enter your Account ID first.', 'searchips-search-by-image-for-woocommerce' ) );
+			}
+		}
+
 		$resolved_key = ( null !== $api_key ) ? trim( (string) $api_key ) : trim( (string) $this->get_api_key( $gateway ) );
 		if ( '' === $resolved_key && 'custom' === $gateway && $this->is_loopback_host( $base_url ) ) {
 			$resolved_key = 'ollama';
@@ -871,7 +1134,7 @@ class TSBIFW_API {
 			return new WP_Error( 'tsbifw_missing_api_key', sprintf( esc_html__( '%s API Key is missing. Please enter an API key first.', 'searchips-search-by-image-for-woocommerce' ), $config['label'] ) );
 		}
 
-		$probe = $this->build_connection_probe( $gateway, $resolved_key, $base_url );
+		$probe = $this->build_connection_probe( $gateway, $resolved_key, $base_url, $cf_account_id );
 		$start = microtime( true );
 		$args  = array(
 			'headers' => $probe['headers'],
@@ -917,7 +1180,7 @@ class TSBIFW_API {
 		);
 	}
 
-	private function build_connection_probe( $gateway, $api_key, $base_url ) {
+	private function build_connection_probe( $gateway, $api_key, $base_url, $cf_account_id = '' ) {
 		if ( 'jina' === $gateway ) {
 			return array(
 				'method'  => 'POST',
@@ -950,12 +1213,27 @@ class TSBIFW_API {
 			'groq'       => 'https://api.groq.com/openai/v1/models',
 			'avalai'     => 'https://api.avalai.ir/v1/models',
 			'gapgpt'     => 'https://api.gapgpt.app/v1/models',
+			'nvidia'     => 'https://integrate.api.nvidia.com/v1/models',
+			'mistral'    => 'https://api.mistral.ai/v1/models',
+			'together'   => 'https://api.together.xyz/v1/models',
+			'fireworks'  => 'https://api.fireworks.ai/inference/v1/models',
+			'twelvelabs' => 'https://api.twelvelabs.io/v1.3/indexes?page=1&page_limit=1',
+			'xai'        => 'https://api.x.ai/v1/models',
+			'dashscope'  => 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1/models',
+			'cloudflare' => 'https://api.cloudflare.com/client/v4/accounts/' . rawurlencode( $cf_account_id ) . '/ai/models/search?per_page=1',
+			'arvancloud' => 'https://api.arvancloudai.ir/v1/models',
+			'metisai'    => 'https://api.metisai.ir/openai/v1/models',
+			'liara'      => 'https://ai.liara.ir/v1/models',
+			'heroai'     => 'https://api.heroai.ir/v1/models',
+			'talkbot'    => 'https://api.talkbot.ir/v1/models',
+			'cupai'      => 'https://api.cupai.ir/v1/models',
+			'hooshang'   => 'https://hushang.cloud/v1/models',
+			'hormouz'    => 'https://api.hormouz.net/v1/models',
 			'custom'     => $base_url . '/models',
 		);
 
-		$headers = ( 'gemini' === $gateway )
-			? array( 'x-goog-api-key' => $api_key )
-			: array( 'Authorization' => 'Bearer ' . $api_key );
+		$headers = $this->get_request_headers( $gateway, 'models', $api_key );
+		unset( $headers['Content-Type'] );
 
 		return array(
 			'method'  => 'GET',
@@ -1042,78 +1320,158 @@ class TSBIFW_API {
 	}
 
 	private function get_curated_models( $gateway, $modality ) {
-		$is_emb = ( 'embeddings' === $modality );
+		$key = ( 'embeddings' === $modality ) ? 'embeddings' : 'chat';
 
-		if ( 'openai' === $gateway || 'gapgpt' === $gateway || 'custom' === $gateway ) {
-			if ( $is_emb ) {
-				return array(
+		if ( in_array( $gateway, array( 'gapgpt', 'arvancloud', 'metisai', 'heroai', 'talkbot', 'cupai', 'hooshang', 'hormouz', 'custom' ), true ) ) {
+			$gateway = 'openai';
+		}
+
+		$catalog = array(
+			'openai'     => array(
+				'embeddings' => array(
 					array( 'id' => 'text-embedding-3-small', 'name' => 'OpenAI: Text Embedding 3 Small' ),
 					array( 'id' => 'text-embedding-3-large', 'name' => 'OpenAI: Text Embedding 3 Large' ),
-				);
-			}
-			return array(
-				array( 'id' => 'gpt-4o-mini', 'name' => 'OpenAI: GPT-4o Mini (Fast & Cost-Efficient)' ),
-				array( 'id' => 'gpt-4o', 'name' => 'OpenAI: GPT-4o (High Accuracy Vision)' ),
-				array( 'id' => 'gpt-4.1-mini', 'name' => 'OpenAI: GPT-4.1 Mini' ),
-			);
-		}
-
-		if ( 'gemini' === $gateway ) {
-			if ( $is_emb ) {
-				return array(
+				),
+				'chat'       => array(
+					array( 'id' => 'gpt-4o-mini', 'name' => 'OpenAI: GPT-4o Mini (Fast & Cost-Efficient)' ),
+					array( 'id' => 'gpt-4o', 'name' => 'OpenAI: GPT-4o (High Accuracy Vision)' ),
+					array( 'id' => 'gpt-4.1-mini', 'name' => 'OpenAI: GPT-4.1 Mini' ),
+				),
+			),
+			'liara'      => array(
+				'embeddings' => array(
+					array( 'id' => 'openai/text-embedding-3-small', 'name' => 'OpenAI: Text Embedding 3 Small' ),
+					array( 'id' => 'openai/text-embedding-3-large', 'name' => 'OpenAI: Text Embedding 3 Large' ),
+				),
+				'chat'       => array(
+					array( 'id' => 'openai/gpt-4o-mini', 'name' => 'OpenAI: GPT-4o Mini' ),
+					array( 'id' => 'openai/gpt-4o', 'name' => 'OpenAI: GPT-4o' ),
+					array( 'id' => 'google/gemini-2.5-flash', 'name' => 'Google: Gemini 2.5 Flash' ),
+				),
+			),
+			'gemini'     => array(
+				'embeddings' => array(
 					array( 'id' => 'gemini-embedding-2', 'name' => 'Google: Gemini Embedding 2 (Native Multimodal)' ),
-				);
-			}
-			return array(
-				array( 'id' => 'gemini-2.5-flash', 'name' => 'Google: Gemini 2.5 Flash (Recommended)' ),
-				array( 'id' => 'gemini-2.5-pro', 'name' => 'Google: Gemini 2.5 Pro (High Accuracy)' ),
-				array( 'id' => 'gemini-1.5-flash', 'name' => 'Google: Gemini 1.5 Flash' ),
-			);
-		}
-
-		if ( 'avalai' === $gateway ) {
-			if ( $is_emb ) {
-				return array(
+				),
+				'chat'       => array(
+					array( 'id' => 'gemini-2.5-flash', 'name' => 'Google: Gemini 2.5 Flash (Recommended)' ),
+					array( 'id' => 'gemini-2.5-pro', 'name' => 'Google: Gemini 2.5 Pro (High Accuracy)' ),
+					array( 'id' => 'gemini-1.5-flash', 'name' => 'Google: Gemini 1.5 Flash' ),
+				),
+			),
+			'avalai'     => array(
+				'embeddings' => array(
 					array( 'id' => 'gemini-embedding-2', 'name' => 'Google: Gemini Embedding 2 (Native Multimodal)' ),
-				);
-			}
-			return array(
-				array( 'id' => 'gemini-2.5-flash', 'name' => 'Google: Gemini 2.5 Flash (Recommended)' ),
-				array( 'id' => 'gpt-4o-mini', 'name' => 'OpenAI: GPT-4o Mini' ),
-				array( 'id' => 'gpt-4o', 'name' => 'OpenAI: GPT-4o' ),
-				array( 'id' => 'claude-sonnet-4-6', 'name' => 'Anthropic: Claude Sonnet 4.6' ),
-			);
+				),
+				'chat'       => array(
+					array( 'id' => 'gemini-2.5-flash', 'name' => 'Google: Gemini 2.5 Flash (Recommended)' ),
+					array( 'id' => 'gpt-4o-mini', 'name' => 'OpenAI: GPT-4o Mini' ),
+					array( 'id' => 'gpt-4o', 'name' => 'OpenAI: GPT-4o' ),
+					array( 'id' => 'claude-sonnet-4-6', 'name' => 'Anthropic: Claude Sonnet 4.6' ),
+				),
+			),
+			'jina'       => array(
+				'embeddings' => array(
+					array( 'id' => 'jina-clip-v2', 'name' => 'Jina AI: CLIP v2 (Multimodal Image & Text)' ),
+					array( 'id' => 'jina-embeddings-v5-omni-small', 'name' => 'Jina AI: Embeddings v5 Omni Small' ),
+					array( 'id' => 'jina-embeddings-v4', 'name' => 'Jina AI: Embeddings v4 (Multimodal)' ),
+				),
+				'chat'       => array(),
+			),
+			'voyage'     => array(
+				'embeddings' => array(
+					array( 'id' => 'voyage-multimodal-3.5', 'name' => 'Voyage AI: Multimodal 3.5 (Recommended)' ),
+					array( 'id' => 'voyage-multimodal-3', 'name' => 'Voyage AI: Multimodal 3' ),
+				),
+				'chat'       => array(),
+			),
+			'cohere'     => array(
+				'embeddings' => array(
+					array( 'id' => 'embed-v4.0', 'name' => 'Cohere: Embed v4.0 (Multimodal)' ),
+				),
+				'chat'       => array(),
+			),
+			'groq'       => array(
+				'embeddings' => array(),
+				'chat'       => array(
+					array( 'id' => 'meta-llama/llama-4-scout-17b-16e-instruct', 'name' => 'Meta: Llama 4 Scout 17B Vision (Recommended)' ),
+					array( 'id' => 'meta-llama/llama-4-maverick-17b-128e-instruct', 'name' => 'Meta: Llama 4 Maverick 17B Vision' ),
+				),
+			),
+			'nvidia'     => array(
+				'embeddings' => array(
+					array( 'id' => 'nvidia/llama-nemotron-embed-vl-1b-v2', 'name' => 'NVIDIA: Nemotron Embed VL 1B v2 (Native Multimodal)' ),
+					array( 'id' => 'nvidia/nvclip', 'name' => 'NVIDIA: NVCLIP (Multimodal Image & Text)' ),
+				),
+				'chat'       => array(
+					array( 'id' => 'meta/llama-3.2-11b-vision-instruct', 'name' => 'Meta: Llama 3.2 11B Vision Instruct' ),
+					array( 'id' => 'meta/llama-3.2-90b-vision-instruct', 'name' => 'Meta: Llama 3.2 90B Vision Instruct' ),
+				),
+			),
+			'mistral'    => array(
+				'embeddings' => array(
+					array( 'id' => 'mistral-embed', 'name' => 'Mistral: Embed' ),
+				),
+				'chat'       => array(
+					array( 'id' => 'pixtral-12b-2409', 'name' => 'Mistral: Pixtral 12B (Vision)' ),
+					array( 'id' => 'mistral-large-latest', 'name' => 'Mistral: Large Latest (Vision)' ),
+				),
+			),
+			'together'   => array(
+				'embeddings' => array(
+					array( 'id' => 'BAAI/bge-base-en-v1.5', 'name' => 'BAAI: BGE Base En v1.5' ),
+					array( 'id' => 'togethercomputer/m2-bert-80M-8k-retrieval', 'name' => 'Together: M2-BERT 80M Retrieval' ),
+				),
+				'chat'       => array(
+					array( 'id' => 'meta-llama/Llama-3.2-11B-Vision-Instruct-Turbo', 'name' => 'Meta: Llama 3.2 11B Vision Turbo' ),
+					array( 'id' => 'Qwen/Qwen2-VL-72B-Instruct', 'name' => 'Qwen: Qwen2-VL 72B Instruct' ),
+				),
+			),
+			'fireworks'  => array(
+				'embeddings' => array(
+					array( 'id' => 'nomic-ai/nomic-embed-text-v1.5', 'name' => 'Nomic: Embed Text v1.5' ),
+				),
+				'chat'       => array(
+					array( 'id' => 'accounts/fireworks/models/llama-v3p2-11b-vision-instruct', 'name' => 'Fireworks: Llama 3.2 11B Vision' ),
+					array( 'id' => 'accounts/fireworks/models/qwen2p5-vl-32b-instruct', 'name' => 'Fireworks: Qwen2.5-VL 32B Instruct' ),
+				),
+			),
+			'twelvelabs' => array(
+				'embeddings' => array(
+					array( 'id' => 'marengo3.5', 'name' => 'TwelveLabs: Marengo 3.5 (Native Multimodal)' ),
+					array( 'id' => 'Marengo-retrieval-2.7', 'name' => 'TwelveLabs: Marengo Retrieval 2.7' ),
+				),
+				'chat'       => array(),
+			),
+			'xai'        => array(
+				'embeddings' => array(),
+				'chat'       => array(
+					array( 'id' => 'grok-2-vision-1212', 'name' => 'xAI: Grok 2 Vision' ),
+					array( 'id' => 'grok-4.7', 'name' => 'xAI: Grok 4.7 Multimodal' ),
+				),
+			),
+			'dashscope'  => array(
+				'embeddings' => array(),
+				'chat'       => array(
+					array( 'id' => 'qwen-vl-max', 'name' => 'Qwen: VL Max (Recommended)' ),
+					array( 'id' => 'qwen-vl-plus', 'name' => 'Qwen: VL Plus' ),
+					array( 'id' => 'qwen2.5-vl-72b-instruct', 'name' => 'Qwen: 2.5 VL 72B Instruct' ),
+				),
+			),
+			'cloudflare' => array(
+				'embeddings' => array(),
+				'chat'       => array(
+					array( 'id' => '@cf/meta/llama-3.2-11b-vision-instruct', 'name' => 'Cloudflare: Llama 3.2 11B Vision Instruct' ),
+					array( 'id' => '@cf/llava-hf/llava-1.5-7b-hf', 'name' => 'Cloudflare: LLaVA 1.5 7B' ),
+				),
+			),
+		);
+
+		if ( isset( $catalog[ $gateway ][ $key ] ) ) {
+			return $catalog[ $gateway ][ $key ];
 		}
 
-		if ( 'jina' === $gateway ) {
-			return $is_emb ? array(
-				array( 'id' => 'jina-clip-v2', 'name' => 'Jina AI: CLIP v2 (Multimodal Image & Text)' ),
-				array( 'id' => 'jina-embeddings-v5-omni-small', 'name' => 'Jina AI: Embeddings v5 Omni Small' ),
-				array( 'id' => 'jina-embeddings-v4', 'name' => 'Jina AI: Embeddings v4 (Multimodal)' ),
-			) : array();
-		}
-
-		if ( 'voyage' === $gateway ) {
-			return $is_emb ? array(
-				array( 'id' => 'voyage-multimodal-3.5', 'name' => 'Voyage AI: Multimodal 3.5 (Recommended)' ),
-				array( 'id' => 'voyage-multimodal-3', 'name' => 'Voyage AI: Multimodal 3' ),
-			) : array();
-		}
-
-		if ( 'cohere' === $gateway ) {
-			return $is_emb ? array(
-				array( 'id' => 'embed-v4.0', 'name' => 'Cohere: Embed v4.0 (Multimodal)' ),
-			) : array();
-		}
-
-		if ( 'groq' === $gateway ) {
-			return $is_emb ? array() : array(
-				array( 'id' => 'meta-llama/llama-4-scout-17b-16e-instruct', 'name' => 'Meta: Llama 4 Scout 17B Vision (Recommended)' ),
-				array( 'id' => 'meta-llama/llama-4-maverick-17b-128e-instruct', 'name' => 'Meta: Llama 4 Maverick 17B Vision' ),
-			);
-		}
-
-		if ( $is_emb ) {
+		if ( 'embeddings' === $key ) {
 			return array(
 				array( 'id' => 'google/gemini-embedding-2', 'name' => 'Google: Gemini Embedding 2 (Native Multimodal)' ),
 			);

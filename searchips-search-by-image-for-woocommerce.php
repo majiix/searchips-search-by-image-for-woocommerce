@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name: Searchips Search By Image for WooCommerce
- * Description: Enable customers to search WooCommerce products using images powered by OpenRouter, OpenAI, Google Gemini, Jina AI, Voyage AI, Cohere, Groq, AvalAI, GapGPT, and Custom OpenAI-Compatible AI providers.
+ * Description: Enable customers to search WooCommerce products using images powered by 26 AI providers (OpenRouter, OpenAI, Gemini, Jina AI, Voyage AI, Cohere, Groq, AvalAI, GapGPT, NVIDIA NIM, Mistral AI, Together AI, Fireworks AI, TwelveLabs, xAI, Alibaba DashScope, Cloudflare Workers AI, ArvanCloud AI, MetisAI, Liara AI, HeroAI, TalkBot, CupAI, Hooshang, Hormouz, and Custom Ollama/OpenAI-Compatible endpoints).
  * Version:     2.0.0
  * Author:      micromax
  * Text Domain: searchips-search-by-image-for-woocommerce

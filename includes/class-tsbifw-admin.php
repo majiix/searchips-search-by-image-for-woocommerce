@@ -181,6 +181,9 @@ class TSBIFW_Admin {
 		register_setting( 'tsbifw_settings_group', 'tsbifw_custom_base_url', array(
 			'sanitize_callback' => array( 'TSBIFW_API', 'sanitize_custom_base_url' ),
 		) );
+		register_setting( 'tsbifw_settings_group', 'tsbifw_cloudflare_account_id', array(
+			'sanitize_callback' => array( 'TSBIFW_API', 'sanitize_cloudflare_account_id' ),
+		) );
 		register_setting( 'tsbifw_settings_group', 'tsbifw_custom_embeddings_model', array(
 			'sanitize_callback' => array( $this, 'sanitize_model_id' ),
 		) );
@@ -283,7 +286,7 @@ class TSBIFW_Admin {
 		$gateway_labels       = $api->get_gateway_labels();
 		$active_gateway_label = isset( $gateway_labels[ $active_gateway ] ) ? $gateway_labels[ $active_gateway ] : ucfirst( $active_gateway );
 		$api_key              = $api->get_api_key( $active_gateway );
-		$api_key_ready        = ! empty( $api_key ) && ( 'custom' !== $active_gateway || '' !== $api->get_custom_base_url() );
+		$api_key_ready        = ! empty( $api_key ) && ( 'custom' !== $active_gateway || '' !== $api->get_custom_base_url() ) && ( 'cloudflare' !== $active_gateway || '' !== $api->get_cloudflare_account_id() );
 
 		$exclude_below_percent = (int) get_option( 'tsbifw_exclude_below_percent', 40 );
 
@@ -1195,8 +1198,10 @@ class TSBIFW_Admin {
 		$api_key = isset( $_POST['api_key'] ) ? trim( sanitize_text_field( wp_unslash( $_POST['api_key'] ) ) ) : null;
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing
 		$custom_base_url = isset( $_POST['custom_base_url'] ) ? sanitize_text_field( wp_unslash( $_POST['custom_base_url'] ) ) : null;
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing
+		$cf_account_id = isset( $_POST['cloudflare_account_id'] ) ? sanitize_text_field( wp_unslash( $_POST['cloudflare_account_id'] ) ) : null;
 
-		$result = TSBIFW_API::instance()->test_connection( $gateway, $api_key, $custom_base_url );
+		$result = TSBIFW_API::instance()->test_connection( $gateway, $api_key, $custom_base_url, $cf_account_id );
 		if ( is_wp_error( $result ) ) {
 			wp_send_json_error( $result->get_error_message() );
 		}
@@ -2127,6 +2132,22 @@ class TSBIFW_Admin {
 			'groq'       => __( 'Enter your Groq API key (fast Llama Vision inference for Strategy 2).', 'searchips-search-by-image-for-woocommerce' ),
 			'avalai'     => __( 'Enter your AvalAI API key (supports Gemini Embedding 2 & Vision chat).', 'searchips-search-by-image-for-woocommerce' ),
 			'gapgpt'     => __( 'Enter your GapGPT API key.', 'searchips-search-by-image-for-woocommerce' ),
+			'nvidia'     => __( 'Enter your NVIDIA NIM API key (starts with nvapi-). Includes free developer credits.', 'searchips-search-by-image-for-woocommerce' ),
+			'mistral'    => __( 'Enter your Mistral AI (La Plateforme) API key.', 'searchips-search-by-image-for-woocommerce' ),
+			'together'   => __( 'Enter your Together AI API key.', 'searchips-search-by-image-for-woocommerce' ),
+			'fireworks'  => __( 'Enter your Fireworks AI API key.', 'searchips-search-by-image-for-woocommerce' ),
+			'twelvelabs' => __( 'Enter your TwelveLabs API key for Marengo multimodal embeddings.', 'searchips-search-by-image-for-woocommerce' ),
+			'xai'        => __( 'Enter your xAI API key for Grok vision chat (Strategy 2).', 'searchips-search-by-image-for-woocommerce' ),
+			'dashscope'  => __( 'Enter your Alibaba Cloud Model Studio (DashScope) API key for Qwen-VL.', 'searchips-search-by-image-for-woocommerce' ),
+			'cloudflare' => __( 'Enter your Cloudflare Workers AI API token (requires Workers AI Read permission).', 'searchips-search-by-image-for-woocommerce' ),
+			'arvancloud' => __( 'Enter your ArvanCloud AIaaS API key (the "apikey " header prefix is added automatically).', 'searchips-search-by-image-for-woocommerce' ),
+			'metisai'    => __( 'Enter your MetisAI API key.', 'searchips-search-by-image-for-woocommerce' ),
+			'liara'      => __( 'Enter your Liara AI API key.', 'searchips-search-by-image-for-woocommerce' ),
+			'heroai'     => __( 'Enter your HeroAI API key.', 'searchips-search-by-image-for-woocommerce' ),
+			'talkbot'    => __( 'Enter your TalkBot API key.', 'searchips-search-by-image-for-woocommerce' ),
+			'cupai'      => __( 'Enter your CupAI API key.', 'searchips-search-by-image-for-woocommerce' ),
+			'hooshang'   => __( 'Enter your Hooshang AI API key.', 'searchips-search-by-image-for-woocommerce' ),
+			'hormouz'    => __( 'Enter your Hormouz AI API key.', 'searchips-search-by-image-for-woocommerce' ),
 			'custom'     => __( 'Enter the API key for your custom endpoint (leave blank or use "ollama" for local Ollama).', 'searchips-search-by-image-for-woocommerce' ),
 		);
 
@@ -2134,6 +2155,18 @@ class TSBIFW_Admin {
 			$opt_key = $cfg['api_key_option'];
 			$val     = get_option( $opt_key, '' );
 			$visible = ( $slug === $active_gateway );
+			if ( 'cloudflare' === $slug ) :
+				$cf_account_id = get_option( 'tsbifw_cloudflare_account_id', '' );
+				?>
+				<tr class="tsbifw-gateway-field gateway-cloudflare" style="<?php echo $visible ? '' : 'display:none;'; ?>">
+					<th scope="row"><label for="tsbifw_cloudflare_account_id"><?php esc_html_e( 'Cloudflare Account ID', 'searchips-search-by-image-for-woocommerce' ); ?></label></th>
+					<td>
+						<input type="text" name="tsbifw_cloudflare_account_id" id="tsbifw_cloudflare_account_id" value="<?php echo esc_attr( $cf_account_id ); ?>" class="regular-text" placeholder="32-character Cloudflare Account ID" />
+						<p class="description"><?php esc_html_e( 'Found on the right sidebar of your Cloudflare Dashboard overview or Workers & Pages URL.', 'searchips-search-by-image-for-woocommerce' ); ?></p>
+					</td>
+				</tr>
+				<?php
+			endif;
 			if ( 'custom' === $slug ) :
 				$custom_base   = get_option( 'tsbifw_custom_base_url', '' );
 				$custom_emb    = get_option( 'tsbifw_custom_embeddings_model', '' );
@@ -2142,11 +2175,8 @@ class TSBIFW_Admin {
 				<tr class="tsbifw-gateway-field gateway-custom" style="<?php echo $visible ? '' : 'display:none;'; ?>">
 					<th scope="row"><label for="tsbifw_custom_base_url"><?php esc_html_e( 'Custom Base URL', 'searchips-search-by-image-for-woocommerce' ); ?></label></th>
 					<td>
-						<input type="url" name="tsbifw_custom_base_url" id="tsbifw_custom_base_url" value="<?php echo esc_attr( $custom_base ); ?>" class="regular-text" placeholder="https://api.metisai.ir/v1" />
+						<input type="url" name="tsbifw_custom_base_url" id="tsbifw_custom_base_url" value="<?php echo esc_attr( $custom_base ); ?>" class="regular-text" placeholder="http://localhost:11434/v1" />
 						<div style="margin-top:6px; display:flex; flex-wrap:wrap; gap:6px;">
-							<button type="button" class="button button-small tsbifw-custom-preset" data-url="https://ai.liara.ir/api/v1" data-note="<?php esc_attr_e( 'Replace with your exact Base URL from the Liara AI console.', 'searchips-search-by-image-for-woocommerce' ); ?>"><?php esc_html_e( 'Liara AI', 'searchips-search-by-image-for-woocommerce' ); ?></button>
-							<button type="button" class="button button-small tsbifw-custom-preset" data-url="https://api.metisai.ir/v1"><?php esc_html_e( 'MetisAI', 'searchips-search-by-image-for-woocommerce' ); ?></button>
-							<button type="button" class="button button-small tsbifw-custom-preset" data-url="https://api.together.xyz/v1"><?php esc_html_e( 'Together AI', 'searchips-search-by-image-for-woocommerce' ); ?></button>
 							<button type="button" class="button button-small tsbifw-custom-preset" data-url="http://localhost:11434/v1"><?php esc_html_e( 'Ollama (Local)', 'searchips-search-by-image-for-woocommerce' ); ?></button>
 						</div>
 						<p class="description" id="tsbifw-custom-url-note"><?php esc_html_e( 'OpenAI-compatible /v1 base URL (HTTPS required for remote servers; HTTP allowed for localhost).', 'searchips-search-by-image-for-woocommerce' ); ?></p>
@@ -2320,15 +2350,190 @@ class TSBIFW_Admin {
 					__( 'Recommended: Strategy 2 with "gpt-4o-mini" or Strategy 1 (2-step Vision-to-Vector with "gpt-4o-mini" + "text-embedding-3-small").', 'searchips-search-by-image-for-woocommerce' ),
 				),
 			),
-			'custom'     => array(
-				'title'   => 'Custom OpenAI-Compatible (Liara AI / MetisAI / Together AI / Ollama)',
+			'nvidia'     => array(
+				'title'   => 'NVIDIA NIM',
+				'badge'   => __( 'Strategy 1 & 2 (Free Credits Available)', 'searchips-search-by-image-for-woocommerce' ),
+				'url'     => 'https://build.nvidia.com/',
+				'link'    => 'build.nvidia.com',
+				'steps'   => array(
+					__( 'Sign in at build.nvidia.com and generate an nvapi-... key.', 'searchips-search-by-image-for-woocommerce' ),
+					__( 'Select "NVIDIA NIM" in General Settings and paste your key.', 'searchips-search-by-image-for-woocommerce' ),
+					__( 'Recommended: "nvidia/llama-nemotron-embed-vl-1b-v2" or "nvidia/nvclip" (Strategy 1) or "meta/llama-3.2-11b-vision-instruct" (Strategy 2).', 'searchips-search-by-image-for-woocommerce' ),
+				),
+			),
+			'mistral'    => array(
+				'title'   => 'Mistral AI',
+				'badge'   => __( 'Strategy 1 (2-Step) & Strategy 2', 'searchips-search-by-image-for-woocommerce' ),
+				'url'     => 'https://console.mistral.ai/api-keys/',
+				'link'    => 'console.mistral.ai',
+				'steps'   => array(
+					__( 'Sign in at console.mistral.ai and create an API key.', 'searchips-search-by-image-for-woocommerce' ),
+					__( 'Select "Mistral AI" and paste your API key.', 'searchips-search-by-image-for-woocommerce' ),
+					__( 'Recommended: "pixtral-12b-2409" (Strategy 2) or "mistral-embed" + "pixtral-12b-2409" (Strategy 1 2-step).', 'searchips-search-by-image-for-woocommerce' ),
+				),
+			),
+			'together'   => array(
+				'title'   => 'Together AI',
+				'badge'   => __( 'Strategy 1 (2-Step) & Strategy 2', 'searchips-search-by-image-for-woocommerce' ),
+				'url'     => 'https://api.together.xyz/settings/api-keys',
+				'link'    => 'api.together.xyz',
+				'steps'   => array(
+					__( 'Create an account at together.ai and copy your API key.', 'searchips-search-by-image-for-woocommerce' ),
+					__( 'Select "Together AI" and paste your key into the API Key field.', 'searchips-search-by-image-for-woocommerce' ),
+					__( 'Recommended: "meta-llama/Llama-3.2-11B-Vision-Instruct-Turbo" (Strategy 2) or pair with "BAAI/bge-base-en-v1.5" (Strategy 1).', 'searchips-search-by-image-for-woocommerce' ),
+				),
+			),
+			'fireworks'  => array(
+				'title'   => 'Fireworks AI',
+				'badge'   => __( 'Strategy 1 (2-Step) & Strategy 2', 'searchips-search-by-image-for-woocommerce' ),
+				'url'     => 'https://fireworks.ai/account/api-keys',
+				'link'    => 'fireworks.ai',
+				'steps'   => array(
+					__( 'Sign in at fireworks.ai and create an API key under Account -> API Keys.', 'searchips-search-by-image-for-woocommerce' ),
+					__( 'Select "Fireworks AI" and paste your key.', 'searchips-search-by-image-for-woocommerce' ),
+					__( 'Recommended: "accounts/fireworks/models/llama-v3p2-11b-vision-instruct" (Strategy 2).', 'searchips-search-by-image-for-woocommerce' ),
+				),
+			),
+			'twelvelabs' => array(
+				'title'   => 'TwelveLabs (Marengo)',
+				'badge'   => __( 'Strategy 1 Only (Native Multimodal)', 'searchips-search-by-image-for-woocommerce' ),
+				'url'     => 'https://playground.twelvelabs.io/',
+				'link'    => 'twelvelabs.io',
+				'steps'   => array(
+					__( 'Sign up at twelvelabs.io and copy your x-api-key from Settings.', 'searchips-search-by-image-for-woocommerce' ),
+					__( 'Select "TwelveLabs (Marengo)" with Strategy 1 (Multimodal Vector Embeddings).', 'searchips-search-by-image-for-woocommerce' ),
+					__( 'Recommended model: "marengo3.5".', 'searchips-search-by-image-for-woocommerce' ),
+				),
+			),
+			'xai'        => array(
+				'title'   => 'xAI (Grok)',
+				'badge'   => __( 'Strategy 2 Only', 'searchips-search-by-image-for-woocommerce' ),
+				'url'     => 'https://console.x.ai/',
+				'link'    => 'console.x.ai',
+				'steps'   => array(
+					__( 'Log in at console.x.ai and create an API key.', 'searchips-search-by-image-for-woocommerce' ),
+					__( 'Select "xAI (Grok)" and set Search Strategy to Strategy 2 (Vision-to-Text).', 'searchips-search-by-image-for-woocommerce' ),
+					__( 'Recommended model: "grok-2-vision-1212" or "grok-4.7".', 'searchips-search-by-image-for-woocommerce' ),
+				),
+			),
+			'dashscope'  => array(
+				'title'   => 'Alibaba Cloud (Qwen DashScope)',
+				'badge'   => __( 'Strategy 2 Only', 'searchips-search-by-image-for-woocommerce' ),
+				'url'     => 'https://modelstudio.console.alibabacloud.com/',
+				'link'    => 'alibabacloud.com',
+				'steps'   => array(
+					__( 'Open Alibaba Cloud Model Studio (Singapore / Intl region) and create an API key.', 'searchips-search-by-image-for-woocommerce' ),
+					__( 'Select "Alibaba Cloud (Qwen DashScope)" and set Search Strategy to Strategy 2.', 'searchips-search-by-image-for-woocommerce' ),
+					__( 'Recommended model: "qwen-vl-max" or "qwen2.5-vl-72b-instruct".', 'searchips-search-by-image-for-woocommerce' ),
+				),
+			),
+			'cloudflare' => array(
+				'title'   => 'Cloudflare Workers AI',
+				'badge'   => __( 'Strategy 2 Only (Free Tier Available)', 'searchips-search-by-image-for-woocommerce' ),
+				'url'     => 'https://dash.cloudflare.com/',
+				'link'    => 'dash.cloudflare.com',
+				'steps'   => array(
+					__( 'Copy your Cloudflare Account ID from the dashboard overview right sidebar.', 'searchips-search-by-image-for-woocommerce' ),
+					__( 'Create a Workers AI API Token under My Profile -> API Tokens and enter both fields.', 'searchips-search-by-image-for-woocommerce' ),
+					__( 'Set Search Strategy to Strategy 2 (Vision-to-Text) using "@cf/meta/llama-3.2-11b-vision-instruct".', 'searchips-search-by-image-for-woocommerce' ),
+				),
+			),
+			'arvancloud' => array(
+				'title'   => 'ArvanCloud AI',
+				'badge'   => __( 'Strategy 1 (2-Step) & Strategy 2', 'searchips-search-by-image-for-woocommerce' ),
+				'url'     => 'https://www.arvancloud.ir/',
+				'link'    => 'arvancloud.ir',
+				'steps'   => array(
+					__( 'Activate AIaaS in your ArvanCloud panel and create a machine user API key.', 'searchips-search-by-image-for-woocommerce' ),
+					__( 'Select "ArvanCloud AI" and paste your key (the "apikey" Authorization prefix is handled automatically).', 'searchips-search-by-image-for-woocommerce' ),
+					__( 'Recommended: Strategy 2 with "gpt-4o-mini" or Strategy 1 with "gpt-4o-mini" + "text-embedding-3-large".', 'searchips-search-by-image-for-woocommerce' ),
+				),
+			),
+			'metisai'    => array(
+				'title'   => 'MetisAI',
+				'badge'   => __( 'Strategy 1 (2-Step) & Strategy 2', 'searchips-search-by-image-for-woocommerce' ),
+				'url'     => 'https://metisai.ir/',
+				'link'    => 'metisai.ir',
+				'steps'   => array(
+					__( 'Sign in to metisai.ir and generate an API key from your developer dashboard.', 'searchips-search-by-image-for-woocommerce' ),
+					__( 'Select "MetisAI" in General Settings and paste your API key.', 'searchips-search-by-image-for-woocommerce' ),
+					__( 'Recommended: "gpt-4o-mini" or "gemini-2.5-flash" (Strategy 2), or pair with "text-embedding-3-small" (Strategy 1).', 'searchips-search-by-image-for-woocommerce' ),
+				),
+			),
+			'liara'      => array(
+				'title'   => 'Liara AI',
 				'badge'   => __( 'Strategy 1 (2-Step) & Strategy 2', 'searchips-search-by-image-for-woocommerce' ),
 				'url'     => 'https://liara.ir/',
-				'link'    => 'liara.ir / metisai.ir',
+				'link'    => 'liara.ir',
 				'steps'   => array(
-					__( 'Select "Custom OpenAI-Compatible" in General Settings.', 'searchips-search-by-image-for-woocommerce' ),
-					__( 'Click a preset button (Liara AI, MetisAI, Together AI, or Ollama) or enter your provider /v1 Base URL (HTTPS required for remote servers; HTTP allowed for localhost).', 'searchips-search-by-image-for-woocommerce' ),
-					__( 'For Liara AI, copy the exact Base URL and API Key from your Liara AI service console.', 'searchips-search-by-image-for-woocommerce' ),
+					__( 'Create an AI service in your Liara dashboard and copy your API key.', 'searchips-search-by-image-for-woocommerce' ),
+					__( 'Select "Liara AI" in General Settings (uses prefixed models like "openai/gpt-4o-mini").', 'searchips-search-by-image-for-woocommerce' ),
+					__( 'If Liara gives you a custom workspace Base URL, you can also select "Custom OpenAI-Compatible" and paste that URL.', 'searchips-search-by-image-for-woocommerce' ),
+				),
+			),
+			'heroai'     => array(
+				'title'   => 'HeroAI',
+				'badge'   => __( 'Strategy 1 (2-Step) & Strategy 2', 'searchips-search-by-image-for-woocommerce' ),
+				'url'     => 'https://heroai.ir/',
+				'link'    => 'heroai.ir',
+				'steps'   => array(
+					__( 'Log in to heroai.ir and create a Virtual API Key.', 'searchips-search-by-image-for-woocommerce' ),
+					__( 'Select "HeroAI" and paste your key (to use the iranapi.heroai.ir mirror, use Custom OpenAI-Compatible).', 'searchips-search-by-image-for-woocommerce' ),
+					__( 'Recommended: "gpt-4o-mini" (Strategy 2) or "gpt-4o-mini" + "text-embedding-3-small" (Strategy 1).', 'searchips-search-by-image-for-woocommerce' ),
+				),
+			),
+			'talkbot'    => array(
+				'title'   => 'TalkBot',
+				'badge'   => __( 'Strategy 1 (2-Step) & Strategy 2', 'searchips-search-by-image-for-woocommerce' ),
+				'url'     => 'https://talkbot.ir/',
+				'link'    => 'talkbot.ir',
+				'steps'   => array(
+					__( 'Sign in to talkbot.ir, activate an API plan, and copy your API key.', 'searchips-search-by-image-for-woocommerce' ),
+					__( 'Select "TalkBot" in General Settings and paste your API key.', 'searchips-search-by-image-for-woocommerce' ),
+					__( 'Recommended: "gpt-4o-mini" (Strategy 2) or "gpt-4o-mini" + "text-embedding-3-small" (Strategy 1).', 'searchips-search-by-image-for-woocommerce' ),
+				),
+			),
+			'cupai'      => array(
+				'title'   => 'CupAI',
+				'badge'   => __( 'Strategy 1 (2-Step) & Strategy 2', 'searchips-search-by-image-for-woocommerce' ),
+				'url'     => 'https://cupai.ir/',
+				'link'    => 'cupai.ir',
+				'steps'   => array(
+					__( 'Create an API key in your cupai.ir panel.', 'searchips-search-by-image-for-woocommerce' ),
+					__( 'Select "CupAI" in General Settings and paste your API key.', 'searchips-search-by-image-for-woocommerce' ),
+					__( 'Recommended: "gpt-4o-mini" (Strategy 2) or "gpt-4o-mini" + "text-embedding-3-small" (Strategy 1).', 'searchips-search-by-image-for-woocommerce' ),
+				),
+			),
+			'hooshang'   => array(
+				'title'   => 'Hooshang',
+				'badge'   => __( 'Strategy 1 (2-Step) & Strategy 2', 'searchips-search-by-image-for-woocommerce' ),
+				'url'     => 'https://hushang.cloud/',
+				'link'    => 'hushang.cloud',
+				'steps'   => array(
+					__( 'Sign in at hushang.cloud and generate an API key.', 'searchips-search-by-image-for-woocommerce' ),
+					__( 'Select "Hooshang" in General Settings and paste your API key.', 'searchips-search-by-image-for-woocommerce' ),
+					__( 'Recommended: "gpt-4o-mini" (Strategy 2) or "gpt-4o-mini" + "text-embedding-3-small" (Strategy 1).', 'searchips-search-by-image-for-woocommerce' ),
+				),
+			),
+			'hormouz'    => array(
+				'title'   => 'Hormouz',
+				'badge'   => __( 'Strategy 1 (2-Step) & Strategy 2', 'searchips-search-by-image-for-woocommerce' ),
+				'url'     => 'https://api.hormouz.net/',
+				'link'    => 'api.hormouz.net',
+				'steps'   => array(
+					__( 'Create an API key from your Hormouz dashboard.', 'searchips-search-by-image-for-woocommerce' ),
+					__( 'Select "Hormouz" in General Settings and paste your API key.', 'searchips-search-by-image-for-woocommerce' ),
+					__( 'Recommended: "gpt-4o-mini" (Strategy 2) or "gpt-4o-mini" + "text-embedding-3-small" (Strategy 1).', 'searchips-search-by-image-for-woocommerce' ),
+				),
+			),
+			'custom'     => array(
+				'title'   => 'Custom OpenAI-Compatible (Ollama / Custom)',
+				'badge'   => __( 'Strategy 1 (2-Step) & Strategy 2', 'searchips-search-by-image-for-woocommerce' ),
+				'url'     => 'https://ollama.com/',
+				'link'    => 'ollama.com',
+				'steps'   => array(
+					__( 'Select "Custom OpenAI-Compatible (Ollama / Custom)" in General Settings.', 'searchips-search-by-image-for-woocommerce' ),
+					__( 'Click "Ollama (Local)" or enter any custom OpenAI-compatible /v1 Base URL (HTTPS required remotely; HTTP allowed for localhost).', 'searchips-search-by-image-for-woocommerce' ),
 					__( 'For local Ollama, use http://localhost:11434/v1 (API key can be left blank) and enter your pulled vision/embedding model names in Custom Model Overrides.', 'searchips-search-by-image-for-woocommerce' ),
 				),
 			),
