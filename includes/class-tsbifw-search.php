@@ -19,6 +19,13 @@ class TSBIFW_Search {
 	private static $instance = null;
 
 	/**
+	 * Last generated vision description for the active request.
+	 *
+	 * @var string
+	 */
+	private $last_vision_description = '';
+
+	/**
 	 * Get class instance.
 	 *
 	 * @return TSBIFW_Search
@@ -44,6 +51,11 @@ class TSBIFW_Search {
 		add_action( 'pre_get_posts', array( $this, 'modify_search_query' ) );
 		add_filter( 'query_vars', array( $this, 'register_query_vars' ) );
 		add_filter( 'posts_search', array( $this, 'clear_search_keyword_sql' ), 10, 2 );
+
+		// Strategy 2: Vision-to-Text Description Search.
+		add_filter( 'tsbifw_custom_strategy_search_scores', array( $this, 'search_scores_vision_strategy' ), 10, 6 );
+		add_filter( 'tsbifw_custom_strategy_fallback_posts', array( $this, 'search_fallback_vision_strategy' ), 10, 4 );
+		add_filter( 'tsbifw_search_term', array( $this, 'filter_search_term' ), 10, 3 );
 
 		// Scanning effects registration.
 		add_filter( 'tsbifw_scanning_effects', array( $this, 'register_scanning_effects' ) );
@@ -533,9 +545,14 @@ class TSBIFW_Search {
 
 			$exclude_percent = (int) get_option( 'tsbifw_exclude_below_percent', 40 );
 			$threshold       = (float) ( $exclude_percent / 100.0 );
+			$strategy        = get_option( 'tsbifw_strategy', 'embeddings' );
+			if ( ! in_array( $strategy, array( 'embeddings', 'vision' ), true ) ) {
+				$strategy = 'embeddings';
+			}
 
-			// Get query vector.
-			$query_vector = $api->get_embeddings( $base64 );
+			if ( 'embeddings' === $strategy ) {
+				// Get query vector.
+				$query_vector = $api->get_embeddings( $base64, 'query' );
 				if ( is_wp_error( $query_vector ) ) {
 					if ( ! $sandbox ) {
 						return new WP_Error(
@@ -551,38 +568,50 @@ class TSBIFW_Search {
 
 				// Calculate similarity scores in cursor batches to prevent memory and packet limits.
 				$scores = $this->calculate_vector_scores( $query_vector, $threshold, $match_meta );
+			} else {
+				$custom_scores = apply_filters_ref_array( 'tsbifw_custom_strategy_search_scores', array( null, $strategy, $base64, $threshold, &$match_meta, $sandbox ) );
+				if ( is_wp_error( $custom_scores ) ) {
+					return $custom_scores;
+				}
+				$scores = is_array( $custom_scores ) ? $custom_scores : array();
+			}
 
-				if ( ! empty( $scores ) ) {
-					// Sort scores descending.
-					arsort( $scores );
+			if ( ! empty( $scores ) ) {
+				// Sort scores descending.
+				arsort( $scores );
 
-					// Pre-prime post, postmeta, and taxonomy caches for candidates to prevent N+1 queries.
-					$candidate_ids = array_slice( array_keys( $scores ), 0, max( $limit * 3, 50 ) );
-					if ( function_exists( '_prime_post_caches' ) ) {
-						_prime_post_caches( $candidate_ids, true, true );
+				// Pre-prime post, postmeta, and taxonomy caches for candidates to prevent N+1 queries.
+				$candidate_ids = array_slice( array_keys( $scores ), 0, max( $limit * 3, 50 ) );
+				if ( function_exists( '_prime_post_caches' ) ) {
+					_prime_post_caches( $candidate_ids, true, true );
+				}
+
+				$resolved_products = array();
+				foreach ( $scores as $product_id => $score ) {
+					$product = wc_get_product( $product_id );
+					if ( ! $this->is_product_viewable_and_visible( $product, $include_hidden ) ) {
+						continue;
 					}
 
-					$resolved_products = array();
-					foreach ( $scores as $product_id => $score ) {
-						$product = wc_get_product( $product_id );
-						if ( ! $this->is_product_viewable_and_visible( $product, $include_hidden ) ) {
-							continue;
-						}
+					$matched_posts[] = array(
+						'id'       => $product_id,
+						'score'    => $score,
+						'image_id' => isset( $match_meta[ $product_id ]['image_id'] ) ? $match_meta[ $product_id ]['image_id'] : 0,
+					);
+					if ( $sandbox && $product ) {
+						$resolved_products[ $product_id ] = $product;
+					}
 
-						$matched_posts[] = array(
-							'id'       => $product_id,
-							'score'    => $score,
-							'image_id' => isset( $match_meta[ $product_id ]['image_id'] ) ? $match_meta[ $product_id ]['image_id'] : 0,
-						);
-						if ( $sandbox && $product ) {
-							$resolved_products[ $product_id ] = $product;
-						}
-
-						if ( count( $matched_posts ) >= $limit ) {
-							break;
-						}
+					if ( count( $matched_posts ) >= $limit ) {
+						break;
 					}
 				}
+			} elseif ( 'embeddings' !== $strategy ) {
+				$custom_fallback = apply_filters( 'tsbifw_custom_strategy_fallback_posts', array(), $strategy, $limit, $include_hidden );
+				if ( is_array( $custom_fallback ) && ! empty( $custom_fallback ) ) {
+					$matched_posts = $custom_fallback;
+				}
+			}
 		} catch ( Throwable $e ) {
 			TSBIFW_Logger::log( 'Search request encountered an exception: ' . $e->getMessage(), array( 'trace' => $e->getTraceAsString() ), true );
 			return new WP_Error(
@@ -685,7 +714,7 @@ class TSBIFW_Search {
 			);
 			set_transient( 'tsbifw_vquery_' . $sandbox_token, $transient_payload, $cache_expiry );
 
-			$search_term = apply_filters( 'tsbifw_search_term', _x( 'image-search', 'default search term for visual search', 'searchips-search-by-image-for-woocommerce' ), 'embeddings', $matched_posts );
+			$search_term = apply_filters( 'tsbifw_search_term', _x( 'image-search', 'default search term for visual search', 'searchips-search-by-image-for-woocommerce' ), $strategy, $matched_posts );
 
 			$redirect_url = add_query_arg(
 				array(
@@ -722,7 +751,7 @@ class TSBIFW_Search {
 
 		set_transient( 'tsbifw_vquery_' . $token, $transient_payload, $cache_expiry );
 
-		$search_term = apply_filters( 'tsbifw_search_term', _x( 'image-search', 'default search term for visual search', 'searchips-search-by-image-for-woocommerce' ), 'embeddings', $matched_posts );
+		$search_term = apply_filters( 'tsbifw_search_term', _x( 'image-search', 'default search term for visual search', 'searchips-search-by-image-for-woocommerce' ), $strategy, $matched_posts );
 
 		$redirect_url = add_query_arg(
 			array(
@@ -958,5 +987,240 @@ class TSBIFW_Search {
 		$effects['ripple']   = esc_html__( 'Concentric Ripple', 'searchips-search-by-image-for-woocommerce' );
 		$effects['hologram'] = esc_html__( 'Luxury Hologram', 'searchips-search-by-image-for-woocommerce' );
 		return $effects;
+	}
+
+	/**
+	 * Calculate search candidate scores for Strategy 2 (Vision-to-Text Description Search).
+	 *
+	 * @param array|null $custom_scores Default null.
+	 * @param string     $strategy      Active strategy.
+	 * @param string     $base64        Base64 query image.
+	 * @param float      $threshold     Minimum similarity threshold.
+	 * @param array      &$match_meta   Reference array for matched image metadata.
+	 * @param bool       $sandbox       Whether sandbox mode is active.
+	 * @return array|WP_Error
+	 */
+	public function search_scores_vision_strategy( $custom_scores, $strategy, $base64, $threshold, &$match_meta, $sandbox ) {
+		if ( 'vision' !== $strategy ) {
+			return $custom_scores;
+		}
+
+		$description = TSBIFW_API::instance()->get_vision_description( $base64 );
+		if ( is_wp_error( $description ) ) {
+			if ( ! $sandbox ) {
+				return new WP_Error(
+					'tsbifw_search_failed',
+					esc_html__( 'Search failed. Please try again.', 'searchips-search-by-image-for-woocommerce' ),
+					array( 'status' => 503 )
+				);
+			}
+			$status_code = ( 'tsbifw_missing_api_key' === $description->get_error_code() ) ? 400 : 422;
+			$description->add_data( array( 'status' => $status_code ) );
+			return $description;
+		}
+
+		$this->last_vision_description = $description;
+		return $this->calculate_description_scores( $description, $threshold, $match_meta );
+	}
+
+	/**
+	 * Fallback product query for Strategy 2 if score matching yielded no results.
+	 *
+	 * @param array  $fallback       Default fallback posts.
+	 * @param string $strategy       Active strategy.
+	 * @param int    $limit          Maximum results.
+	 * @param bool   $include_hidden Whether to include hidden items.
+	 * @return array
+	 */
+	public function search_fallback_vision_strategy( $fallback, $strategy, $limit, $include_hidden ) {
+		if ( 'vision' !== $strategy || empty( $this->last_vision_description ) ) {
+			return $fallback;
+		}
+
+		$search_query = new WP_Query(
+			array(
+				'post_type'      => 'product',
+				'post_status'    => 'publish',
+				'posts_per_page' => $limit,
+				's'              => $this->last_vision_description,
+				'fields'         => 'ids',
+			)
+		);
+		$ids = $search_query->posts;
+
+		if ( function_exists( '_prime_post_caches' ) && ! empty( $ids ) ) {
+			_prime_post_caches( $ids, true, true );
+		}
+
+		$matched = array();
+		foreach ( $ids as $product_id ) {
+			$product = wc_get_product( $product_id );
+			if ( ! $this->is_product_viewable_and_visible( $product, $include_hidden ) ) {
+				continue;
+			}
+			$matched[] = array(
+				'id'       => $product_id,
+				'score'    => null,
+				'image_id' => 0,
+			);
+		}
+
+		return $matched;
+	}
+
+	/**
+	 * Filter search term to use generated vision description for Strategy 2 storefront redirects.
+	 *
+	 * @param string $term          Default search term.
+	 * @param string $strategy      Active strategy.
+	 * @param array  $matched_posts Resolved products.
+	 * @return string
+	 */
+	public function filter_search_term( $term, $strategy, $matched_posts ) {
+		if ( 'vision' === $strategy && ! empty( $this->last_vision_description ) ) {
+			return $this->last_vision_description;
+		}
+		return $term;
+	}
+
+	private function get_cached_catalog_descriptions() {
+		static $memory_cache = null;
+		if ( null !== $memory_cache ) {
+			return $memory_cache;
+		}
+
+		$cache_key = 'tsbifw_catalog_descriptions';
+		$cached    = wp_cache_get( $cache_key, 'tsbifw_cache' );
+		if ( false === $cached ) {
+			$cached = get_transient( $cache_key );
+		}
+
+		if ( is_array( $cached ) ) {
+			$memory_cache = $cached;
+			return $memory_cache;
+		}
+
+		global $wpdb;
+		$descriptions = array();
+		$batch_size   = 500;
+		$last_post_id = 0;
+
+		do {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			$rows = $wpdb->get_results(
+				$wpdb->prepare(
+					"SELECT pm.post_id, pm.meta_value 
+					FROM {$wpdb->postmeta} pm
+					INNER JOIN {$wpdb->posts} p ON p.ID = pm.post_id
+					WHERE pm.meta_key = %s 
+					  AND p.post_status = %s 
+					  AND p.post_type = %s 
+					  AND pm.post_id > %d
+					ORDER BY pm.post_id ASC
+					LIMIT %d",
+					'_tsbifw_descriptions',
+					'publish',
+					'product',
+					$last_post_id,
+					$batch_size
+				),
+				ARRAY_A
+			);
+
+			if ( empty( $rows ) ) {
+				break;
+			}
+
+			foreach ( $rows as $row ) {
+				$last_post_id = (int) $row['post_id'];
+				$desc_list    = $this->safe_unserialize( $row['meta_value'] );
+				if ( is_array( $desc_list ) && ! empty( $desc_list ) ) {
+					$descriptions[ $last_post_id ] = $desc_list;
+				}
+			}
+
+			unset( $rows );
+		} while ( true );
+
+		$memory_cache = $descriptions;
+		wp_cache_set( $cache_key, $descriptions, 'tsbifw_cache', 12 * HOUR_IN_SECONDS );
+		set_transient( $cache_key, $descriptions, 12 * HOUR_IN_SECONDS );
+
+		return $memory_cache;
+	}
+
+	private function calculate_description_scores( $query_desc, $threshold, &$match_meta = array() ) {
+		if ( ! is_string( $query_desc ) || '' === trim( $query_desc ) ) {
+			return array();
+		}
+
+		$scores               = array();
+		$catalog_descriptions = $this->get_cached_catalog_descriptions();
+
+		foreach ( $catalog_descriptions as $post_id => $desc_list ) {
+			$max_score   = 0.0;
+			$best_img_id = 0;
+			foreach ( $desc_list as $img_data ) {
+				if ( isset( $img_data['description'] ) && is_string( $img_data['description'] ) ) {
+					$score = $this->jaccard_similarity( $query_desc, $img_data['description'] );
+					if ( $score > $max_score ) {
+						$max_score   = $score;
+						$best_img_id = isset( $img_data['id'] ) ? (int) $img_data['id'] : 0;
+					}
+				}
+			}
+
+			if ( $max_score >= $threshold ) {
+				$scores[ $post_id ]     = $max_score;
+				$match_meta[ $post_id ] = array(
+					'image_id' => $best_img_id,
+				);
+			}
+		}
+
+		return $scores;
+	}
+
+	/**
+	 * Compute Jaccard Similarity between two description strings.
+	 *
+	 * @param string $str1 String 1.
+	 * @param string $str2 String 2.
+	 * @return float Jaccard Similarity score between 0.0 and 1.0.
+	 */
+	public function jaccard_similarity( $str1, $str2 ) {
+		if ( ! is_string( $str1 ) || ! is_string( $str2 ) ) {
+			return 0.0;
+		}
+
+		$tokens1 = $this->tokenize_description( $str1 );
+		$tokens2 = $this->tokenize_description( $str2 );
+
+		if ( empty( $tokens1 ) || empty( $tokens2 ) ) {
+			return 0.0;
+		}
+
+		$intersection = array_intersect( $tokens1, $tokens2 );
+		$union        = array_unique( array_merge( $tokens1, $tokens2 ) );
+
+		return count( $intersection ) / count( $union );
+	}
+
+	private function tokenize_description( $str ) {
+		static $stop_words = array(
+			'and', 'or', 'with', 'the', 'for', 'a', 'an', 'in', 'on', 'of',
+			'to', 'at', 'by', 'this', 'that', 'is', 'are', 'was', 'were',
+			'it', 'its', 'from', 'product', 'image',
+		);
+
+		$words  = explode( ' ', strtolower( $str ) );
+		$tokens = array();
+		foreach ( $words as $word ) {
+			$word = trim( preg_replace( '/[^a-z0-9]/', '', $word ) );
+			if ( strlen( $word ) > 2 && ! in_array( $word, $stop_words, true ) ) {
+				$tokens[] = $word;
+			}
+		}
+		return array_unique( $tokens );
 	}
 }

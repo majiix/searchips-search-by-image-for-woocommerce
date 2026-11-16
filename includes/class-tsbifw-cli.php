@@ -32,15 +32,13 @@ if ( ! class_exists( 'TSBIFW_CLI' ) ) {
 				WP_CLI::error( 'Searchips core plugin is not loaded.' );
 			}
 
-			$allowed_gateways = apply_filters( 'tsbifw_allowed_gateways', array( 'openrouter' ) );
-			$gateway          = get_option( 'tsbifw_api_gateway', 'openrouter' );
-			if ( ! in_array( $gateway, $allowed_gateways, true ) ) {
-				$gateway = 'openrouter';
-			}
+			$gateway        = function_exists( 'tsbifw_get_active_gateway' ) ? tsbifw_get_active_gateway() : 'openrouter';
+			$gateway_labels = class_exists( 'TSBIFW_API' ) ? TSBIFW_API::instance()->get_gateway_labels() : array();
+			$gateway_label  = isset( $gateway_labels[ $gateway ] ) ? $gateway_labels[ $gateway ] : ucfirst( $gateway );
 
 			WP_CLI::line( WP_CLI::colorize( '%GSearchips Visual Search Status%n' ) );
 			WP_CLI::line( '--------------------------------' );
-			WP_CLI::line( sprintf( 'Active AI Gateway : %s', ucfirst( $gateway ) ) );
+			WP_CLI::line( sprintf( 'Active AI Gateway : %s', $gateway_label ) );
 			WP_CLI::line( sprintf( 'Total Products    : %d', $stats['total'] ) );
 			WP_CLI::line( sprintf( 'Indexed Products  : %d', $stats['indexed'] ) );
 			WP_CLI::line( sprintf( 'Skipped (No Image): %d', $stats['skipped'] ) );

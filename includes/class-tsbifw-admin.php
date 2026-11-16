@@ -19,6 +19,13 @@ class TSBIFW_Admin {
 	private static $instance = null;
 
 	/**
+	 * Snapshot of indexing-relevant settings taken before options.php saves.
+	 *
+	 * @var array|null
+	 */
+	private $pre_save_snapshot = null;
+
+	/**
 	 * Get class instance.
 	 *
 	 * @return TSBIFW_Admin
@@ -46,6 +53,7 @@ class TSBIFW_Admin {
 		add_action( 'wp_ajax_tsbifw_batch_index', array( $this, 'ajax_batch_index' ) );
 		add_action( 'wp_ajax_tsbifw_clear_index', array( $this, 'ajax_clear_index' ) );
 		add_action( 'wp_ajax_tsbifw_fetch_openrouter_models', array( $this, 'ajax_fetch_openrouter_models' ) );
+		add_action( 'wp_ajax_tsbifw_test_connection', array( $this, 'ajax_test_connection' ) );
 		add_action( 'wp_ajax_tsbifw_clear_logs', array( $this, 'ajax_clear_logs' ) );
 
 
@@ -60,6 +68,10 @@ class TSBIFW_Admin {
 			add_action( 'restrict_manage_posts', array( $this, 'add_media_filter_dropdown' ) );
 			add_action( 'pre_get_posts', array( $this, 'filter_media_by_indexed_status' ) );
 		}
+
+		// Clear cached indexes when search strategy changes.
+		add_action( 'update_option_tsbifw_strategy', array( $this, 'on_strategy_change' ), 10, 2 );
+		add_action( 'admin_init', array( $this, 'capture_pre_save_snapshot' ), 20 );
 
 		// Register suggested privacy policy content.
 		add_action( 'admin_init', array( $this, 'add_privacy_policy_content' ) );
@@ -89,6 +101,18 @@ class TSBIFW_Admin {
 			$max_mb = 2;
 		}
 
+		$api             = TSBIFW_API::instance();
+		$gateway_configs = $api->get_gateway_configs();
+		$gateway_caps    = array();
+		foreach ( $gateway_configs as $slug => $cfg ) {
+			$gateway_caps[ $slug ] = array(
+				'supports_strategy_1' => ! empty( $cfg['supports_strategy_1'] ),
+				'supports_strategy_2' => ! empty( $cfg['supports_strategy_2'] ),
+				'embedding_protocol'  => isset( $cfg['embedding_protocol'] ) ? $cfg['embedding_protocol'] : '',
+				'api_key_option'      => isset( $cfg['api_key_option'] ) ? $cfg['api_key_option'] : '',
+			);
+		}
+
 		wp_localize_script(
 			'tsbifw-admin-js',
 			'tsbifw_admin_params',
@@ -97,7 +121,8 @@ class TSBIFW_Admin {
 				'nonce'           => wp_create_nonce( 'tsbifw_admin_nonce' ),
 				'wp_rest_nonce'   => wp_create_nonce( 'wp_rest' ),
 				'search_endpoint' => esc_url_raw( rest_url( 'tsbifw/v1/search' ) ),
-				'gateway_labels'  => apply_filters( 'tsbifw_admin_gateway_labels', array( 'openrouter' => 'OpenRouter' ) ),
+				'gateway_labels'  => apply_filters( 'tsbifw_admin_gateway_labels', $api->get_gateway_labels() ),
+				'gateway_caps'    => $gateway_caps,
 				'max_upload_size' => $max_mb * 1024 * 1024,
 				'scanning_effect' => array_key_exists( get_option( 'tsbifw_scanning_effect', 'laser' ), apply_filters( 'tsbifw_scanning_effects', array( 'laser' => 'Laser' ) ) ) ? get_option( 'tsbifw_scanning_effect', 'laser' ) : 'laser',
 				'scanning_color'  => get_option( 'tsbifw_scanning_color', '#6366f1' ),
@@ -112,9 +137,13 @@ class TSBIFW_Admin {
 					'hidden_from_catalog'  => esc_html__( 'Hidden from Catalog', 'searchips-search-by-image-for-woocommerce' ),
 					// translators: %d: Max upload size in MB
 					'drag_drop_text'       => sprintf( esc_html__( 'Drag and drop an image here or click to browse (Max size: %dMB)', 'searchips-search-by-image-for-woocommerce' ), $max_mb ),
+					'strategy_warning'     => esc_html__( 'Attention: You have changed the Search Strategy. You should Clear / Reset the index and perform a complete re-indexing for matches to work correctly.', 'searchips-search-by-image-for-woocommerce' ),
 					'search_btn_text'      => esc_html__( 'Start Search', 'searchips-search-by-image-for-woocommerce' ),
 					// translators: %d: Max upload size in MB
 					'file_too_large'       => sprintf( esc_html__( 'Selected file is too large. Maximum allowed size is %dMB.', 'searchips-search-by-image-for-woocommerce' ), $max_mb ),
+					'testing_conn'         => esc_html__( 'Testing...', 'searchips-search-by-image-for-woocommerce' ),
+					'test_conn_label'      => esc_html__( 'Test Connection', 'searchips-search-by-image-for-woocommerce' ),
+					'conn_network_err'     => esc_html__( 'Network error occurred while testing connection.', 'searchips-search-by-image-for-woocommerce' ),
 				),
 			)
 		);
@@ -138,8 +167,34 @@ class TSBIFW_Admin {
 	 * Register settings fields.
 	 */
 	public function register_settings() {
-		register_setting( 'tsbifw_settings_group', 'tsbifw_api_key', array(
-			'sanitize_callback' => array( $this, 'sanitize_api_key' ),
+		$gateway_configs = TSBIFW_API::instance()->get_gateway_configs();
+		foreach ( $gateway_configs as $slug => $cfg ) {
+			$opt_key = $cfg['api_key_option'];
+			register_setting(
+				'tsbifw_settings_group',
+				$opt_key,
+				array(
+					'sanitize_callback' => ( 'openrouter' === $slug ) ? array( $this, 'sanitize_api_key' ) : 'sanitize_text_field',
+				)
+			);
+		}
+		register_setting( 'tsbifw_settings_group', 'tsbifw_custom_base_url', array(
+			'sanitize_callback' => array( 'TSBIFW_API', 'sanitize_custom_base_url' ),
+		) );
+		register_setting( 'tsbifw_settings_group', 'tsbifw_custom_embeddings_model', array(
+			'sanitize_callback' => array( $this, 'sanitize_model_id' ),
+		) );
+		register_setting( 'tsbifw_settings_group', 'tsbifw_custom_vision_model', array(
+			'sanitize_callback' => array( $this, 'sanitize_model_id' ),
+		) );
+		register_setting( 'tsbifw_settings_group', 'tsbifw_strategy', array(
+			'sanitize_callback' => array( $this, 'sanitize_strategy' ),
+		) );
+		register_setting( 'tsbifw_settings_group', 'tsbifw_vision_model', array(
+			'sanitize_callback' => array( $this, 'sanitize_model_id' ),
+		) );
+		register_setting( 'tsbifw_settings_group', 'tsbifw_sync_to_tags', array(
+			'sanitize_callback' => array( $this, 'sanitize_yes_no' ),
 		) );
 		register_setting( 'tsbifw_settings_group', 'tsbifw_embeddings_model', array(
 			'sanitize_callback' => array( $this, 'sanitize_model_id' ),
@@ -172,9 +227,6 @@ class TSBIFW_Admin {
 			'sanitize_callback' => array( $this, 'sanitize_scanning_color' ),
 		) );
 		register_setting( 'tsbifw_settings_group', 'tsbifw_index_featured', array(
-			'sanitize_callback' => array( $this, 'sanitize_yes_no' ),
-		) );
-		register_setting( 'tsbifw_settings_group', 'tsbifw_index_gallery', array(
 			'sanitize_callback' => array( $this, 'sanitize_yes_no' ),
 		) );
 		register_setting( 'tsbifw_logs_group', 'tsbifw_enable_logging', array(
@@ -225,9 +277,13 @@ class TSBIFW_Admin {
 		$this->check_cron_scheduling();
 
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
-		$active_tab     = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : 'general';
-		$api_key        = TSBIFW_API::instance()->get_api_key();
-		$openrouter_key = get_option( 'tsbifw_api_key', '' );
+		$active_tab           = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : 'general';
+		$api                  = TSBIFW_API::instance();
+		$active_gateway       = $api->get_active_gateway();
+		$gateway_labels       = $api->get_gateway_labels();
+		$active_gateway_label = isset( $gateway_labels[ $active_gateway ] ) ? $gateway_labels[ $active_gateway ] : ucfirst( $active_gateway );
+		$api_key              = $api->get_api_key( $active_gateway );
+		$api_key_ready        = ! empty( $api_key ) && ( 'custom' !== $active_gateway || '' !== $api->get_custom_base_url() );
 
 		$exclude_below_percent = (int) get_option( 'tsbifw_exclude_below_percent', 40 );
 
@@ -237,6 +293,7 @@ class TSBIFW_Admin {
 		<div class="wrap tsbifw-admin-wrap">
 			<h1><?php esc_html_e( 'WooCommerce Search by Image Settings', 'searchips-search-by-image-for-woocommerce' ); ?></h1>
 			<?php settings_errors(); ?>
+			<?php $this->render_reindex_required_notice( $active_tab ); ?>
 
 			<h2 class="nav-tab-wrapper">
 				<a href="?page=tsbifw-settings&tab=general" class="nav-tab <?php echo 'general' === $active_tab ? 'nav-tab-active' : ''; ?>">
@@ -254,6 +311,9 @@ class TSBIFW_Admin {
 				<a href="?page=tsbifw-settings&tab=logs" class="nav-tab <?php echo 'logs' === $active_tab ? 'nav-tab-active' : ''; ?>">
 					<?php esc_html_e( 'System Logs', 'searchips-search-by-image-for-woocommerce' ); ?>
 				</a>
+				<a href="?page=tsbifw-settings&tab=help" class="nav-tab <?php echo 'help' === $active_tab ? 'nav-tab-active' : ''; ?>">
+					<?php esc_html_e( 'Help & Setup Guide', 'searchips-search-by-image-for-woocommerce' ); ?>
+				</a>
 			</h2>
 
 			<div class="tsbifw-admin-columns">
@@ -266,64 +326,53 @@ class TSBIFW_Admin {
 								do_settings_sections( 'tsbifw_settings_group' );
 								do_action( 'tsbifw_admin_after_settings_fields', 'general' );
 
-								$default_gateways    = array(
-									'openrouter' => esc_html__( 'OpenRouter', 'searchips-search-by-image-for-woocommerce' ),
-								);
-								$gateways            = apply_filters( 'tsbifw_api_gateways', $default_gateways );
-								$active_gateway      = TSBIFW_API::instance()->get_active_gateway();
+								$api                  = TSBIFW_API::instance();
+								$gateway_configs      = $api->get_gateway_configs();
+								$gateways             = apply_filters( 'tsbifw_api_gateways', $api->get_gateway_labels() );
+								$active_gateway       = $api->get_active_gateway();
 								if ( ! isset( $gateways[ $active_gateway ] ) ) {
 									$active_gateway = 'openrouter';
+								}
+								$active_config        = isset( $gateway_configs[ $active_gateway ] ) ? $gateway_configs[ $active_gateway ] : $gateway_configs['openrouter'];
+								$default_strategies   = array(
+									'embeddings' => esc_html__( 'Strategy 1: Multimodal Vector Embeddings (Recommended)', 'searchips-search-by-image-for-woocommerce' ),
+								);
+								$strategies           = apply_filters( 'tsbifw_search_strategies', $default_strategies );
+								$strategy             = get_option( 'tsbifw_strategy', 'embeddings' );
+								if ( ! isset( $strategies[ $strategy ] ) ) {
+									$strategy = 'embeddings';
 								}
 								$auto_index_on_save   = get_option( 'tsbifw_auto_index_on_save', 'no' );
 								$enable_media_column  = get_option( 'tsbifw_enable_media_column', 'yes' );
 								$embeddings_model     = get_option( 'tsbifw_embeddings_model', 'google/gemini-embedding-2' );
+								$vision_model         = get_option( 'tsbifw_vision_model', 'google/gemini-2.5-flash' );
+								$sync_to_tags         = get_option( 'tsbifw_sync_to_tags', 'no' );
 								$enable_auto_inject   = get_option( 'tsbifw_enable_auto_inject', 'yes' );
 								$index_featured       = get_option( 'tsbifw_index_featured', 'yes' );
-								$index_gallery        = get_option( 'tsbifw_index_gallery', 'no' );
+								$show_vision_for_v2v  = ( 'embeddings' === $strategy && isset( $active_config['embedding_protocol'] ) && 'openai_vision_to_vector' === $active_config['embedding_protocol'] );
 								?>
 								<table class="form-table">
 									<tr>
 										<th scope="row"><label for="tsbifw_api_gateway"><?php esc_html_e( 'AI Provider Gateway', 'searchips-search-by-image-for-woocommerce' ); ?></label></th>
 										<td>
-											<?php if ( count( $gateways ) > 1 ) : ?>
-												<select name="tsbifw_api_gateway" id="tsbifw_api_gateway">
-													<?php foreach ( $gateways as $g_key => $g_label ) : ?>
-														<option value="<?php echo esc_attr( $g_key ); ?>" <?php selected( $active_gateway, $g_key ); ?>>
-															<?php echo esc_html( $g_label ); ?>
-														</option>
-													<?php endforeach; ?>
-												</select>
-											<?php else : ?>
-												<span class="tsbifw-gateway-badge" style="display: inline-block; padding: 5px 12px; background: #e2e8f0; color: #1e293b; font-weight: 600; font-size: 13px; border-radius: 4px; border: 1px solid #cbd5e1;">
-													<?php esc_html_e( 'OpenRouter API', 'searchips-search-by-image-for-woocommerce' ); ?>
-												</span>
-												<input type="hidden" name="tsbifw_api_gateway" id="tsbifw_api_gateway" value="<?php echo esc_attr( $active_gateway ); ?>" />
-											<?php endif; ?>
-											<p class="description"><?php esc_html_e( 'Visual search embeddings are powered via OpenRouter.', 'searchips-search-by-image-for-woocommerce' ); ?></p>
+											<?php $this->render_gateway_select( $gateway_configs, $gateways, $active_gateway ); ?>
+											<p class="description"><?php esc_html_e( 'Select the AI provider to power image search and indexing.', 'searchips-search-by-image-for-woocommerce' ); ?></p>
 										</td>
 									</tr>
 
-									<tr>
-										<th scope="row"><label for="tsbifw_api_key"><?php esc_html_e( 'OpenRouter API Key', 'searchips-search-by-image-for-woocommerce' ); ?></label></th>
-										<td>
-											<div class="tsbifw-password-wrapper" style="position: relative; display: inline-block; max-width: 25em; width: 100%;">
-												<input type="password" name="tsbifw_api_key" id="tsbifw_api_key" value="<?php echo esc_attr( $openrouter_key ); ?>" class="regular-text" style="width: 100%; padding-right: 35px;" />
-												<button type="button" class="button-link tsbifw-toggle-pw" data-target="tsbifw_api_key" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; padding: 0; cursor: pointer; color: #72777c; outline: none; box-shadow: none; display: flex; align-items: center; justify-content: center;">
-													<span class="dashicons dashicons-visibility"></span>
-												</button>
-											</div>
-											<p class="description"><?php esc_html_e( 'Enter your OpenRouter API key to communicate with embeddings models.', 'searchips-search-by-image-for-woocommerce' ); ?></p>
-										</td>
-									</tr>
+									<?php $this->render_gateway_credential_rows( $gateway_configs, $active_gateway ); ?>
 
 									<tr>
-										<th scope="row"><?php esc_html_e( 'Search Engine', 'searchips-search-by-image-for-woocommerce' ); ?></th>
+										<th scope="row"><label for="tsbifw_strategy"><?php esc_html_e( 'Search Strategy', 'searchips-search-by-image-for-woocommerce' ); ?></label></th>
 										<td>
-											<p style="margin: 0 0 6px 0; font-weight: 600; color: #1e293b;">
-												<?php esc_html_e( 'Multimodal Vector Embeddings', 'searchips-search-by-image-for-woocommerce' ); ?>
-											</p>
+											<select name="tsbifw_strategy" id="tsbifw_strategy">
+												<?php foreach ( $strategies as $s_key => $s_label ) : ?>
+													<option value="<?php echo esc_attr( $s_key ); ?>" <?php selected( $strategy, $s_key ); ?>><?php echo esc_html( $s_label ); ?></option>
+												<?php endforeach; ?>
+											</select>
+											<?php $this->render_strategy_guidance_notices( $strategy, $active_gateway, $gateway_configs ); ?>
 											<p class="description">
-												<?php esc_html_e( 'Visual search is powered by native multimodal vector embeddings. Product images are mapped into high-dimensional vector representations for instant, precise similarity matching.', 'searchips-search-by-image-for-woocommerce' ); ?>
+												<?php esc_html_e( 'Select the underlying strategy for product indexing and searching.', 'searchips-search-by-image-for-woocommerce' ); ?>
 											</p>
 										</td>
 									</tr>
@@ -335,11 +384,6 @@ class TSBIFW_Admin {
 												<label for="tsbifw_index_featured">
 													<input type="checkbox" name="tsbifw_index_featured" id="tsbifw_index_featured" value="yes" <?php checked( $index_featured, 'yes' ); ?> />
 													<?php esc_html_e( 'Product Featured Image', 'searchips-search-by-image-for-woocommerce' ); ?>
-												</label>
-												<br />
-												<label for="tsbifw_index_gallery">
-													<input type="checkbox" name="tsbifw_index_gallery" id="tsbifw_index_gallery" value="yes" <?php checked( $index_gallery, 'yes' ); ?> />
-													<?php esc_html_e( 'Product Gallery Images', 'searchips-search-by-image-for-woocommerce' ); ?>
 												</label>
 											</fieldset>
 											<p class="description">
@@ -372,13 +416,34 @@ class TSBIFW_Admin {
 										</td>
 									</tr>
 
-									<tr>
+									<tr class="tsbifw-strategy-field embeddings-field" style="<?php echo 'embeddings' === $strategy ? '' : 'display:none;'; ?>">
 										<th scope="row"><label for="tsbifw_embeddings_model"><?php esc_html_e( 'Embeddings Model ID', 'searchips-search-by-image-for-woocommerce' ); ?></label></th>
 										<td>
 											<div class="tsbifw-skeleton-loader" id="tsbifw-embeddings-model-skeleton"></div>
 											<select name="tsbifw_embeddings_model" id="tsbifw_embeddings_model" style="display:none;" data-selected="<?php echo esc_attr( $embeddings_model ); ?>">
 											</select>
 											<p class="description" id="tsbifw-embeddings-model-desc"><?php esc_html_e( 'Select the embedding model ID for your chosen gateway.', 'searchips-search-by-image-for-woocommerce' ); ?></p>
+										</td>
+									</tr>
+
+									<tr class="tsbifw-strategy-field tsbifw-strategy-field-vision vision-field" style="<?php echo ( 'vision' === $strategy || $show_vision_for_v2v ) ? '' : 'display:none;'; ?>">
+										<th scope="row"><label for="tsbifw_vision_model"><?php esc_html_e( 'Vision Model ID', 'searchips-search-by-image-for-woocommerce' ); ?></label></th>
+										<td>
+											<div class="tsbifw-skeleton-loader" id="tsbifw-vision-model-skeleton"></div>
+											<select name="tsbifw_vision_model" id="tsbifw_vision_model" style="display:none;" data-selected="<?php echo esc_attr( $vision_model ); ?>">
+											</select>
+											<p class="description" id="tsbifw-vision-model-desc"><?php esc_html_e( 'Select the vision model ID for your chosen gateway.', 'searchips-search-by-image-for-woocommerce' ); ?></p>
+										</td>
+									</tr>
+
+									<tr class="tsbifw-strategy-field tsbifw-strategy-field-vision vision-only-row" style="<?php echo 'vision' === $strategy ? '' : 'display:none;'; ?>">
+										<th scope="row"><label for="tsbifw_sync_to_tags"><?php esc_html_e( 'Sync Descriptions to Product Tags?', 'searchips-search-by-image-for-woocommerce' ); ?></label></th>
+										<td>
+											<select name="tsbifw_sync_to_tags" id="tsbifw_sync_to_tags">
+												<option value="no" <?php selected( $sync_to_tags, 'no' ); ?>><?php esc_html_e( 'No (Store in Custom Postmeta Only)', 'searchips-search-by-image-for-woocommerce' ); ?></option>
+												<option value="yes" <?php selected( $sync_to_tags, 'yes' ); ?>><?php esc_html_e( 'Yes (Append to WooCommerce Product Tags)', 'searchips-search-by-image-for-woocommerce' ); ?></option>
+											</select>
+											<p class="description"><?php esc_html_e( 'If enabled, descriptors are attached to standard product tags, allowing seamless standard theme/search filtering.', 'searchips-search-by-image-for-woocommerce' ); ?></p>
 										</td>
 									</tr>
 
@@ -402,14 +467,15 @@ class TSBIFW_Admin {
 									<tr>
 										<th scope="row"><label for="tsbifw_search_cache_expiry"><?php esc_html_e( 'Search Cache Expiry', 'searchips-search-by-image-for-woocommerce' ); ?></label></th>
 										<td>
-											<?php $cache_expiry = get_option( 'tsbifw_search_cache_expiry', '300' ); ?>
+											<?php
+											$cache_expiry = (string) get_option( 'tsbifw_search_cache_expiry', '300' );
+											if ( ! in_array( $cache_expiry, array( '300', '600' ), true ) ) {
+												$cache_expiry = '300';
+											}
+											?>
 											<select name="tsbifw_search_cache_expiry" id="tsbifw_search_cache_expiry">
 												<option value="300" <?php selected( $cache_expiry, '300' ); ?>><?php esc_html_e( '5 Minutes', 'searchips-search-by-image-for-woocommerce' ); ?></option>
 												<option value="600" <?php selected( $cache_expiry, '600' ); ?>><?php esc_html_e( '10 Minutes', 'searchips-search-by-image-for-woocommerce' ); ?></option>
-												<option value="1800" <?php selected( $cache_expiry, '1800' ); ?>><?php esc_html_e( '30 Minutes', 'searchips-search-by-image-for-woocommerce' ); ?></option>
-												<option value="3600" <?php selected( $cache_expiry, '3600' ); ?>><?php esc_html_e( '1 Hour', 'searchips-search-by-image-for-woocommerce' ); ?></option>
-												<option value="7200" <?php selected( $cache_expiry, '7200' ); ?>><?php esc_html_e( '2 Hours', 'searchips-search-by-image-for-woocommerce' ); ?></option>
-												<option value="86400" <?php selected( $cache_expiry, '86400' ); ?>><?php esc_html_e( '24 Hours', 'searchips-search-by-image-for-woocommerce' ); ?></option>
 											</select>
 											<p class="description">
 												<?php esc_html_e( 'Choose how long the visual search queries and matching product IDs are stored temporarily on the server.', 'searchips-search-by-image-for-woocommerce' ); ?>
@@ -442,15 +508,12 @@ class TSBIFW_Admin {
 											<select name="tsbifw_cron_interval" id="tsbifw_cron_interval">
 												<?php
 												$current_interval = get_option( 'tsbifw_cron_interval', 'tsbifw_every_5_minutes' );
-												if ( 'every_minute' === $current_interval ) {
-													$current_interval = 'tsbifw_every_minute';
-												} elseif ( 'every_5_minutes' === $current_interval ) {
+												if ( in_array( $current_interval, array( 'every_minute', 'tsbifw_every_minute', 'every_5_minutes' ), true ) ) {
 													$current_interval = 'tsbifw_every_5_minutes';
 												} elseif ( 'every_15_minutes' === $current_interval ) {
 													$current_interval = 'tsbifw_every_15_minutes';
 												}
 												?>
-												<option value="tsbifw_every_minute" <?php selected( $current_interval, 'tsbifw_every_minute' ); ?>><?php esc_html_e( 'Every Minute', 'searchips-search-by-image-for-woocommerce' ); ?></option>
 												<option value="tsbifw_every_5_minutes" <?php selected( $current_interval, 'tsbifw_every_5_minutes' ); ?>><?php esc_html_e( 'Every 5 Minutes', 'searchips-search-by-image-for-woocommerce' ); ?></option>
 												<option value="tsbifw_every_15_minutes" <?php selected( $current_interval, 'tsbifw_every_15_minutes' ); ?>><?php esc_html_e( 'Every 15 Minutes', 'searchips-search-by-image-for-woocommerce' ); ?></option>
 												<option value="hourly" <?php selected( $current_interval, 'hourly' ); ?>><?php esc_html_e( 'Hourly', 'searchips-search-by-image-for-woocommerce' ); ?></option>
@@ -610,7 +673,12 @@ class TSBIFW_Admin {
 							?>
 							<div class="tsbifw-indexer-container">
 								<h3><?php esc_html_e( 'Product Indexer Status', 'searchips-search-by-image-for-woocommerce' ); ?></h3>
-								<p><?php esc_html_e( 'To enable image search, all WooCommerce products must have their featured images processed and indexed by the OpenRouter models.', 'searchips-search-by-image-for-woocommerce' ); ?></p>
+								<p>
+									<?php
+									// translators: %s: Active AI gateway label.
+									echo esc_html( sprintf( __( 'To enable image search, all WooCommerce products must have their featured images processed and indexed by %s.', 'searchips-search-by-image-for-woocommerce' ), $active_gateway_label ) );
+									?>
+								</p>
 
 								<div class="tsbifw-stats-grid">
 									<div class="tsbifw-stat-card">
@@ -642,7 +710,7 @@ class TSBIFW_Admin {
 								</div>
 
 								<div class="tsbifw-indexer-actions">
-									<button type="button" class="button button-primary button-large" id="tsbifw-start-indexing" <?php disabled( $stats['processed'] === $stats['total'] || empty( $api_key ) ); ?>>
+									<button type="button" class="button button-primary button-large" id="tsbifw-start-indexing" <?php disabled( $stats['processed'] === $stats['total'] || ! $api_key_ready ); ?>>
 										<?php esc_html_e( 'Start / Resume Indexing', 'searchips-search-by-image-for-woocommerce' ); ?>
 									</button>
 									<button type="button" class="button button-secondary button-large" id="tsbifw-pause-indexing" style="display:none;">
@@ -655,8 +723,13 @@ class TSBIFW_Admin {
 										<?php esc_html_e( 'Clear / Reset Index', 'searchips-search-by-image-for-woocommerce' ); ?>
 									</button>
 
-									<?php if ( empty( $api_key ) ) : ?>
-										<p class="tsbifw-error-text inline-error"><?php esc_html_e( 'Please configure your OpenRouter API key on the General Settings tab before running the indexer.', 'searchips-search-by-image-for-woocommerce' ); ?></p>
+									<?php if ( ! $api_key_ready ) : ?>
+										<p class="tsbifw-error-text inline-error">
+											<?php
+											// translators: %s: Active AI gateway label.
+											echo esc_html( sprintf( __( 'Please configure your %s credentials on the General Settings tab before running the indexer.', 'searchips-search-by-image-for-woocommerce' ), $active_gateway_label ) );
+											?>
+										</p>
 									<?php endif; ?>
 								</div>
 
@@ -676,8 +749,13 @@ class TSBIFW_Admin {
 
 
 								<div class="tsbifw-admin-search-box">
-									<?php if ( empty( $api_key ) ) : ?>
-										<p class="tsbifw-error-text inline-error"><?php esc_html_e( 'Please configure your OpenRouter API key on the General Settings tab before using the test search.', 'searchips-search-by-image-for-woocommerce' ); ?></p>
+									<?php if ( ! $api_key_ready ) : ?>
+										<p class="tsbifw-error-text inline-error">
+											<?php
+											// translators: %s: Active AI gateway label.
+											echo esc_html( sprintf( __( 'Please configure your %s credentials on the General Settings tab before using the test search.', 'searchips-search-by-image-for-woocommerce' ), $active_gateway_label ) );
+											?>
+										</p>
 									<?php else : ?>
 										<div class="tsbifw-admin-search-controls" style="margin-bottom: 15px; display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: flex-end;">
 											<label for="tsbifw-admin-include-hidden" style="display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: #475569; cursor: pointer;">
@@ -825,43 +903,14 @@ class TSBIFW_Admin {
 									?>
 								</div>
 							</div>
+						<?php elseif ( 'help' === $active_tab ) : ?>
+							<?php $this->render_help_tab_content( $active_gateway ); ?>
 						<?php endif; ?>
 					</div>
 				</div>
 
 				<div class="tsbifw-sidebar-column">
 					<?php $this->render_sidebar_pro_upsell_card(); ?>
-					<?php if ( 'general' === $active_tab ) : ?>
-						<div class="tsbifw-sidebar-card">
-							<div class="tsbifw-sidebar-card-header">
-								<h4><?php esc_html_e( 'API Key Setup Guide', 'searchips-search-by-image-for-woocommerce' ); ?></h4>
-							</div>
-							<div class="tsbifw-sidebar-card-body">
-								<h5 style="margin: 0 0 6px 0; font-size: 13px; color: #0f172a;"><?php esc_html_e( 'OpenRouter', 'searchips-search-by-image-for-woocommerce' ); ?></h5>
-								<ol style="margin: 0 0 14px 0; padding-left: 18px; list-style-type: decimal;">
-									<li style="font-size: 12px; line-height: 1.5; color: #475569; margin-bottom: 4px;">
-										<?php
-										// translators: %s is the link to the external website.
-										$msg = sprintf( esc_html__( 'Visit the %s website and sign in.', 'searchips-search-by-image-for-woocommerce' ), '<a href="https://openrouter.ai/" target="_blank" rel="noopener noreferrer">OpenRouter</a>' );
-										echo wp_kses_post( $msg );
-										?>
-									</li>
-									<li style="font-size: 12px; line-height: 1.5; color: #475569; margin-bottom: 4px;"><?php esc_html_e( 'Navigate to Keys and click "Create Key".', 'searchips-search-by-image-for-woocommerce' ); ?></li>
-									<li style="font-size: 12px; line-height: 1.5; color: #475569; margin-bottom: 4px;"><?php esc_html_e( 'Copy the key into the OpenRouter API Key input.', 'searchips-search-by-image-for-woocommerce' ); ?></li>
-								</ol>
-							</div>
-						</div>
-
-						<div class="tsbifw-sidebar-card">
-							<div class="tsbifw-sidebar-card-header">
-								<h4><?php esc_html_e( 'Model Selection Help', 'searchips-search-by-image-for-woocommerce' ); ?></h4>
-							</div>
-							<div class="tsbifw-sidebar-card-body">
-								<p><strong><?php esc_html_e( 'Embeddings Model', 'searchips-search-by-image-for-woocommerce' ); ?></strong><br />
-								<?php esc_html_e( 'Used to convert product images into mathematical vectors. Gemini Embedding 2 is the recommended default.', 'searchips-search-by-image-for-woocommerce' ); ?></p>
-							</div>
-						</div>
-					<?php endif; ?>
 
 					<div class="tsbifw-sidebar-card">
 						<div class="tsbifw-sidebar-card-header">
@@ -891,11 +940,13 @@ class TSBIFW_Admin {
 
 						<div class="tsbifw-sidebar-card">
 							<div class="tsbifw-sidebar-card-header">
-								<h4><?php esc_html_e( 'Search Engine Info', 'searchips-search-by-image-for-woocommerce' ); ?></h4>
+								<h4><?php esc_html_e( 'Search Strategies', 'searchips-search-by-image-for-woocommerce' ); ?></h4>
 							</div>
 							<div class="tsbifw-sidebar-card-body">
-								<p><strong><?php esc_html_e( 'Multimodal Vector Embeddings', 'searchips-search-by-image-for-woocommerce' ); ?></strong><br />
+								<p><strong><?php esc_html_e( 'Strategy 1: Vector Embeddings', 'searchips-search-by-image-for-woocommerce' ); ?></strong><br />
 								<?php esc_html_e( 'Encodes products and uploaded search photos into numerical vectors, calculating similarity using normalized dot-product algebra. Fast, accurate, and recommended.', 'searchips-search-by-image-for-woocommerce' ); ?></p>
+								<p><strong><?php esc_html_e( 'Strategy 2: Vision-to-Text', 'searchips-search-by-image-for-woocommerce' ); ?></strong><br />
+								<?php esc_html_e( 'Generates textual descriptions of images on-the-fly and matches keywords using Jaccard similarity. Ideal for Vision-only providers like Groq or OpenAI.', 'searchips-search-by-image-for-woocommerce' ); ?></p>
 							</div>
 						</div>
 					<?php endif; ?>
@@ -1095,39 +1146,31 @@ class TSBIFW_Admin {
 			wp_send_json_error( esc_html__( 'Unauthorized access.', 'searchips-search-by-image-for-woocommerce' ) );
 		}
 
-		$gateway = isset( $_POST['gateway'] ) ? sanitize_text_field( wp_unslash( $_POST['gateway'] ) ) : '';
-		$api = TSBIFW_API::instance();
+		$gateway = isset( $_POST['gateway'] ) ? sanitize_key( wp_unslash( $_POST['gateway'] ) ) : '';
+		$api     = TSBIFW_API::instance();
 		if ( empty( $gateway ) ) {
 			$gateway = $api->get_active_gateway();
 		}
 
-		// Fetch embeddings models (using output_modalities=embeddings).
-		$embeddings_data = $api->get_models( 'embeddings', $gateway );
-		if ( is_wp_error( $embeddings_data ) ) {
-			$embedding_models = array();
-		} else {
-			$embedding_models = $api->filter_embedding_models( $embeddings_data );
-		}
+		$embeddings_data  = $api->get_models( 'embeddings', $gateway );
+		$embedding_models = is_wp_error( $embeddings_data ) ? array() : $api->filter_embedding_models( $embeddings_data, $gateway );
 
-		// Fallback models in case of network issues or empty responses.
-		if ( empty( $embedding_models ) ) {
-			$embedding_models = array(
-				array( 'id' => 'google/gemini-embedding-2', 'name' => 'Google: Gemini Embedding 2' ),
-			);
-		}
+		$vision_data   = $api->get_models( '', $gateway );
+		$vision_models = is_wp_error( $vision_data ) ? array() : $api->filter_vision_models( $vision_data, $gateway );
 
-		// Sort models alphabetically by name.
 		$sort_models_by_name = function( $a, $b ) {
 			$name_a = ! empty( $a['name'] ) ? $a['name'] : $a['id'];
 			$name_b = ! empty( $b['name'] ) ? $b['name'] : $b['id'];
 			return strcasecmp( $name_a, $name_b );
 		};
 		usort( $embedding_models, $sort_models_by_name );
+		usort( $vision_models, $sort_models_by_name );
 
 		$response_data = apply_filters(
 			'tsbifw_admin_available_models',
 			array(
 				'embedding_models' => $embedding_models,
+				'vision_models'    => $vision_models,
 			),
 			$gateway,
 			$api
@@ -1137,11 +1180,36 @@ class TSBIFW_Admin {
 	}
 
 	/**
+	 * AJAX endpoint to test connectivity and credentials for the selected AI provider.
+	 */
+	public function ajax_test_connection() {
+		check_ajax_referer( 'tsbifw_admin_nonce', 'security' );
+
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( esc_html__( 'Unauthorized access.', 'searchips-search-by-image-for-woocommerce' ) );
+		}
+
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing
+		$gateway = isset( $_POST['gateway'] ) ? sanitize_key( wp_unslash( $_POST['gateway'] ) ) : '';
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing
+		$api_key = isset( $_POST['api_key'] ) ? trim( sanitize_text_field( wp_unslash( $_POST['api_key'] ) ) ) : null;
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing
+		$custom_base_url = isset( $_POST['custom_base_url'] ) ? sanitize_text_field( wp_unslash( $_POST['custom_base_url'] ) ) : null;
+
+		$result = TSBIFW_API::instance()->test_connection( $gateway, $api_key, $custom_base_url );
+		if ( is_wp_error( $result ) ) {
+			wp_send_json_error( $result->get_error_message() );
+		}
+
+		wp_send_json_success( $result );
+	}
+
+	/**
 	 * Keep the hourly/custom background indexing cron aligned with the enable option.
 	 */
 	public function check_cron_scheduling() {
 		$enable_cron = get_option( 'tsbifw_enable_cron_indexing', 'no' );
-		$interval    = get_option( 'tsbifw_cron_interval', 'tsbifw_every_5_minutes' );
+		$interval    = $this->sanitize_cron_interval( get_option( 'tsbifw_cron_interval', 'tsbifw_every_5_minutes' ) );
 		$timestamp   = wp_next_scheduled( 'tsbifw_cron_indexing' );
 
 		if ( 'yes' === $enable_cron ) {
@@ -1336,6 +1404,214 @@ class TSBIFW_Admin {
 	}
 
 	/**
+	 * Automatically schedule a background cron event to clear all indexes when strategy changes.
+	 *
+	 * @param string $old_value Old strategy value.
+	 * @param string $value     New strategy value.
+	 */
+	public function on_strategy_change( $old_value, $value ) {
+		if ( $old_value !== $value ) {
+			if ( ! wp_next_scheduled( 'tsbifw_clear_index_cron' ) ) {
+				wp_schedule_single_event( time(), 'tsbifw_clear_index_cron' );
+			}
+			// translators: 1: Old strategy, 2: New strategy
+			$msg = sprintf( esc_html__( 'Search strategy changed from %1$s to %2$s. Scheduled background cron job to clear all existing index data.', 'searchips-search-by-image-for-woocommerce' ), $old_value, $value );
+			TSBIFW_Logger::log( $msg );
+		}
+	}
+
+	/**
+	 * Capture current indexing-relevant settings before options.php processes a save.
+	 */
+	public function capture_pre_save_snapshot() {
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing
+		if ( ! isset( $_SERVER['REQUEST_METHOD'] ) || 'POST' !== $_SERVER['REQUEST_METHOD'] ) {
+			return;
+		}
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing
+		$option_page = isset( $_POST['option_page'] ) ? sanitize_key( wp_unslash( $_POST['option_page'] ) ) : '';
+		if ( 'tsbifw_settings_group' !== $option_page || ! current_user_can( 'manage_options' ) ) {
+			return;
+		}
+
+		$this->pre_save_snapshot = self::get_reindex_config_snapshot();
+		add_filter( 'wp_redirect', array( $this, 'on_settings_save_redirect' ), 10, 1 );
+	}
+
+	/**
+	 * Evaluate whether saved General Settings invalidate the current index before redirecting.
+	 *
+	 * @param string $location Redirect URL.
+	 * @return string
+	 */
+	public function on_settings_save_redirect( $location ) {
+		if ( null === $this->pre_save_snapshot ) {
+			return $location;
+		}
+
+		$before                  = $this->pre_save_snapshot;
+		$this->pre_save_snapshot = null;
+		$after                   = self::get_reindex_config_snapshot();
+
+		wp_cache_delete( 'tsbifw_indexing_stats', 'tsbifw_cache' );
+		delete_transient( 'tsbifw_indexing_stats' );
+		$stats         = $this->get_indexing_stats();
+		$indexed_count = isset( $stats['indexed'] ) ? (int) $stats['indexed'] : 0;
+
+		$reason = self::evaluate_reindex_reason( $before, $after, $indexed_count );
+		if ( '' !== $reason ) {
+			update_option(
+				'tsbifw_reindex_required',
+				array(
+					'reason'     => $reason,
+					'updated_at' => time(),
+				),
+				false
+			);
+		}
+
+		return $location;
+	}
+
+	/**
+	 * Return a snapshot of settings that affect vector compatibility.
+	 *
+	 * @return array
+	 */
+	public static function get_reindex_config_snapshot() {
+		return array(
+			'gateway'                 => TSBIFW_API::instance()->get_active_gateway(),
+			'strategy'                => get_option( 'tsbifw_strategy', 'embeddings' ),
+			'embeddings_model'        => get_option( 'tsbifw_embeddings_model', 'google/gemini-embedding-2' ),
+			'vision_model'            => get_option( 'tsbifw_vision_model', 'google/gemini-2.5-flash' ),
+			'custom_base_url'         => get_option( 'tsbifw_custom_base_url', '' ),
+			'custom_embeddings_model' => get_option( 'tsbifw_custom_embeddings_model', '' ),
+			'custom_vision_model'     => get_option( 'tsbifw_custom_vision_model', '' ),
+		);
+	}
+
+	/**
+	 * Determine whether changing from $before to $after requires manual Clear & Re-index.
+	 *
+	 * Strategy switches use on_strategy_change() background cron, and Strategy 2 stays compatible
+	 * without re-indexing, so neither returns a manual warning reason.
+	 *
+	 * @param array $before        Snapshot prior to save.
+	 * @param array $after         Snapshot after save.
+	 * @param int   $indexed_count Count of currently indexed products.
+	 * @return string Reason key ('gateway', 'custom_base_url', 'embeddings_model', 'vision_model') or ''.
+	 */
+	public static function evaluate_reindex_reason( $before, $after, $indexed_count ) {
+		if ( (int) $indexed_count <= 0 ) {
+			return '';
+		}
+
+		$before_strategy = isset( $before['strategy'] ) ? $before['strategy'] : 'embeddings';
+		$after_strategy  = isset( $after['strategy'] ) ? $after['strategy'] : 'embeddings';
+
+		if ( $before_strategy !== $after_strategy || 'vision' === $after_strategy ) {
+			return '';
+		}
+
+		$before_gw = isset( $before['gateway'] ) ? $before['gateway'] : 'openrouter';
+		$after_gw  = isset( $after['gateway'] ) ? $after['gateway'] : 'openrouter';
+		if ( $before_gw !== $after_gw ) {
+			return 'gateway';
+		}
+
+		if ( 'custom' === $after_gw ) {
+			$before_url = isset( $before['custom_base_url'] ) ? trim( (string) $before['custom_base_url'] ) : '';
+			$after_url  = isset( $after['custom_base_url'] ) ? trim( (string) $after['custom_base_url'] ) : '';
+			if ( $before_url !== $after_url ) {
+				return 'custom_base_url';
+			}
+		}
+
+		$before_emb = self::resolve_snapshot_model( $before, $before_gw, 'embeddings' );
+		$after_emb  = self::resolve_snapshot_model( $after, $after_gw, 'embeddings' );
+		if ( $before_emb !== $after_emb ) {
+			return 'embeddings_model';
+		}
+
+		$configs  = TSBIFW_API::instance()->get_gateway_configs();
+		$protocol = isset( $configs[ $after_gw ]['embedding_protocol'] ) ? $configs[ $after_gw ]['embedding_protocol'] : '';
+		if ( 'openai_vision_to_vector' === $protocol ) {
+			$before_vis = self::resolve_snapshot_model( $before, $before_gw, 'vision' );
+			$after_vis  = self::resolve_snapshot_model( $after, $after_gw, 'vision' );
+			if ( $before_vis !== $after_vis ) {
+				return 'vision_model';
+			}
+		}
+
+		return '';
+	}
+
+	private static function resolve_snapshot_model( $snapshot, $gateway, $kind ) {
+		$field        = ( 'embeddings' === $kind ) ? 'embeddings_model' : 'vision_model';
+		$custom_field = ( 'embeddings' === $kind ) ? 'custom_embeddings_model' : 'custom_vision_model';
+
+		if ( 'custom' === $gateway && ! empty( $snapshot[ $custom_field ] ) ) {
+			return trim( (string) $snapshot[ $custom_field ] );
+		}
+
+		return isset( $snapshot[ $field ] ) ? trim( (string) $snapshot[ $field ] ) : '';
+	}
+
+	/**
+	 * Render a non-dismissible notice across settings tabs when the index must be cleared and rebuilt.
+	 *
+	 * @param string $active_tab Current active settings tab slug.
+	 */
+	private function render_reindex_required_notice( $active_tab ) {
+		$flag = get_option( 'tsbifw_reindex_required', false );
+		if ( empty( $flag ) ) {
+			return;
+		}
+
+		$stats = $this->get_indexing_stats();
+		if ( empty( $stats['indexed'] ) ) {
+			delete_option( 'tsbifw_reindex_required' );
+			return;
+		}
+
+		$reason   = is_array( $flag ) && isset( $flag['reason'] ) ? $flag['reason'] : 'embeddings_model';
+		$messages = array(
+			'gateway'          => __( 'AI Provider changed: Your existing product image index was created with another provider and will not match queries accurately. Go to the Product Indexer tab, click "Clear / Reset Index", and re-index your products.', 'searchips-search-by-image-for-woocommerce' ),
+			'custom_base_url'  => __( 'Custom Endpoint URL changed: Your existing product image index was generated against a different endpoint. Go to the Product Indexer tab, click "Clear / Reset Index", and re-index your products.', 'searchips-search-by-image-for-woocommerce' ),
+			'embeddings_model' => __( 'Embeddings Model changed: Your existing product index uses vectors from another model (mismatched vectors return 0% match or inaccurate results). Please click "Clear / Reset Index" and re-index your catalog.', 'searchips-search-by-image-for-woocommerce' ),
+			'vision_model'     => __( 'Step 1 Vision Model changed: Because this provider uses a 2-step Vision-to-Vector pipeline, changing the vision model changes generated vectors. Please click "Clear / Reset Index" and re-index your catalog.', 'searchips-search-by-image-for-woocommerce' ),
+		);
+		$message = isset( $messages[ $reason ] ) ? $messages[ $reason ] : $messages['embeddings_model'];
+		?>
+		<div id="tsbifw-reindex-required-notice" class="notice notice-warning tsbifw-persistent-notice" style="padding: 12px 15px; margin: 12px 0;">
+			<p style="margin: 0 0 6px 0;">
+				<strong><?php esc_html_e( 'Action Required: Re-index Product Catalog', 'searchips-search-by-image-for-woocommerce' ); ?></strong>
+			</p>
+			<p style="margin: 0;"><?php echo esc_html( $message ); ?></p>
+			<?php if ( 'indexer' !== $active_tab ) : ?>
+				<p style="margin: 10px 0 0 0;">
+					<a href="<?php echo esc_url( admin_url( 'admin.php?page=tsbifw-settings&tab=indexer' ) ); ?>" class="button button-secondary">
+						<?php esc_html_e( 'Go to Product Indexer', 'searchips-search-by-image-for-woocommerce' ); ?>
+					</a>
+				</p>
+			<?php endif; ?>
+		</div>
+		<?php
+	}
+
+	/**
+	 * Sanitize search strategy option.
+	 *
+	 * @param string $value Strategy.
+	 * @return string Sanitized strategy.
+	 */
+	public function sanitize_strategy( $value ) {
+		$value      = sanitize_text_field( $value );
+		$strategies = apply_filters( 'tsbifw_search_strategies', array( 'embeddings' => esc_html__( 'Strategy 1: Multimodal Vector Embeddings (Recommended)', 'searchips-search-by-image-for-woocommerce' ) ) );
+		return isset( $strategies[ $value ] ) ? $value : 'embeddings';
+	}
+
+	/**
 	 * Sanitize API Key.
 	 *
 	 * @param string $value Input value.
@@ -1343,11 +1619,13 @@ class TSBIFW_Admin {
 	 */
 	public function sanitize_api_key( $value ) {
 		$value = sanitize_text_field( $value );
-		if ( empty( $value ) ) {
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing
+		$submitted_gw = isset( $_POST['tsbifw_api_gateway'] ) ? sanitize_key( wp_unslash( $_POST['tsbifw_api_gateway'] ) ) : TSBIFW_API::instance()->get_active_gateway();
+		if ( empty( $value ) && 'openrouter' === $submitted_gw ) {
 			add_settings_error(
 				'tsbifw_api_key',
 				'tsbifw_api_key_empty',
-				esc_html__( 'OpenRouter API Key is required for image search and indexing to function.', 'searchips-search-by-image-for-woocommerce' ),
+				esc_html__( 'OpenRouter API Key is required when OpenRouter is selected.', 'searchips-search-by-image-for-woocommerce' ),
 				'error'
 			);
 		}
@@ -1385,7 +1663,7 @@ class TSBIFW_Admin {
 	 */
 	public function sanitize_search_cache_expiry( $value ) {
 		$value   = absint( $value );
-		$allowed = array( 300, 600, 1800, 3600, 7200, 86400 );
+		$allowed = array( 300, 600 );
 		return in_array( $value, $allowed, true ) ? $value : 300;
 	}
 
@@ -1430,7 +1708,7 @@ class TSBIFW_Admin {
 	 * @return string
 	 */
 	public function sanitize_api_gateway( $value ) {
-		$allowed = apply_filters( 'tsbifw_allowed_gateways', array( 'openrouter' ) );
+		$allowed = apply_filters( 'tsbifw_allowed_gateways', array_keys( TSBIFW_API::instance()->get_gateway_configs() ) );
 		$val     = sanitize_key( $value );
 		return in_array( $val, $allowed, true ) ? $val : 'openrouter';
 	}
@@ -1541,7 +1819,6 @@ class TSBIFW_Admin {
 
 		// Normalize legacy un-prefixed values to compliant tsbifw_ keys.
 		$legacy_map = array(
-			'every_minute'     => 'tsbifw_every_minute',
 			'every_5_minutes'  => 'tsbifw_every_5_minutes',
 			'every_15_minutes' => 'tsbifw_every_15_minutes',
 		);
@@ -1550,7 +1827,6 @@ class TSBIFW_Admin {
 		}
 
 		$valid = array(
-			'tsbifw_every_minute',
 			'tsbifw_every_5_minutes',
 			'tsbifw_every_15_minutes',
 			'hourly',
@@ -1698,7 +1974,62 @@ class TSBIFW_Admin {
 	 * Render the Pro Upgrade upsell card in the admin settings sidebar.
 	 */
 	public function render_sidebar_pro_upsell_card() {
-		$buy_url = 'https://violo.ir/?p=707';
+		$buy_url  = 'https://violo.ir/?p=707';
+		$features = array(
+			array(
+				'title' => __( 'Visual Search Analytics:', 'searchips-search-by-image-for-woocommerce' ),
+				'desc'  => __( 'Track image queries, click-through rate (CTR), & zero-result demand', 'searchips-search-by-image-for-woocommerce' ),
+				'svg'   => '<path d="M3 3v18h18"></path><path d="m19 9-5 5-4-4-3 3"></path><circle cx="19" cy="9" r="1.5" fill="currentColor"></circle><circle cx="14" cy="14" r="1.5" fill="currentColor"></circle><circle cx="10" cy="10" r="1.5" fill="currentColor"></circle><circle cx="7" cy="13" r="1.5" fill="currentColor"></circle>',
+			),
+			array(
+				'title' => __( 'Product Gallery Images:', 'searchips-search-by-image-for-woocommerce' ),
+				'desc'  => __( 'Index every product gallery photo for accurate multi-angle matching', 'searchips-search-by-image-for-woocommerce' ),
+				'svg'   => '<rect x="3" y="5" width="14" height="14" rx="2"></rect><path d="M21 9v10a2 2 0 0 1-2 2H9"></path><circle cx="8.5" cy="10.5" r="1.5"></circle><path d="m17 15-3.5-3.5L7 18"></path>',
+			),
+			array(
+				'title' => __( 'Variation Images Indexing:', 'searchips-search-by-image-for-woocommerce' ),
+				'desc'  => __( 'Match exact shopper photos to specific color & style variants', 'searchips-search-by-image-for-woocommerce' ),
+				'svg'   => '<rect width="14" height="14" x="7" y="7" rx="2" ry="2"></rect><path d="M4 17c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h11c1.1 0 2 .9 2 2"></path>',
+			),
+			array(
+				'title' => __( 'Smart Image Hashing (MD5):', 'searchips-search-by-image-for-woocommerce' ),
+				'desc'  => __( 'Skip unchanged product images on save to slash AI API costs', 'searchips-search-by-image-for-woocommerce' ),
+				'svg'   => '<ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path><path d="M3 12c0 1.66 4 3 9 3s9-1.34 9-3"></path>',
+			),
+			array(
+				'title' => __( 'Excluded Categories Filter:', 'searchips-search-by-image-for-woocommerce' ),
+				'desc'  => __( 'Exclude digital, service, or non-physical categories from indexing', 'searchips-search-by-image-for-woocommerce' ),
+				'svg'   => '<polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>',
+			),
+			array(
+				'title' => __( 'Mobile Camera Instant Capture:', 'searchips-search-by-image-for-woocommerce' ),
+				'desc'  => __( 'Let shoppers snap live product photos right from their phones', 'searchips-search-by-image-for-woocommerce' ),
+				'svg'   => '<path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"></path><circle cx="12" cy="13" r="3"></circle>',
+			),
+			array(
+				'title' => __( 'Similarity Score Boost:', 'searchips-search-by-image-for-woocommerce' ),
+				'desc'  => __( 'Promote featured & on-sale products higher in visual results', 'searchips-search-by-image-for-woocommerce' ),
+				'svg'   => '<path d="m5 12 7-7 7 7"></path><path d="M12 19V5"></path>',
+			),
+			array(
+				'title' => __( '1-Minute Background Cron:', 'searchips-search-by-image-for-woocommerce' ),
+				'desc'  => __( 'Auto-index new & updated products every minute without delays', 'searchips-search-by-image-for-woocommerce' ),
+				'svg'   => '<circle cx="12" cy="12" r="9"></circle><polyline points="12 7 12 12 15 14"></polyline>',
+			),
+			array(
+				'title' => __( 'Extended Search Cache (Up to 24h):', 'searchips-search-by-image-for-woocommerce' ),
+				'desc'  => __( 'Cache results for 30m, 1h, 2h, or 24h to speed up repeat queries', 'searchips-search-by-image-for-woocommerce' ),
+				'svg'   => '<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>',
+			),
+		);
+		$allowed_svg = array(
+			'path'     => array( 'd' => true ),
+			'rect'     => array( 'x' => true, 'y' => true, 'width' => true, 'height' => true, 'rx' => true, 'ry' => true ),
+			'circle'   => array( 'cx' => true, 'cy' => true, 'r' => true, 'fill' => true ),
+			'polygon'  => array( 'points' => true ),
+			'polyline' => array( 'points' => true ),
+			'ellipse'  => array( 'cx' => true, 'cy' => true, 'rx' => true, 'ry' => true ),
+		);
 		?>
 		<div class="tsbifw-sidebar-card tsbifw-pro-upsell-card">
 			<div class="tsbifw-pro-upsell-header">
@@ -1712,85 +2043,22 @@ class TSBIFW_Admin {
 			</div>
 			<div class="tsbifw-pro-upsell-body">
 				<p class="tsbifw-pro-upsell-intro">
-					<?php esc_html_e( 'Unlock advanced enterprise tools to convert shoppers and maximize visual search performance:', 'searchips-search-by-image-for-woocommerce' ); ?>
+					<?php esc_html_e( 'Unlock higher accuracy, lower API bills, and deeper store insights with Pro-exclusive features:', 'searchips-search-by-image-for-woocommerce' ); ?>
 				</p>
 				<ul class="tsbifw-pro-features-list">
-					<li class="tsbifw-pro-feature-item">
-						<span class="tsbifw-pro-feature-icon">
-							<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-								<path d="M3 3v18h18"></path>
-								<path d="m19 9-5 5-4-4-3 3"></path>
-								<circle cx="19" cy="9" r="1.5" fill="currentColor"></circle>
-								<circle cx="14" cy="14" r="1.5" fill="currentColor"></circle>
-								<circle cx="10" cy="10" r="1.5" fill="currentColor"></circle>
-								<circle cx="7" cy="13" r="1.5" fill="currentColor"></circle>
-							</svg>
-						</span>
-						<div class="tsbifw-pro-feature-content">
-							<strong><?php esc_html_e( 'Visual Search Analytics:', 'searchips-search-by-image-for-woocommerce' ); ?></strong>
-							<span><?php esc_html_e( 'Track queries, CTR & zero-result demand', 'searchips-search-by-image-for-woocommerce' ); ?></span>
-						</div>
-					</li>
-					<li class="tsbifw-pro-feature-item">
-						<span class="tsbifw-pro-feature-icon">
-							<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-								<rect width="14" height="14" x="7" y="7" rx="2" ry="2"></rect>
-								<path d="M4 17c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h11c1.1 0 2 .9 2 2"></path>
-							</svg>
-						</span>
-						<div class="tsbifw-pro-feature-content">
-							<strong><?php esc_html_e( 'Variation Images Indexing:', 'searchips-search-by-image-for-woocommerce' ); ?></strong>
-							<span><?php esc_html_e( 'Match specific color & style variants', 'searchips-search-by-image-for-woocommerce' ); ?></span>
-						</div>
-					</li>
-					<li class="tsbifw-pro-feature-item">
-						<span class="tsbifw-pro-feature-icon">
-							<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-								<ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
-								<path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
-								<path d="M3 12c0 1.66 4 3 9 3s9-1.34 9-3"></path>
-							</svg>
-						</span>
-						<div class="tsbifw-pro-feature-content">
-							<strong><?php esc_html_e( 'Smart Image Hashing (MD5):', 'searchips-search-by-image-for-woocommerce' ); ?></strong>
-							<span><?php esc_html_e( 'Skip unchanged images to slash API bills', 'searchips-search-by-image-for-woocommerce' ); ?></span>
-						</div>
-					</li>
-					<li class="tsbifw-pro-feature-item">
-						<span class="tsbifw-pro-feature-icon">
-							<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-								<path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"></path>
-							</svg>
-						</span>
-						<div class="tsbifw-pro-feature-content">
-							<strong><?php esc_html_e( 'Direct OpenAI & Gemini:', 'searchips-search-by-image-for-woocommerce' ); ?></strong>
-							<span><?php esc_html_e( 'Connect directly without middleware fees', 'searchips-search-by-image-for-woocommerce' ); ?></span>
-						</div>
-					</li>
-					<li class="tsbifw-pro-feature-item">
-						<span class="tsbifw-pro-feature-icon">
-							<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-								<path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"></path>
-								<circle cx="12" cy="13" r="3"></circle>
-							</svg>
-						</span>
-						<div class="tsbifw-pro-feature-content">
-							<strong><?php esc_html_e( 'Mobile Camera Instant Capture:', 'searchips-search-by-image-for-woocommerce' ); ?></strong>
-							<span><?php esc_html_e( 'Let shoppers snap live photos on phones', 'searchips-search-by-image-for-woocommerce' ); ?></span>
-						</div>
-					</li>
-					<li class="tsbifw-pro-feature-item">
-						<span class="tsbifw-pro-feature-icon">
-							<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-								<path d="m5 12 7-7 7 7"></path>
-								<path d="M12 19V5"></path>
-							</svg>
-						</span>
-						<div class="tsbifw-pro-feature-content">
-							<strong><?php esc_html_e( 'Similarity Score Boost:', 'searchips-search-by-image-for-woocommerce' ); ?></strong>
-							<span><?php esc_html_e( 'Boost on-sale & featured products', 'searchips-search-by-image-for-woocommerce' ); ?></span>
-						</div>
-					</li>
+					<?php foreach ( $features as $feature ) : ?>
+						<li class="tsbifw-pro-feature-item">
+							<span class="tsbifw-pro-feature-icon">
+								<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+									<?php echo wp_kses( $feature['svg'], $allowed_svg ); ?>
+								</svg>
+							</span>
+							<div class="tsbifw-pro-feature-content">
+								<strong><?php echo esc_html( $feature['title'] ); ?></strong>
+								<span><?php echo esc_html( $feature['desc'] ); ?></span>
+							</div>
+						</li>
+					<?php endforeach; ?>
 				</ul>
 				<a href="<?php echo esc_url( $buy_url ); ?>" target="_blank" rel="noopener noreferrer" class="tsbifw-pro-btn-primary">
 					<?php esc_html_e( 'Upgrade to Pro', 'searchips-search-by-image-for-woocommerce' ); ?> &rarr;
@@ -1808,9 +2076,18 @@ class TSBIFW_Admin {
 			return;
 		}
 
+		$api     = TSBIFW_API::instance();
+		$gateway = $api->get_active_gateway();
+		$labels  = $api->get_gateway_labels();
+		$gw_name = isset( $labels[ $gateway ] ) ? $labels[ $gateway ] : ucfirst( $gateway );
+
 		$content = sprintf(
 			'<p>%s</p><p>%s</p>',
-			esc_html__( 'When visitors use the Search by Image feature, their uploaded image or photo is sent securely to OpenRouter API (https://openrouter.ai) to calculate a mathematical vector embedding for product similarity matching.', 'searchips-search-by-image-for-woocommerce' ),
+			sprintf(
+				// translators: %s: Active AI provider name.
+				esc_html__( 'When visitors use the Search by Image feature, their uploaded image or photo is sent securely to the configured AI provider (%s) to process product similarity matching.', 'searchips-search-by-image-for-woocommerce' ),
+				esc_html( $gw_name )
+			),
 			esc_html__( 'Uploaded search images are processed in transit and are not permanently retained or linked to personal account data by the search system.', 'searchips-search-by-image-for-woocommerce' )
 		);
 
@@ -1818,6 +2095,291 @@ class TSBIFW_Admin {
 			__( 'Searchips Search By Image for WooCommerce', 'searchips-search-by-image-for-woocommerce' ),
 			wp_kses_post( wpautop( $content, false ) )
 		);
+	}
+
+	private function render_gateway_select( $gateway_configs, $gateways, $active_gateway ) {
+		?>
+		<div class="tsbifw-gateway-select-row" style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px;">
+			<select name="tsbifw_api_gateway" id="tsbifw_api_gateway">
+				<?php foreach ( $gateways as $g_key => $g_label ) : ?>
+					<option value="<?php echo esc_attr( $g_key ); ?>" <?php selected( $active_gateway, $g_key ); ?>>
+						<?php echo esc_html( $g_label ); ?>
+					</option>
+				<?php endforeach; ?>
+			</select>
+			<button type="button" class="button button-secondary button-small" id="tsbifw-test-connection" style="display: inline-flex; align-items: center; gap: 4px; height: 30px;">
+				<span class="dashicons dashicons-admin-plugins" style="font-size: 15px; width: 15px; height: 15px; line-height: 15px;"></span>
+				<span><?php esc_html_e( 'Test Connection', 'searchips-search-by-image-for-woocommerce' ); ?></span>
+			</button>
+			<span id="tsbifw-test-connection-status" aria-live="polite" style="font-size: 12px; font-weight: 600;"></span>
+		</div>
+		<?php
+	}
+
+	private function render_gateway_credential_rows( $gateway_configs, $active_gateway ) {
+		$descriptions = array(
+			'openrouter' => __( 'Enter your OpenRouter API key.', 'searchips-search-by-image-for-woocommerce' ),
+			'openai'     => __( 'Enter your private OpenAI API Key.', 'searchips-search-by-image-for-woocommerce' ),
+			'gemini'     => __( 'Enter your Google AI Studio Gemini API Key.', 'searchips-search-by-image-for-woocommerce' ),
+			'jina'       => __( 'Enter your Jina AI API key (includes 10M free tokens on signup).', 'searchips-search-by-image-for-woocommerce' ),
+			'voyage'     => __( 'Enter your Voyage AI API key (includes 200M free tokens for new accounts).', 'searchips-search-by-image-for-woocommerce' ),
+			'cohere'     => __( 'Enter your Cohere API key (supports multimodal Embed v4.0).', 'searchips-search-by-image-for-woocommerce' ),
+			'groq'       => __( 'Enter your Groq API key (fast Llama Vision inference for Strategy 2).', 'searchips-search-by-image-for-woocommerce' ),
+			'avalai'     => __( 'Enter your AvalAI API key (supports Gemini Embedding 2 & Vision chat).', 'searchips-search-by-image-for-woocommerce' ),
+			'gapgpt'     => __( 'Enter your GapGPT API key.', 'searchips-search-by-image-for-woocommerce' ),
+			'custom'     => __( 'Enter the API key for your custom endpoint (leave blank or use "ollama" for local Ollama).', 'searchips-search-by-image-for-woocommerce' ),
+		);
+
+		foreach ( $gateway_configs as $slug => $cfg ) :
+			$opt_key = $cfg['api_key_option'];
+			$val     = get_option( $opt_key, '' );
+			$visible = ( $slug === $active_gateway );
+			if ( 'custom' === $slug ) :
+				$custom_base   = get_option( 'tsbifw_custom_base_url', '' );
+				$custom_emb    = get_option( 'tsbifw_custom_embeddings_model', '' );
+				$custom_vision = get_option( 'tsbifw_custom_vision_model', '' );
+				?>
+				<tr class="tsbifw-gateway-field gateway-custom" style="<?php echo $visible ? '' : 'display:none;'; ?>">
+					<th scope="row"><label for="tsbifw_custom_base_url"><?php esc_html_e( 'Custom Base URL', 'searchips-search-by-image-for-woocommerce' ); ?></label></th>
+					<td>
+						<input type="url" name="tsbifw_custom_base_url" id="tsbifw_custom_base_url" value="<?php echo esc_attr( $custom_base ); ?>" class="regular-text" placeholder="https://api.metisai.ir/v1" />
+						<div style="margin-top:6px; display:flex; flex-wrap:wrap; gap:6px;">
+							<button type="button" class="button button-small tsbifw-custom-preset" data-url="https://ai.liara.ir/api/v1" data-note="<?php esc_attr_e( 'Replace with your exact Base URL from the Liara AI console.', 'searchips-search-by-image-for-woocommerce' ); ?>"><?php esc_html_e( 'Liara AI', 'searchips-search-by-image-for-woocommerce' ); ?></button>
+							<button type="button" class="button button-small tsbifw-custom-preset" data-url="https://api.metisai.ir/v1"><?php esc_html_e( 'MetisAI', 'searchips-search-by-image-for-woocommerce' ); ?></button>
+							<button type="button" class="button button-small tsbifw-custom-preset" data-url="https://api.together.xyz/v1"><?php esc_html_e( 'Together AI', 'searchips-search-by-image-for-woocommerce' ); ?></button>
+							<button type="button" class="button button-small tsbifw-custom-preset" data-url="http://localhost:11434/v1"><?php esc_html_e( 'Ollama (Local)', 'searchips-search-by-image-for-woocommerce' ); ?></button>
+						</div>
+						<p class="description" id="tsbifw-custom-url-note"><?php esc_html_e( 'OpenAI-compatible /v1 base URL (HTTPS required for remote servers; HTTP allowed for localhost).', 'searchips-search-by-image-for-woocommerce' ); ?></p>
+					</td>
+				</tr>
+				<tr class="tsbifw-gateway-field gateway-custom" style="<?php echo $visible ? '' : 'display:none;'; ?>">
+					<th scope="row"><label for="tsbifw_custom_embeddings_model"><?php esc_html_e( 'Custom Model Overrides (Optional)', 'searchips-search-by-image-for-woocommerce' ); ?></label></th>
+					<td>
+						<input type="text" name="tsbifw_custom_embeddings_model" id="tsbifw_custom_embeddings_model" value="<?php echo esc_attr( $custom_emb ); ?>" class="regular-text" placeholder="<?php esc_attr_e( 'Embeddings model (e.g. openai/text-embedding-3-small)', 'searchips-search-by-image-for-woocommerce' ); ?>" style="margin-bottom:6px; display:block;" />
+						<input type="text" name="tsbifw_custom_vision_model" id="tsbifw_custom_vision_model" value="<?php echo esc_attr( $custom_vision ); ?>" class="regular-text" placeholder="<?php esc_attr_e( 'Vision model (e.g. openai/gpt-4o-mini or llava)', 'searchips-search-by-image-for-woocommerce' ); ?>" />
+						<p class="description"><?php esc_html_e( 'If set, overrides the dropdown model IDs above when using a custom OpenAI-compatible provider.', 'searchips-search-by-image-for-woocommerce' ); ?></p>
+					</td>
+				</tr>
+			<?php endif; ?>
+			<tr class="tsbifw-gateway-field gateway-<?php echo esc_attr( $slug ); ?>" style="<?php echo $visible ? '' : 'display:none;'; ?>">
+				<th scope="row">
+					<label for="<?php echo esc_attr( $opt_key ); ?>">
+						<?php
+						// translators: %s: Gateway display label.
+						echo esc_html( sprintf( __( '%s API Key', 'searchips-search-by-image-for-woocommerce' ), $cfg['label'] ) );
+						?>
+					</label>
+				</th>
+				<td>
+					<div class="tsbifw-password-wrapper" style="position: relative; display: inline-block; max-width: 25em; width: 100%;">
+						<input type="password" name="<?php echo esc_attr( $opt_key ); ?>" id="<?php echo esc_attr( $opt_key ); ?>" value="<?php echo esc_attr( $val ); ?>" class="regular-text" style="width: 100%; padding-right: 35px;" />
+						<button type="button" class="button-link tsbifw-toggle-pw" data-target="<?php echo esc_attr( $opt_key ); ?>" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; padding: 0; cursor: pointer; color: #72777c; outline: none; box-shadow: none; display: flex; align-items: center; justify-content: center;">
+							<span class="dashicons dashicons-visibility"></span>
+						</button>
+					</div>
+					<p class="description"><?php echo esc_html( isset( $descriptions[ $slug ] ) ? $descriptions[ $slug ] : '' ); ?></p>
+				</td>
+			</tr>
+			<?php
+		endforeach;
+	}
+
+	private function render_strategy_guidance_notices( $strategy, $gateway, $gateway_configs ) {
+		$cfg             = isset( $gateway_configs[ $gateway ] ) ? $gateway_configs[ $gateway ] : array();
+		$supports_s1     = ! empty( $cfg['supports_strategy_1'] );
+		$supports_s2     = ! empty( $cfg['supports_strategy_2'] );
+		$is_v2v          = ( isset( $cfg['embedding_protocol'] ) && 'openai_vision_to_vector' === $cfg['embedding_protocol'] );
+		$show_s1_blocked = ( 'embeddings' === $strategy && ! $supports_s1 );
+		$show_s2_blocked = ( 'vision' === $strategy && ! $supports_s2 );
+		$show_v2v_info   = ( 'embeddings' === $strategy && $is_v2v );
+		?>
+		<div id="tsbifw-s1-unsupported-notice" style="<?php echo $show_s1_blocked ? '' : 'display:none;'; ?> margin-top:8px; padding:8px 12px; background:#fef2f2; border:1px solid #fecaca; border-left:4px solid #dc2626; border-radius:4px; font-size:12px; color:#991b1b; max-width:550px;">
+			<span class="dashicons dashicons-warning" style="vertical-align:text-bottom; margin-right:4px;"></span>
+			<?php esc_html_e( 'This provider does not offer an embeddings endpoint. Please switch to Strategy 2 (Vision-to-Text).', 'searchips-search-by-image-for-woocommerce' ); ?>
+			<button type="button" class="button button-small tsbifw-quick-switch-strategy" data-strategy="vision" style="margin-left:8px; font-size:11px;"><?php esc_html_e( 'Switch to Strategy 2', 'searchips-search-by-image-for-woocommerce' ); ?></button>
+		</div>
+		<div id="tsbifw-s2-unsupported-notice" style="<?php echo $show_s2_blocked ? '' : 'display:none;'; ?> margin-top:8px; padding:8px 12px; background:#fef2f2; border:1px solid #fecaca; border-left:4px solid #dc2626; border-radius:4px; font-size:12px; color:#991b1b; max-width:550px;">
+			<span class="dashicons dashicons-warning" style="vertical-align:text-bottom; margin-right:4px;"></span>
+			<?php esc_html_e( 'This provider is multimodal embeddings-only and does not support Vision-to-Text chat. Please switch to Strategy 1.', 'searchips-search-by-image-for-woocommerce' ); ?>
+			<button type="button" class="button button-small tsbifw-quick-switch-strategy" data-strategy="embeddings" style="margin-left:8px; font-size:11px;"><?php esc_html_e( 'Switch to Strategy 1', 'searchips-search-by-image-for-woocommerce' ); ?></button>
+		</div>
+		<div id="tsbifw-v2v-strategy-notice" style="<?php echo $show_v2v_info ? '' : 'display:none;'; ?> margin-top:8px; padding:8px 12px; background:#fffbeb; border:1px solid #fef3c7; border-left:4px solid #f59e0b; border-radius:4px; font-size:12px; color:#92400e; max-width:550px;">
+			<span class="dashicons dashicons-info" style="vertical-align:text-bottom; margin-right:4px;"></span>
+			<?php esc_html_e( 'Note: This gateway has no native image-embedding endpoint, so Strategy 1 runs a 2-step Vision-to-Vector pipeline (Vision model + Text Embedding model). Or switch to Strategy 2 for single-call Vision-to-Text.', 'searchips-search-by-image-for-woocommerce' ); ?>
+			<button type="button" class="button button-small tsbifw-quick-switch-strategy" data-strategy="vision" style="margin-left:8px; font-size:11px;"><?php esc_html_e( 'Switch to Strategy 2', 'searchips-search-by-image-for-woocommerce' ); ?></button>
+		</div>
+		<?php
+	}
+
+	private function render_help_tab_content( $active_gateway ) {
+		$guides = array(
+			'openrouter' => array(
+				'title'   => 'OpenRouter',
+				'badge'   => __( 'Strategy 1 & 2', 'searchips-search-by-image-for-woocommerce' ),
+				'url'     => 'https://openrouter.ai/keys',
+				'link'    => 'openrouter.ai/keys',
+				'steps'   => array(
+					__( 'Visit openrouter.ai and sign in or create an account.', 'searchips-search-by-image-for-woocommerce' ),
+					__( 'Open Keys and click "Create Key", then copy the secret key.', 'searchips-search-by-image-for-woocommerce' ),
+					__( 'Select "OpenRouter" in General Settings and paste your key.', 'searchips-search-by-image-for-woocommerce' ),
+					__( 'Recommended model: "google/gemini-embedding-2" (Strategy 1) or "google/gemini-2.5-flash" (Strategy 2).', 'searchips-search-by-image-for-woocommerce' ),
+				),
+			),
+			'openai'     => array(
+				'title'   => 'OpenAI Direct',
+				'badge'   => __( 'Strategy 1 (2-Step) & Strategy 2', 'searchips-search-by-image-for-woocommerce' ),
+				'url'     => 'https://platform.openai.com/api-keys',
+				'link'    => 'platform.openai.com/api-keys',
+				'steps'   => array(
+					__( 'Sign in to platform.openai.com and add billing credit if needed.', 'searchips-search-by-image-for-woocommerce' ),
+					__( 'Navigate to API Keys, click "Create new secret key", and copy it.', 'searchips-search-by-image-for-woocommerce' ),
+					__( 'Select "OpenAI Direct" and paste your key into the OpenAI API Key field.', 'searchips-search-by-image-for-woocommerce' ),
+					__( 'Use Strategy 2 with "gpt-4o-mini" for single-call matching, or Strategy 1 for 2-step Vision-to-Vector ("gpt-4o-mini" + "text-embedding-3-small").', 'searchips-search-by-image-for-woocommerce' ),
+				),
+			),
+			'gemini'     => array(
+				'title'   => 'Google Gemini Direct',
+				'badge'   => __( 'Strategy 1 & 2 (Free Tier Available)', 'searchips-search-by-image-for-woocommerce' ),
+				'url'     => 'https://aistudio.google.com/app/apikey',
+				'link'    => 'aistudio.google.com/app/apikey',
+				'steps'   => array(
+					__( 'Visit Google AI Studio and sign in with your Google account.', 'searchips-search-by-image-for-woocommerce' ),
+					__( 'Click "Create API key" and select or create a Google Cloud project.', 'searchips-search-by-image-for-woocommerce' ),
+					__( 'Select "Google Gemini Direct" and paste your API key.', 'searchips-search-by-image-for-woocommerce' ),
+					__( 'Recommended model: "gemini-embedding-2" (Strategy 1) or "gemini-2.5-flash" (Strategy 2).', 'searchips-search-by-image-for-woocommerce' ),
+				),
+			),
+			'jina'       => array(
+				'title'   => 'Jina AI',
+				'badge'   => __( 'Strategy 1 Only (10M Free Tokens)', 'searchips-search-by-image-for-woocommerce' ),
+				'url'     => 'https://jina.ai/embeddings/',
+				'link'    => 'jina.ai/embeddings',
+				'steps'   => array(
+					__( 'Open jina.ai/embeddings and create a free account (no credit card required for 10M free tokens).', 'searchips-search-by-image-for-woocommerce' ),
+					__( 'Copy your API key from the Jina AI dashboard.', 'searchips-search-by-image-for-woocommerce' ),
+					__( 'Select "Jina AI" in General Settings with Strategy 1 (Multimodal Vector Embeddings).', 'searchips-search-by-image-for-woocommerce' ),
+					__( 'Recommended model: "jina-clip-v2" or "jina-embeddings-v5-omni-small".', 'searchips-search-by-image-for-woocommerce' ),
+				),
+			),
+			'voyage'     => array(
+				'title'   => 'Voyage AI',
+				'badge'   => __( 'Strategy 1 Only (200M Free Tokens)', 'searchips-search-by-image-for-woocommerce' ),
+				'url'     => 'https://dash.voyageai.com/',
+				'link'    => 'dash.voyageai.com',
+				'steps'   => array(
+					__( 'Sign up at dash.voyageai.com to receive 200M free tokens.', 'searchips-search-by-image-for-woocommerce' ),
+					__( 'Generate an API key from your Voyage AI console.', 'searchips-search-by-image-for-woocommerce' ),
+					__( 'Select "Voyage AI" in General Settings with Strategy 1.', 'searchips-search-by-image-for-woocommerce' ),
+					__( 'Recommended model: "voyage-multimodal-3.5".', 'searchips-search-by-image-for-woocommerce' ),
+				),
+			),
+			'cohere'     => array(
+				'title'   => 'Cohere',
+				'badge'   => __( 'Strategy 1 Only', 'searchips-search-by-image-for-woocommerce' ),
+				'url'     => 'https://dashboard.cohere.com/api-keys',
+				'link'    => 'dashboard.cohere.com/api-keys',
+				'steps'   => array(
+					__( 'Log in at dashboard.cohere.com and open API Keys.', 'searchips-search-by-image-for-woocommerce' ),
+					__( 'Copy a Trial key (1,000 calls/month) or Production key.', 'searchips-search-by-image-for-woocommerce' ),
+					__( 'Select "Cohere" in General Settings with Strategy 1.', 'searchips-search-by-image-for-woocommerce' ),
+					__( 'Recommended model: "embed-v4.0".', 'searchips-search-by-image-for-woocommerce' ),
+				),
+			),
+			'groq'       => array(
+				'title'   => 'Groq',
+				'badge'   => __( 'Strategy 2 Only (Free Tier Available)', 'searchips-search-by-image-for-woocommerce' ),
+				'url'     => 'https://console.groq.com/keys',
+				'link'    => 'console.groq.com/keys',
+				'steps'   => array(
+					__( 'Sign in at console.groq.com and open API Keys.', 'searchips-search-by-image-for-woocommerce' ),
+					__( 'Click "Create API Key" and paste it into the Groq API Key field.', 'searchips-search-by-image-for-woocommerce' ),
+					__( 'Set Search Strategy to "Strategy 2: Vision-to-Text Description Search" (Groq does not offer an embeddings endpoint).', 'searchips-search-by-image-for-woocommerce' ),
+					__( 'Recommended model: "meta-llama/llama-4-scout-17b-16e-instruct".', 'searchips-search-by-image-for-woocommerce' ),
+				),
+			),
+			'avalai'     => array(
+				'title'   => 'AvalAI',
+				'badge'   => __( 'Strategy 1 & 2', 'searchips-search-by-image-for-woocommerce' ),
+				'url'     => 'https://avalai.ir/',
+				'link'    => 'avalai.ir',
+				'steps'   => array(
+					__( 'Sign in to your AvalAI panel and top up your credit if needed.', 'searchips-search-by-image-for-woocommerce' ),
+					__( 'Create an API key from your dashboard and paste it into the AvalAI API Key field.', 'searchips-search-by-image-for-woocommerce' ),
+					__( 'For Strategy 1, choose "gemini-embedding-2" (uses native multimodal :embedContent).', 'searchips-search-by-image-for-woocommerce' ),
+					__( 'For Strategy 2, choose "gemini-2.5-flash", "gpt-4o-mini", or any vision model returned in the dropdown.', 'searchips-search-by-image-for-woocommerce' ),
+				),
+			),
+			'gapgpt'     => array(
+				'title'   => 'GapGPT',
+				'badge'   => __( 'Strategy 1 (2-Step) & Strategy 2', 'searchips-search-by-image-for-woocommerce' ),
+				'url'     => 'https://gapgpt.app/',
+				'link'    => 'gapgpt.app',
+				'steps'   => array(
+					__( 'Sign in to gapgpt.app and create an API key in your developer panel.', 'searchips-search-by-image-for-woocommerce' ),
+					__( 'Select "GapGPT" in General Settings and paste your API key.', 'searchips-search-by-image-for-woocommerce' ),
+					__( 'Recommended: Strategy 2 with "gpt-4o-mini" or Strategy 1 (2-step Vision-to-Vector with "gpt-4o-mini" + "text-embedding-3-small").', 'searchips-search-by-image-for-woocommerce' ),
+				),
+			),
+			'custom'     => array(
+				'title'   => 'Custom OpenAI-Compatible (Liara AI / MetisAI / Together AI / Ollama)',
+				'badge'   => __( 'Strategy 1 (2-Step) & Strategy 2', 'searchips-search-by-image-for-woocommerce' ),
+				'url'     => 'https://liara.ir/',
+				'link'    => 'liara.ir / metisai.ir',
+				'steps'   => array(
+					__( 'Select "Custom OpenAI-Compatible" in General Settings.', 'searchips-search-by-image-for-woocommerce' ),
+					__( 'Click a preset button (Liara AI, MetisAI, Together AI, or Ollama) or enter your provider /v1 Base URL (HTTPS required for remote servers; HTTP allowed for localhost).', 'searchips-search-by-image-for-woocommerce' ),
+					__( 'For Liara AI, copy the exact Base URL and API Key from your Liara AI service console.', 'searchips-search-by-image-for-woocommerce' ),
+					__( 'For local Ollama, use http://localhost:11434/v1 (API key can be left blank) and enter your pulled vision/embedding model names in Custom Model Overrides.', 'searchips-search-by-image-for-woocommerce' ),
+				),
+			),
+		);
+		?>
+		<div class="tsbifw-help-container">
+			<h3><?php esc_html_e( 'AI Provider Setup Guide', 'searchips-search-by-image-for-woocommerce' ); ?></h3>
+			<p class="description" style="margin-bottom: 20px; font-size: 13px;">
+				<?php esc_html_e( 'Follow the setup instructions below for your chosen AI provider, then save your credentials under General Settings and index your products in the Product Indexer tab.', 'searchips-search-by-image-for-woocommerce' ); ?>
+			</p>
+
+			<div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin-bottom: 20px;">
+				<h4 style="margin: 0 0 12px 0; font-size: 14px; color: #0f172a;"><?php esc_html_e( 'Model Selection Help', 'searchips-search-by-image-for-woocommerce' ); ?></h4>
+				<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px;">
+					<div>
+						<strong style="display: block; margin-bottom: 4px; color: #0f172a; font-size: 13px;"><?php esc_html_e( 'Embeddings Model', 'searchips-search-by-image-for-woocommerce' ); ?></strong>
+						<p style="margin: 0; color: #334155; font-size: 12.5px; line-height: 1.55;"><?php esc_html_e( 'Converts product images into numerical vectors (e.g. Gemini Embedding 2, Jina CLIP v2, Voyage Multimodal 3.5, Cohere Embed v4).', 'searchips-search-by-image-for-woocommerce' ); ?></p>
+					</div>
+					<div>
+						<strong style="display: block; margin-bottom: 4px; color: #0f172a; font-size: 13px;"><?php esc_html_e( 'Vision Model', 'searchips-search-by-image-for-woocommerce' ); ?></strong>
+						<p style="margin: 0; color: #334155; font-size: 12.5px; line-height: 1.55;"><?php esc_html_e( 'Used by Strategy 2 (and Step 1 of Vision-to-Vector gateways like OpenAI/GapGPT) to generate detailed visual keywords.', 'searchips-search-by-image-for-woocommerce' ); ?></p>
+					</div>
+				</div>
+			</div>
+
+			<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px;">
+				<?php foreach ( $guides as $slug => $guide ) : ?>
+					<?php $is_active = ( $slug === $active_gateway ); ?>
+					<div style="background: #f8fafc; border: 1px solid <?php echo $is_active ? '#4f46e5' : '#e2e8f0'; ?>; border-radius: 8px; padding: 16px;">
+						<div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 8px;">
+							<h4 style="margin: 0; font-size: 14px; color: #0f172a;">
+								<?php echo esc_html( $guide['title'] ); ?>
+								<?php if ( $is_active ) : ?>
+									<span style="display: inline-block; margin-left: 6px; padding: 2px 7px; font-size: 10px; font-weight: 700; background: #4f46e5; color: #fff; border-radius: 10px; vertical-align: middle;"><?php esc_html_e( 'ACTIVE', 'searchips-search-by-image-for-woocommerce' ); ?></span>
+								<?php endif; ?>
+							</h4>
+						</div>
+						<div style="margin-bottom: 10px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center;">
+							<span style="display: inline-block; padding: 2px 8px; font-size: 11px; font-weight: 600; background: #e0e7ff; color: #3730a3; border-radius: 4px;"><?php echo esc_html( $guide['badge'] ); ?></span>
+							<a href="<?php echo esc_url( $guide['url'] ); ?>" target="_blank" rel="noopener noreferrer" style="font-size: 12px;"><?php echo esc_html( $guide['link'] ); ?> &rarr;</a>
+						</div>
+						<ol style="margin: 0; padding-left: 18px; color: #334155; font-size: 12.5px; line-height: 1.55;">
+							<?php foreach ( $guide['steps'] as $step ) : ?>
+								<li style="margin-bottom: 4px;"><?php echo esc_html( $step ); ?></li>
+							<?php endforeach; ?>
+						</ol>
+					</div>
+				<?php endforeach; ?>
+			</div>
+		</div>
+		<?php
 	}
 }
 

@@ -70,6 +70,10 @@ class TSBIFW_Indexer {
 		add_filter( 'handle_bulk_actions-edit-product', array( $this, 'handle_bulk_actions' ), 10, 3 );
 		add_action( 'admin_notices', array( $this, 'bulk_action_admin_notice' ) );
 		add_action( 'tsbifw_action_scheduler_index_product', array( $this, 'handle_as_index_product' ), 10, 1 );
+
+		// Strategy 2: Vision-to-Text Description Search.
+		add_filter( 'tsbifw_search_strategies', array( $this, 'register_search_strategies' ) );
+		add_filter( 'tsbifw_index_product_custom_strategy', array( $this, 'index_product_vision_strategy' ), 10, 5 );
 	}
 
 	/**
@@ -80,32 +84,14 @@ class TSBIFW_Indexer {
 	 */
 	public function get_product_target_images( $product ) {
 		$index_featured = ( get_option( 'tsbifw_index_featured', 'yes' ) === 'yes' );
-		$index_gallery  = ( get_option( 'tsbifw_index_gallery', 'no' ) === 'yes' );
-
-		$featured_id = $product->get_image_id();
-		$gallery_ids = $product->get_gallery_image_ids();
-
-		$target_images = array();
-		$tracked_ids   = array();
+		$featured_id    = $product->get_image_id();
+		$target_images  = array();
 
 		if ( $index_featured && $featured_id ) {
 			$target_images[] = array(
 				'id'   => $featured_id,
 				'type' => 'featured',
 			);
-			$tracked_ids[]   = (int) $featured_id;
-		}
-		if ( $index_gallery && ! empty( $gallery_ids ) ) {
-			foreach ( $gallery_ids as $gallery_id ) {
-				$gid = (int) $gallery_id;
-				if ( ! in_array( $gid, $tracked_ids, true ) ) {
-					$target_images[] = array(
-						'id'   => $gid,
-						'type' => 'gallery',
-					);
-					$tracked_ids[]   = $gid;
-				}
-			}
 		}
 
 		/**
@@ -156,6 +142,20 @@ class TSBIFW_Indexer {
 			return true;
 		}
 
+		$strategy   = get_option( 'tsbifw_strategy', 'embeddings' );
+		$strategies = apply_filters( 'tsbifw_search_strategies', array( 'embeddings' => esc_html__( 'Strategy 1: Image Embeddings', 'searchips-search-by-image-for-woocommerce' ) ) );
+		if ( ! isset( $strategies[ $strategy ] ) ) {
+			$strategy = 'embeddings';
+		}
+
+		if ( 'embeddings' !== $strategy ) {
+			$custom_result = apply_filters( 'tsbifw_index_product_custom_strategy', null, $product_id, $target_images, $strategy, $skip_cache_clear );
+			if ( null !== $custom_result ) {
+				return $custom_result;
+			}
+			return false;
+		}
+
 		$api = TSBIFW_API::instance();
 
 		$vectors        = array();
@@ -177,7 +177,7 @@ class TSBIFW_Indexer {
 					update_post_meta( $product_id, '_tsbifw_index_error', $base64->get_error_message() );
 					return $base64;
 				}
-				$vector = $api->get_embeddings( $base64 );
+				$vector = $api->get_embeddings( $base64, 'document' );
 				if ( is_wp_error( $vector ) ) {
 					update_post_meta( $product_id, '_tsbifw_indexed_status', 'error' );
 					update_post_meta( $product_id, '_tsbifw_index_error', $vector->get_error_message() );
@@ -204,19 +204,20 @@ class TSBIFW_Indexer {
 		}
 
 		update_post_meta( $product_id, '_tsbifw_vectors', $vectors );
+		delete_post_meta( $product_id, '_tsbifw_descriptions' );
 		update_post_meta( $product_id, '_tsbifw_indexed_status', 'indexed' );
 		delete_post_meta( $product_id, '_tsbifw_index_error' );
 		if ( ! $skip_cache_clear ) {
 			$this->clear_cache();
 		}
 
-		do_action( 'tsbifw_after_product_indexed', $product_id, $target_images, 'embeddings' );
+		do_action( 'tsbifw_after_product_indexed', $product_id, $target_images, $strategy );
 
 		return true;
 	}
 
 	public function on_meta_update( $meta_id, $object_id, $meta_key, $meta_value ) {
-		if ( '_thumbnail_id' !== $meta_key && '_product_image_gallery' !== $meta_key ) {
+		if ( '_thumbnail_id' !== $meta_key ) {
 			return;
 		}
 
@@ -226,14 +227,7 @@ class TSBIFW_Indexer {
 		$target_product_id = $object_id;
 
 		$index_featured = ( get_option( 'tsbifw_index_featured', 'yes' ) === 'yes' );
-		$index_gallery  = ( get_option( 'tsbifw_index_gallery', 'no' ) === 'yes' );
-
-		$should_queue = false;
-		if ( '_thumbnail_id' === $meta_key && $index_featured ) {
-			$should_queue = true;
-		} elseif ( '_product_image_gallery' === $meta_key && $index_gallery ) {
-			$should_queue = true;
-		}
+		$should_queue   = ( '_thumbnail_id' === $meta_key && $index_featured );
 
 		$should_queue = apply_filters( 'tsbifw_should_queue_meta_update', $should_queue, $meta_key, $object_id, $target_product_id );
 
@@ -253,6 +247,7 @@ class TSBIFW_Indexer {
 			TSBIFW_Logger::log( $msg );
 			delete_post_meta( $target_product_id, '_tsbifw_indexed_status' );
 			delete_post_meta( $target_product_id, '_tsbifw_vectors' );
+			delete_post_meta( $target_product_id, '_tsbifw_descriptions' );
 			delete_post_meta( $target_product_id, '_tsbifw_index_error' );
 			$this->clear_cache();
 
@@ -264,7 +259,7 @@ class TSBIFW_Indexer {
 	}
 
 	public function on_meta_delete( $meta_ids, $object_id, $meta_key, $meta_value ) {
-		if ( '_thumbnail_id' !== $meta_key && '_product_image_gallery' !== $meta_key ) {
+		if ( '_thumbnail_id' !== $meta_key ) {
 			return;
 		}
 
@@ -274,14 +269,7 @@ class TSBIFW_Indexer {
 		$target_product_id = $object_id;
 
 		$index_featured = ( get_option( 'tsbifw_index_featured', 'yes' ) === 'yes' );
-		$index_gallery  = ( get_option( 'tsbifw_index_gallery', 'no' ) === 'yes' );
-
-		$should_queue = false;
-		if ( '_thumbnail_id' === $meta_key && $index_featured ) {
-			$should_queue = true;
-		} elseif ( '_product_image_gallery' === $meta_key && $index_gallery ) {
-			$should_queue = true;
-		}
+		$should_queue   = ( '_thumbnail_id' === $meta_key && $index_featured );
 
 		$should_queue = apply_filters( 'tsbifw_should_queue_meta_update', $should_queue, $meta_key, $object_id, $target_product_id );
 
@@ -301,6 +289,7 @@ class TSBIFW_Indexer {
 			TSBIFW_Logger::log( $msg );
 			delete_post_meta( $target_product_id, '_tsbifw_indexed_status' );
 			delete_post_meta( $target_product_id, '_tsbifw_vectors' );
+			delete_post_meta( $target_product_id, '_tsbifw_descriptions' );
 			delete_post_meta( $target_product_id, '_tsbifw_index_error' );
 			$this->clear_cache();
 		}
@@ -413,10 +402,6 @@ class TSBIFW_Indexer {
 	public function add_custom_cron_schedules( $schedules ) {
 		$is_init = did_action( 'init' );
 
-		$schedules['tsbifw_every_minute'] = array(
-			'interval' => 60,
-			'display'  => $is_init ? esc_html__( 'Every Minute', 'searchips-search-by-image-for-woocommerce' ) : 'Every Minute',
-		);
 		$schedules['tsbifw_every_5_minutes'] = array(
 			'interval' => 300,
 			'display'  => $is_init ? esc_html__( 'Every 5 Minutes', 'searchips-search-by-image-for-woocommerce' ) : 'Every 5 Minutes',
@@ -437,6 +422,7 @@ class TSBIFW_Indexer {
 	public function on_product_delete( $post_id ) {
 		if ( 'product' === get_post_type( $post_id ) ) {
 			delete_post_meta( $post_id, '_tsbifw_vectors' );
+			delete_post_meta( $post_id, '_tsbifw_descriptions' );
 			delete_post_meta( $post_id, '_tsbifw_indexed_status' );
 			delete_post_meta( $post_id, '_tsbifw_index_error' );
 			$this->clear_cache();
@@ -449,8 +435,11 @@ class TSBIFW_Indexer {
 	public function clear_all_indexed_data() {
 		delete_metadata( 'post', 0, '_tsbifw_vector', '', true );
 		delete_metadata( 'post', 0, '_tsbifw_vectors', '', true );
+		delete_metadata( 'post', 0, '_tsbifw_description', '', true );
+		delete_metadata( 'post', 0, '_tsbifw_descriptions', '', true );
 		delete_metadata( 'post', 0, '_tsbifw_indexed_status', '', true );
 		delete_metadata( 'post', 0, '_tsbifw_index_error', '', true );
+		delete_option( 'tsbifw_reindex_required' );
 
 		$this->clear_cache();
 
@@ -468,6 +457,107 @@ class TSBIFW_Indexer {
 		delete_transient( 'tsbifw_indexing_stats' );
 		wp_cache_delete( 'tsbifw_catalog_vectors', 'tsbifw_cache' );
 		delete_transient( 'tsbifw_catalog_vectors' );
+		wp_cache_delete( 'tsbifw_catalog_descriptions', 'tsbifw_cache' );
+		delete_transient( 'tsbifw_catalog_descriptions' );
+	}
+
+	/**
+	 * Register available search strategies.
+	 *
+	 * @param array $strategies Existing strategies.
+	 * @return array
+	 */
+	public function register_search_strategies( $strategies ) {
+		$strategies['vision'] = esc_html__( 'Strategy 2: Vision-to-Text Description Search', 'searchips-search-by-image-for-woocommerce' );
+		return $strategies;
+	}
+
+	/**
+	 * Index products using Strategy 2 (Vision-to-Text Description Search).
+	 *
+	 * @param null|bool|WP_Error $result           Default result.
+	 * @param int                $product_id       Product ID.
+	 * @param array              $target_images    List of image attachments to index.
+	 * @param string             $strategy         Active strategy.
+	 * @param bool               $skip_cache_clear Whether to skip cache clearing.
+	 * @return bool|WP_Error
+	 */
+	public function index_product_vision_strategy( $result, $product_id, $target_images, $strategy, $skip_cache_clear ) {
+		if ( 'vision' !== $strategy ) {
+			return $result;
+		}
+
+		$descriptions        = array();
+		$all_keywords        = array();
+		$cached_descriptions = array();
+		$api                 = TSBIFW_API::instance();
+
+		foreach ( $target_images as $image ) {
+			$img_id = (int) $image['id'];
+
+			if ( isset( $cached_descriptions[ $img_id ] ) ) {
+				$description = $cached_descriptions[ $img_id ];
+			} else {
+				$base64 = $api->prepare_image( $img_id );
+				if ( is_wp_error( $base64 ) ) {
+					if ( 'tsbifw_empty_image' === $base64->get_error_code() || 'tsbifw_file_not_found' === $base64->get_error_code() ) {
+						continue;
+					}
+					update_post_meta( $product_id, '_tsbifw_indexed_status', 'error' );
+					update_post_meta( $product_id, '_tsbifw_index_error', $base64->get_error_message() );
+					return $base64;
+				}
+				$description = $api->get_vision_description( $base64 );
+				if ( is_wp_error( $description ) ) {
+					update_post_meta( $product_id, '_tsbifw_indexed_status', 'error' );
+					update_post_meta( $product_id, '_tsbifw_index_error', $description->get_error_message() );
+					return $description;
+				}
+				$cached_descriptions[ $img_id ] = $description;
+				$all_keywords[]                 = $description;
+			}
+
+			$descriptions[] = array(
+				'id'          => $img_id,
+				'type'        => $image['type'],
+				'description' => $description,
+			);
+		}
+
+		if ( empty( $descriptions ) ) {
+			update_post_meta( $product_id, '_tsbifw_indexed_status', 'skipped' );
+			delete_post_meta( $product_id, '_tsbifw_descriptions' );
+			delete_post_meta( $product_id, '_tsbifw_vectors' );
+			delete_post_meta( $product_id, '_tsbifw_index_error' );
+			if ( ! $skip_cache_clear ) {
+				$this->clear_cache();
+			}
+			return true;
+		}
+
+		update_post_meta( $product_id, '_tsbifw_descriptions', $descriptions );
+		delete_post_meta( $product_id, '_tsbifw_vectors' );
+		update_post_meta( $product_id, '_tsbifw_indexed_status', 'indexed' );
+		delete_post_meta( $product_id, '_tsbifw_index_error' );
+
+		if ( 'yes' === get_option( 'tsbifw_sync_to_tags', 'no' ) && ! empty( $all_keywords ) ) {
+			$merged_tags = array();
+			foreach ( $all_keywords as $keywords_str ) {
+				$tags        = array_map( 'trim', explode( ',', $keywords_str ) );
+				$merged_tags = array_merge( $merged_tags, $tags );
+			}
+			$merged_tags = array_filter( array_unique( $merged_tags ) );
+			if ( ! empty( $merged_tags ) ) {
+				wp_set_object_terms( $product_id, $merged_tags, 'product_tag', true );
+			}
+		}
+
+		if ( ! $skip_cache_clear ) {
+			$this->clear_cache();
+		}
+
+		do_action( 'tsbifw_after_product_indexed', $product_id, $target_images, $strategy );
+		return true;
 	}
 
 	/**
@@ -493,14 +583,10 @@ class TSBIFW_Indexer {
 		global $wpdb;
 
 		$index_featured = ( get_option( 'tsbifw_index_featured', 'yes' ) === 'yes' );
-		$index_gallery  = ( get_option( 'tsbifw_index_gallery', 'no' ) === 'yes' );
 
 		$meta_keys = array();
 		if ( $index_featured ) {
 			$meta_keys[] = '_thumbnail_id';
-		}
-		if ( $index_gallery ) {
-			$meta_keys[] = '_product_image_gallery';
 		}
 
 		$meta_keys = apply_filters( 'tsbifw_indexed_meta_keys', $meta_keys );

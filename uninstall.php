@@ -32,8 +32,23 @@ if ( 'yes' === get_option( 'tsbifw_delete_data_on_uninstall', 'no' ) ) {
 	// 1. Delete all plugin options.
 	$tsbifw_options = array(
 		'tsbifw_api_key',
+		'tsbifw_api_key_openai',
+		'tsbifw_api_key_gemini',
+		'tsbifw_api_key_jina',
+		'tsbifw_api_key_voyage',
+		'tsbifw_api_key_cohere',
+		'tsbifw_api_key_groq',
+		'tsbifw_api_key_avalai',
+		'tsbifw_api_key_gapgpt',
+		'tsbifw_api_key_custom',
+		'tsbifw_custom_base_url',
+		'tsbifw_custom_embeddings_model',
+		'tsbifw_custom_vision_model',
 		'tsbifw_api_gateway',
+		'tsbifw_strategy',
 		'tsbifw_embeddings_model',
+		'tsbifw_vision_model',
+		'tsbifw_sync_to_tags',
 		'tsbifw_exclude_below_percent',
 		'tsbifw_max_upload_size',
 		'tsbifw_search_cache_expiry',
@@ -54,6 +69,7 @@ if ( 'yes' === get_option( 'tsbifw_delete_data_on_uninstall', 'no' ) ) {
 		'tsbifw_cron_interval',
 		'tsbifw_cron_batch_size',
 		'tsbifw_delete_data_on_uninstall',
+		'tsbifw_reindex_required',
 		'tsbifw_logs',
 	);
 
@@ -66,7 +82,9 @@ if ( 'yes' === get_option( 'tsbifw_delete_data_on_uninstall', 'no' ) ) {
 	delete_transient( 'tsbifw_cron_indexing_lock' );
 	delete_transient( 'tsbifw_indexed_image_ids' );
 	delete_transient( 'tsbifw_indexing_stats' );
+	delete_transient( 'tsbifw_catalog_descriptions' );
 	wp_cache_delete( 'tsbifw_indexing_stats', 'tsbifw_cache' );
+	wp_cache_delete( 'tsbifw_catalog_descriptions', 'tsbifw_cache' );
 
 	// Clear cached model transients and query tokens.
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
@@ -86,6 +104,8 @@ if ( 'yes' === get_option( 'tsbifw_delete_data_on_uninstall', 'no' ) ) {
 	$tsbifw_meta_keys = array(
 		'_tsbifw_vector',
 		'_tsbifw_vectors',
+		'_tsbifw_description',
+		'_tsbifw_descriptions',
 		'_tsbifw_indexed_status',
 		'_tsbifw_index_error',
 	);

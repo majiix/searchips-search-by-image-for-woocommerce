@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name: Searchips Search By Image for WooCommerce
- * Description: Enable customers to search WooCommerce products using images powered by machine learning and OpenRouter.
- * Version:     1.8.1
+ * Description: Enable customers to search WooCommerce products using images powered by OpenRouter, OpenAI, Google Gemini, Jina AI, Voyage AI, Cohere, Groq, AvalAI, GapGPT, and Custom OpenAI-Compatible AI providers.
+ * Version:     2.0.0
  * Author:      micromax
  * Text Domain: searchips-search-by-image-for-woocommerce
  * Domain Path: /languages
@@ -28,7 +28,7 @@ define( 'TSBIFW_INITIALIZED', true );
 
 // Define plugin constants.
 if ( ! defined( 'TSBIFW_VERSION' ) ) {
-	define( 'TSBIFW_VERSION', '1.8.1' );
+	define( 'TSBIFW_VERSION', '2.0.0' );
 }
 if ( ! defined( 'TSBIFW_PLUGIN_DIR' ) ) {
 	define( 'TSBIFW_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );

@@ -66,20 +66,128 @@ jQuery(document).ready(function($) {
 		});
 	}
 
-	// Gateway selector guidance
+	// Gateway and strategy visibility + guidance
+	var initialStrategy = $('#tsbifw_strategy').val() || 'embeddings';
+
 	function updateGatewayGuidance() {
-		var gw = $('#tsbifw_api_gateway').val();
+		var gw = $('#tsbifw_api_gateway').val() || 'openrouter';
+		var strategy = $('#tsbifw_strategy').val() || 'embeddings';
 		var labels = (tsbifw_admin_params && tsbifw_admin_params.gateway_labels) || {};
+		var caps = (tsbifw_admin_params && tsbifw_admin_params.gateway_caps) || {};
+		var gwCaps = caps[gw] || { supports_strategy_1: true, supports_strategy_2: true, embedding_protocol: '' };
 		var gwName = labels[gw] || 'OpenRouter';
+		var isV2V = (strategy === 'embeddings' && gwCaps.embedding_protocol === 'openai_vision_to_vector');
+
+		$('.tsbifw-gateway-field').hide();
+		$('.gateway-' + gw).show();
+
+		$('.tsbifw-strategy-field').hide();
+		if (strategy === 'embeddings') {
+			$('.embeddings-field').show();
+			if (isV2V) {
+				$('.vision-field').show();
+			}
+		} else {
+			$('.vision-field, .vision-only-row').show();
+		}
+
+		$('#tsbifw-s1-unsupported-notice').toggle(strategy === 'embeddings' && !gwCaps.supports_strategy_1);
+		$('#tsbifw-s2-unsupported-notice').toggle(strategy === 'vision' && !gwCaps.supports_strategy_2);
+		$('#tsbifw-v2v-strategy-notice').toggle(isV2V);
 
 		$('#tsbifw-embeddings-model-desc').text('Select the embedding model ID for ' + gwName + '.');
-		$(document).trigger('tsbifw_gateway_guidance_updated', [gw, 'embeddings', gwName]);
+		$('#tsbifw-vision-model-desc').text(
+			isV2V
+				? 'Step 1 descriptor vision model for ' + gwName + ' (used before text embedding).'
+				: 'Select the vision model ID for ' + gwName + '.'
+		);
+		$(document).trigger('tsbifw_gateway_guidance_updated', [gw, strategy, gwName]);
 	}
 
 	$('#tsbifw_api_gateway').on('change', function() {
 		var gw = $(this).val();
+		$('#tsbifw-test-connection-status').text('');
 		updateGatewayGuidance();
 		loadModelsForGateway(gw);
+	});
+
+	$(document).on('input change', '.tsbifw-gateway-field input', function() {
+		$('#tsbifw-test-connection-status').text('');
+	});
+
+	$('#tsbifw-test-connection').on('click', function() {
+		var $btn = $(this);
+		var $status = $('#tsbifw-test-connection-status');
+		var gw = $('#tsbifw_api_gateway').val() || 'openrouter';
+		var caps = (tsbifw_admin_params.gateway_caps && tsbifw_admin_params.gateway_caps[gw]) ? tsbifw_admin_params.gateway_caps[gw] : {};
+		var apiKeyOpt = caps.api_key_option || '';
+		var apiKey = apiKeyOpt ? ($('#' + apiKeyOpt).val() || '') : '';
+		var customBaseUrl = ('custom' === gw) ? ($('#tsbifw_custom_base_url').val() || '') : '';
+		var strings = tsbifw_admin_params.strings || {};
+
+		$btn.prop('disabled', true);
+		$btn.find('span:last').text(strings.testing_conn || 'Testing...');
+		$status.css('color', '#475569').text(strings.testing_conn || 'Testing...');
+
+		$.ajax({
+			url: tsbifw_admin_params.ajax_url,
+			type: 'POST',
+			data: {
+				action: 'tsbifw_test_connection',
+				security: tsbifw_admin_params.nonce,
+				gateway: gw,
+				api_key: apiKey,
+				custom_base_url: customBaseUrl
+			},
+			success: function(response) {
+				if (response.success && response.data && response.data.message) {
+					$status.css('color', '#15803d').text('\u2713 ' + response.data.message);
+				} else {
+					var errMsg = (response && response.data) ? response.data : (strings.conn_network_err || 'Connection failed.');
+					$status.css('color', '#b91c1c').text('\u2717 ' + errMsg);
+				}
+			},
+			error: function() {
+				$status.css('color', '#b91c1c').text('\u2717 ' + (strings.conn_network_err || 'Network error occurred while testing connection.'));
+			},
+			complete: function() {
+				$btn.prop('disabled', false);
+				$btn.find('span:last').text(strings.test_conn_label || 'Test Connection');
+			}
+		});
+	});
+
+	$('#tsbifw_strategy').on('change', function() {
+		var selected = $(this).val();
+		updateGatewayGuidance();
+
+		if (selected !== initialStrategy) {
+			if ($('#tsbifw-strategy-warning').length === 0 && tsbifw_admin_params.strings.strategy_warning) {
+				$('<p id="tsbifw-strategy-warning" class="tsbifw-error-text" style="margin-top: 10px; font-weight: 600;"></p>')
+					.text(tsbifw_admin_params.strings.strategy_warning)
+					.insertAfter('#tsbifw_strategy');
+			}
+		} else {
+			$('#tsbifw-strategy-warning').remove();
+		}
+	});
+
+	$(document).on('click', '.tsbifw-quick-switch-strategy', function(e) {
+		e.preventDefault();
+		var targetStrategy = $(this).data('strategy');
+		if (targetStrategy) {
+			$('#tsbifw_strategy').val(targetStrategy).trigger('change');
+		}
+	});
+
+	$(document).on('click', '.tsbifw-custom-preset', function(e) {
+		e.preventDefault();
+		var presetUrl = $(this).data('url') || '';
+		var presetNote = $(this).data('note') || '';
+		$('#tsbifw_custom_base_url').val(presetUrl).focus();
+		if (presetNote) {
+			$('#tsbifw-custom-url-note').text(presetNote);
+		}
 	});
 
 	updateGatewayGuidance();
@@ -280,6 +388,9 @@ jQuery(document).ready(function($) {
 					$('#tsbifw-log-console').html('');
 					$('.tsbifw-log-output').hide();
 					$('.tsbifw-progress-wrapper').hide();
+					$('#tsbifw-reindex-required-notice').fadeOut(200, function() {
+						$(this).remove();
+					});
 
 					alert(response.data.msg);
 				} else {
@@ -300,13 +411,17 @@ jQuery(document).ready(function($) {
 	function loadModelsForGateway(gateway) {
 		var $embSkeleton = $('#tsbifw-embeddings-model-skeleton');
 		var $embeddingSelect = $('#tsbifw_embeddings_model');
+		var $visSkeleton = $('#tsbifw-vision-model-skeleton');
+		var $visionSelect = $('#tsbifw_vision_model');
 
-		if (!$embSkeleton.length) return;
+		if (!$embSkeleton.length && !$visSkeleton.length) return;
 
 		gateway = gateway || $('#tsbifw_api_gateway').val() || 'openrouter';
 
 		$embSkeleton.show().text('').css('animation', '');
 		$embeddingSelect.hide().empty();
+		$visSkeleton.show().text('').css('animation', '');
+		$visionSelect.hide().empty();
 		$(document).trigger('tsbifw_before_load_models', [gateway]);
 
 		$.ajax({
@@ -318,18 +433,38 @@ jQuery(document).ready(function($) {
 				security: tsbifw_admin_params.nonce
 			},
 			success: function(response) {
-				if (response.success) {
+				if (response.success && response.data) {
 					var selectedEmbedding = $embeddingSelect.data('selected');
+					var selectedVision = $visionSelect.data('selected');
 
-					// Populate embeddings
 					if (response.data.embedding_models && response.data.embedding_models.length > 0) {
 						response.data.embedding_models.forEach(function(model) {
-							var isSelected = (model.id == selectedEmbedding) ? 'selected' : '';
-							$embeddingSelect.append('<option value="' + model.id + '" ' + isSelected + '>' + (model.name || model.id) + '</option>');
+							$('<option>')
+								.val(model.id)
+								.text(model.name || model.id)
+								.prop('selected', model.id == selectedEmbedding)
+								.appendTo($embeddingSelect);
 						});
+					} else {
+						$('<option>').val('').text('No embedding models available for this gateway').appendTo($embeddingSelect);
 					}
 
-					// Hide skeleton and show select dropdown
+					if ($visionSelect.length) {
+						if (response.data.vision_models && response.data.vision_models.length > 0) {
+							response.data.vision_models.forEach(function(model) {
+								$('<option>')
+									.val(model.id)
+									.text(model.name || model.id)
+									.prop('selected', model.id == selectedVision)
+									.appendTo($visionSelect);
+							});
+						} else {
+							$('<option>').val('').text('No vision models available for this gateway').appendTo($visionSelect);
+						}
+						$visSkeleton.hide();
+						$visionSelect.show();
+					}
+
 					$embSkeleton.hide();
 					$embeddingSelect.show();
 
